@@ -3,124 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Nightmare Realm Pro</title>
+    <title>Zander: Nightmare Swarm</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --gold: #ffd700; --blood: #8e0000; --fog: #1a1a2e; }
+        :root { --gold: #ffd700; --blood: #8e0000; --fog: #0a0a0a; }
         body { margin: 0; background: #000; color: white; font-family: 'Arial', sans-serif; overflow: hidden; user-select: none; }
 
-        #bg-layer {
+        /* Lommelygte/Mørke effekt */
+        #flashlight {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(to bottom, #000 0%, var(--fog) 100%);
-            z-index: -1; transition: background 2s;
+            background: radial-gradient(circle 200px at var(--x) var(--y), transparent 0%, rgba(0,0,0,0.98) 100%);
+            z-index: 100; pointer-events: none;
         }
 
         #menu-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
+            background: rgba(0,0,0,0.98); display: flex; flex-direction: column;
             align-items: center; justify-content: center; z-index: 500;
         }
 
         .hud {
             position: fixed; top: 0; width: 100%; padding: 20px;
             display: flex; justify-content: space-around;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 100;
-            font-family: 'Orbitron';
+            background: linear-gradient(to bottom, rgba(0,0,0,1), transparent); z-index: 150;
+            font-family: 'Orbitron'; border-bottom: 1px solid #222;
         }
 
-        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #050505; }
 
-        #player {
-            position: absolute; width: 50px; height: 60px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 60; font-size: 40px;
-        }
+        #player { position: absolute; width: 50px; height: 60px; font-size: 40px; z-index: 60; text-align: center; }
 
-        #monster {
-            position: absolute; width: 150px; height: 150px;
+        .monster {
+            position: absolute; width: 80px; height: 80px;
             display: flex; justify-content: center; align-items: center;
-            z-index: 40; filter: drop-shadow(0 0 20px var(--blood));
-            cursor: crosshair;
+            z-index: 40; filter: drop-shadow(0 0 10px var(--blood));
+            font-size: 60px;
         }
 
-        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 90%; max-width: 900px; }
-        .shop-box { background: #111; padding: 15px; border: 1px solid #333; border-radius: 10px; text-align: center;}
-        
+        .shop-box { background: #111; padding: 20px; border: 1px solid #333; border-radius: 10px; text-align: center; }
         .btn {
             background: #000; color: #fff; border: 1px solid #444;
             padding: 12px; cursor: pointer; font-family: 'Orbitron';
             margin: 5px; width: 95%; border-radius: 5px; transition: 0.2s;
         }
-        .btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
-        .btn:disabled { opacity: 0.2; cursor: default; }
+        .btn:hover:not(:disabled) { border-color: red; color: red; }
 
-        .hp-bar { width: 120px; height: 8px; background: #000; border: 1px solid #333; margin-top: 10px; }
-        .hp-fill { height: 100%; background: var(--blood); transition: width 0.1s; }
-        
-        .m-bullet { position: absolute; width: 12px; height: 12px; background: #ff0000; border-radius: 50%; box-shadow: 0 0 15px red; }
-        .p-bullet { position: absolute; width: 4px; height: 15px; background: #00f2ff; box-shadow: 0 0 10px #00f2ff; }
-        
-        #current-area { font-family: 'Creepster'; color: var(--blood); font-size: 2rem; position: fixed; bottom: 20px; right: 20px; }
+        /* Partikler */
+        .p-bullet { position: absolute; width: 6px; height: 6px; background: #00f2ff; border-radius: 50%; box-shadow: 0 0 10px #00f2ff; z-index: 55; }
+        .m-bullet { position: absolute; width: 10px; height: 10px; background: red; border-radius: 50%; z-index: 55; box-shadow: 0 0 10px red; }
+        .hit-particle { position: absolute; width: 3px; height: 3px; background: orange; border-radius: 50%; pointer-events: none; z-index: 70; }
+
+        #area-text { font-family: 'Creepster'; color: #440000; font-size: 2.5rem; position: fixed; bottom: 20px; left: 20px; z-index: 120; }
     </style>
 </head>
 <body>
 
-<div id="bg-layer"></div>
+<div id="flashlight"></div>
+<div id="area-text">DE DØDES MARK</div>
 
 <div id="menu-overlay">
-    <h1 style="color: var(--blood); font-family: 'Creepster'; font-size: 4rem; margin: 0;" id="menu-title">NIGHTMARE HUB</h1>
-    <p style="font-family: 'Orbitron'; font-size: 1.2rem;">GULD: <b id="menu-money" style="color:var(--gold)">0</b></p>
-    <div class="shop-grid">
-        <div class="shop-box">
-            <h3 style="font-family: 'Orbitron'; color: var(--gold);">UDSTYR</h3>
-            <button class="btn" id="btn-dmg" onclick="buy('dmg')">SKARPERE AMMO [<span id="price-dmg">200</span>]</button>
-            <button class="btn" id="btn-auto" onclick="buy('auto')">AUTO-DRONE [<span id="price-auto">800</span>]</button>
-            <button class="btn" id="btn-heal" onclick="buy('heal')">MEDKIT [<span id="price-heal">100</span>]</button>
-        </div>
-        <div class="shop-box">
-            <h3 style="font-family: 'Orbitron'; color: var(--gold);">AVATARS</h3>
-            <button class="btn" id="btn-soldier" onclick="buySkin('soldier', 1000, '👨‍✈️', 1.2, 3)">SOLDAT (1000)</button>
-            <button class="btn" id="btn-hunter" onclick="buySkin('hunter', 3000, '🕵️‍♂️', 1.5, 6)">HUNTER (3000)</button>
-            <button class="btn" id="btn-cyborg" onclick="buySkin('cyborg', 7000, '🤖', 1.1, 15)">CYBORG (7000)</button>
+    <h1 style="color: var(--blood); font-family: 'Creepster'; font-size: 5rem; margin: 0;">OVERLEV</h1>
+    <p style="font-family: 'Orbitron';">GULD: <b id="menu-money" style="color:var(--gold)">0</b></p>
+    <div class="shop-box">
+        <button class="btn" id="btn-dmg" onclick="buy('dmg')">LYSENDE AMMO [<span id="price-dmg">200</span>]</button>
+        <button class="btn" id="btn-auto" onclick="buy('auto')">SØGE-DRONE [<span id="price-auto">1000</span>]</button>
+        <button class="btn" onclick="buy('heal')">MEDKIT [150]</button>
+        <div style="margin-top: 20px;">
+             <button class="btn" onclick="buySkin('ninja', 1000, '🥷', 1.5, 3)">NINJA-GEAR (1000)</button>
+             <button class="btn" onclick="buySkin('king', 5000, '👑', 1.1, 10)">KONGESKRIDT (5000)</button>
         </div>
     </div>
-    <button class="btn" style="width: 200px; margin-top: 30px; background: var(--blood);" id="start-btn" onclick="closeMenu()">NÆSTE SEKTOR</button>
+    <button class="btn" style="width: 200px; margin-top: 30px; background: var(--blood);" onclick="closeMenu()">FORTSÆT MARERIDTET</button>
 </div>
 
 <div class="hud">
     <div>GULD: <b id="money" style="color: var(--gold);">0</b></div>
-    <div>SKADE: <b id="p-dmg-ui">10</b></div>
     <div>SEKTOR: <b id="lvl">1/20</b></div>
     <div style="color: #4cd137;">LIV: <b id="p-hp">100</b></div>
 </div>
 
-<div id="current-area">DEN MØRKE SKOV</div>
-
 <div id="game-container">
-    <div id="player"><span>👨</span></div>
-    
-    <div id="monster" onclick="attackMonster()">
-        <div style="position: absolute; top: -40px; text-align: center;">
-            <div class="hp-bar"><div id="m-hp-fill" class="hp-fill"></div></div>
-        </div>
-        <div id="m-visual" style="font-size: 100px;">👹</div>
-    </div>
+    <div id="player">👨</div>
 </div>
 
 <script>
-    let money = 0, lvl = 1, pHP = 100, pDmg = 10, pSpeed = 6, gMult = 2, monsterAlive = false, inMenu = true;
-    let mHP = 100, mMaxHP = 100, mx = 500, my = 500;
-    let px = window.innerWidth/2, py = 200, autoOwned = false, lastAuto = 0;
+    let money = 0, lvl = 0, pHP = 100, pDmg = 15, pSpeed = 6, gMult = 2, inMenu = true;
+    let px = window.innerWidth/2, py = window.innerHeight/2;
+    let prices = { dmg: 200, auto: 1000 };
+    let autoOwned = false, lastAuto = 0;
     
-    // Priser der stiger
-    let prices = { dmg: 200, auto: 800, heal: 100 };
-    
-    const keys = {}, mBullets = [], pBullets = [];
-    const areas = ["DEN MØRKE SKOV", "DE GLEMTE HULER", "HELVEDES PORT", "DIMENSION X"];
+    const keys = {}, monsters = [], mBullets = [], pBullets = [], hitParticles = [];
+    const container = document.getElementById('game-container');
+
+    // Opdater lommelygte position
+    window.addEventListener('mousemove', e => {
+        document.documentElement.style.setProperty('--x', e.clientX + 'px');
+        document.documentElement.style.setProperty('--y', e.clientY + 'px');
+    });
 
     window.addEventListener('keydown', e => {
-        if(e.code === 'Escape' && monsterAlive) inMenu ? closeMenu() : openMenu();
-        if(e.code === 'Enter' && !keys[e.code] && monsterAlive && !inMenu) attackMonster();
+        if(e.code === 'Escape') inMenu ? closeMenu() : openMenu();
         keys[e.code] = true;
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
@@ -129,81 +111,67 @@
         inMenu = true; 
         document.getElementById('menu-overlay').style.display = 'flex'; 
         document.getElementById('menu-money').innerText = Math.floor(money);
-        updateUI(); 
     }
     
     function closeMenu() { 
         inMenu = false; 
         document.getElementById('menu-overlay').style.display = 'none'; 
-        if(!monsterAlive) spawnMonster();
+        if(monsters.length === 0) spawnSwarm();
     }
 
-    function attackMonster() {
-        if(!monsterAlive || inMenu) return;
-        mHP -= pDmg;
-        money += pDmg * gMult;
-        if(mHP <= 0) killMonster();
-        updateUI();
-    }
-
-    function killMonster() {
-        monsterAlive = false;
-        money += 500 * lvl;
-        document.getElementById('menu-title').innerText = "SEKTOR RENSET!";
-        document.getElementById('start-btn').innerText = "GÅ TIL SEKTOR " + (lvl + 1);
-        setTimeout(openMenu, 1000);
-    }
-
-    function spawnMonster() {
+    function spawnSwarm() {
         lvl++;
-        if(lvl > 20) { alert("DU OVERLEVEDE NATTEN!"); location.reload(); return; }
-        mMaxHP = Math.round(100 * Math.pow(1.3, lvl));
-        mHP = mMaxHP;
-        monsterAlive = true;
-        mx = Math.random() * window.innerWidth;
-        my = Math.random() * window.innerHeight;
+        const count = 1 + Math.floor(lvl / 4); // Flere monstre hver 4. level
+        for(let i=0; i < count; i++) {
+            createMonster();
+        }
+    }
 
-        const areaIdx = Math.floor((lvl-1)/5);
-        document.getElementById('current-area').innerText = areas[areaIdx] || "ENDELIGE MARERIDT";
-        document.getElementById('m-visual').innerText = ['👹', '👽', '🕷️', '💀', '🧛'][Math.floor(Math.random()*5)];
-        updateUI();
+    function createMonster() {
+        const el = document.createElement('div');
+        el.className = 'monster';
+        el.innerText = ['👻', '👹', '🧟', '🕷️'][Math.floor(Math.random()*4)];
+        container.appendChild(el);
+        
+        const side = Math.random() > 0.5;
+        monsters.push({
+            el: el,
+            x: side ? -100 : window.innerWidth + 100,
+            y: Math.random() * window.innerHeight,
+            hp: 50 * Math.pow(1.3, lvl),
+            maxHp: 50 * Math.pow(1.3, lvl)
+        });
     }
 
     function buy(type) {
+        if(type === 'heal' && money >= 150) { money -= 150; pHP = 100; }
         if(money >= prices[type]) {
             money -= prices[type];
-            if(type === 'dmg') { pDmg += 10; prices.dmg = Math.round(prices.dmg * 1.6); }
-            if(type === 'auto') { autoOwned = true; prices.auto = Math.round(prices.auto * 1.8); }
-            if(type === 'heal') { pHP = 100; prices.heal = Math.round(prices.heal * 1.2); }
-            updateUI();
+            if(type === 'dmg') { pDmg += 15; prices.dmg = Math.round(prices.dmg * 1.8); }
+            if(type === 'auto') { autoOwned = true; prices.auto = Math.round(prices.auto * 2); }
         }
+        document.getElementById('price-dmg').innerText = prices.dmg;
+        document.getElementById('price-auto').innerText = prices.auto;
+        document.getElementById('menu-money').innerText = Math.floor(money);
     }
 
     function buySkin(id, cost, icon, speed, mult) {
         if(money >= cost) {
             money -= cost;
-            document.querySelector('#player span').innerText = icon;
+            document.getElementById('player').innerText = icon;
             pSpeed = 6 * speed; gMult = mult;
-            document.getElementById('btn-' + id).disabled = true;
-            updateUI();
+            document.getElementById('menu-money').innerText = Math.floor(money);
         }
     }
 
-    function updateUI() {
-        document.getElementById('money').innerText = Math.floor(money);
-        document.getElementById('menu-money').innerText = Math.floor(money);
-        document.getElementById('lvl').innerText = lvl + "/20";
-        document.getElementById('p-hp').innerText = Math.floor(pHP);
-        document.getElementById('p-dmg-ui').innerText = pDmg;
-        document.getElementById('m-hp-fill').style.width = (mHP/mMaxHP*100) + "%";
-        
-        document.getElementById('price-dmg').innerText = prices.dmg;
-        document.getElementById('price-auto').innerText = prices.auto;
-        document.getElementById('price-heal').innerText = prices.heal;
-
-        document.getElementById('btn-dmg').disabled = money < prices.dmg;
-        document.getElementById('btn-auto').disabled = money < prices.auto;
-        document.getElementById('btn-heal').disabled = money < prices.heal;
+    function createHitParticle(x, y) {
+        for(let i=0; i<5; i++) {
+            const p = document.createElement('div');
+            p.className = 'hit-particle';
+            p.style.left = x + 'px'; p.style.top = y + 'px';
+            container.appendChild(p);
+            hitParticles.push({ el: p, x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1 });
+        }
     }
 
     function loop(time) {
@@ -213,74 +181,78 @@
             if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
             if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
             
-            px = Math.max(0, Math.min(window.innerWidth-50, px));
-            py = Math.max(0, Math.min(window.innerHeight-100, py));
-            document.getElementById('player').style.left = px + 'px';
-            document.getElementById('player').style.top = py + 'px';
+            const pEl = document.getElementById('player');
+            pEl.style.left = px + 'px'; pEl.style.top = py + 'px';
 
-            if(monsterAlive) {
-                const dx = px - mx, dy = py - my;
+            // Monstre forfølger
+            monsters.forEach((m, i) => {
+                const dx = px - m.x, dy = py - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                const mSpeed = 1.2 + (lvl * 0.2);
-                
-                mx += (dx/dist) * mSpeed;
-                my += (dy/dist) * mSpeed;
-                
-                const mEl = document.getElementById('monster');
-                mEl.style.left = (mx - 75) + 'px'; mEl.style.top = (my - 75) + 'px';
+                m.x += (dx/dist) * (1.5 + lvl*0.1);
+                m.y += (dy/dist) * (1.5 + lvl*0.1);
+                m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
 
-                // Fjenden skader nu 10 + lvl ved berøring
-                if(dist < 60) {
-                    pHP -= (0.2 + (lvl * 0.05));
-                    updateUI();
-                }
+                if(dist < 50) { pHP -= 0.5; } // Berøring skader
 
-                // Monsteret skyder (skaden stiger med lvl)
-                if(Math.random() < 0.02 + (lvl*0.002)) {
+                if(Math.random() < 0.01 + (lvl*0.001)) { // Skyd
                     const b = document.createElement('div');
                     b.className = 'm-bullet';
-                    const ang = Math.atan2(dy, dx);
-                    mBullets.push({ el: b, x: mx, y: my, vx: Math.cos(ang)*6, vy: Math.sin(ang)*6 });
-                    document.getElementById('game-container').appendChild(b);
+                    container.appendChild(b);
+                    mBullets.push({ el: b, x: m.x+30, y: m.y+30, vx: (dx/dist)*6, vy: (dy/dist)*6 });
                 }
-            }
+            });
 
-            if(autoOwned && monsterAlive && time - lastAuto > 600) {
+            // Auto-fire partikel skud
+            if(autoOwned && monsters.length > 0 && time - lastAuto > 500) {
+                const target = monsters[0];
                 const b = document.createElement('div');
                 b.className = 'p-bullet';
-                const ang = Math.atan2(my-py, mx-px);
-                pBullets.push({ el: b, x: px+25, y: py+30, vx: Math.cos(ang)*12, vy: Math.sin(ang)*12 });
-                document.getElementById('game-container').appendChild(b);
+                container.appendChild(b);
+                const ang = Math.atan2(target.y - py, target.x - px);
+                pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*12, vy: Math.sin(ang)*12 });
                 lastAuto = time;
             }
 
+            // Opdater skud & Partikler
+            pBullets.forEach((b, bi) => {
+                b.x += b.vx; b.y += b.vy;
+                b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+                monsters.forEach((m, mi) => {
+                    if(b.x > m.x && b.x < m.x+80 && b.y > m.y && b.y < m.y+80) {
+                        m.hp -= pDmg; money += 5 * gMult;
+                        createHitParticle(b.x, b.y);
+                        b.el.remove(); pBullets.splice(bi, 1);
+                        if(m.hp <= 0) {
+                            m.el.remove(); monsters.splice(mi, 1);
+                            money += 200;
+                            if(monsters.length === 0) setTimeout(openMenu, 1000);
+                        }
+                    }
+                });
+            });
+
             mBullets.forEach((b, i) => {
                 b.x += b.vx; b.y += b.vy;
-                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
+                b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
                 if(b.x > px && b.x < px+50 && b.y > py && b.y < py+60) {
-                    // Skud-skade skalerer med level
-                    pHP -= (5 + lvl); 
-                    updateUI(); b.el.remove(); mBullets.splice(i, 1);
-                } else if(b.x < 0 || b.x > window.innerWidth || b.y < 0 || b.y > window.innerHeight) {
-                    b.el.remove(); mBullets.splice(i, 1);
+                    pHP -= (5 + lvl); b.el.remove(); mBullets.splice(i, 1);
                 }
             });
 
-            pBullets.forEach((b, i) => {
-                b.x += b.vx; b.y += b.vy;
-                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
-                if(b.x > mx-70 && b.x < mx+70 && b.y > my-70 && b.y < my+70) {
-                    mHP -= pDmg; updateUI(); b.el.remove(); pBullets.splice(i, 1);
-                    if(mHP <= 0) killMonster();
-                }
+            hitParticles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+                p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px'; p.el.style.opacity = p.life;
+                if(p.life <= 0) { p.el.remove(); hitParticles.splice(i, 1); }
             });
 
-            if(pHP <= 0) { alert("MARERIDTET TOG DIG! Sektor: " + lvl); location.reload(); }
+            document.getElementById('money').innerText = Math.floor(money);
+            document.getElementById('lvl').innerText = lvl;
+            document.getElementById('p-hp').innerText = Math.floor(pHP);
+            if(pHP <= 0) { alert("Mørket vandt..."); location.reload(); }
         }
         requestAnimationFrame(loop);
     }
 
-    // Start menuen
     openMenu();
     requestAnimationFrame(loop);
 </script>
