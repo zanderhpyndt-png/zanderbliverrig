@@ -1,212 +1,304 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZanderBliverRig</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZanderBliverRig | Pro Edition</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    
+    <style>
+        :root {
+            --gold: #ffd700;
+            --dark-gold: #b8860b;
+            --bg: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --text: #ffffff;
+        }
 
-<style>
-body {
-    margin: 0;
-    font-family: Arial;
-    text-align: center;
-    color: white;
-    background: radial-gradient(circle at top, #111, #000);
-    overflow-x: hidden;
-}
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% -20%, #222, #000);
+        }
 
-h1 {
-    margin-top: 40px;
-    font-size: 3em;
-    text-shadow: 0 0 20px gold;
-}
+        /* Overskrift & Stats */
+        header {
+            margin-top: 50px;
+            text-align: center;
+        }
 
-.box {
-    margin: 15px;
-    padding: 15px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 15px;
-    display: inline-block;
-    box-shadow: 0 0 15px rgba(255,215,0,0.2);
-}
+        h1 {
+            font-size: 4rem;
+            margin: 0;
+            background: linear-gradient(to bottom, #fff, var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
 
-button {
-    padding: 15px 30px;
-    margin: 10px;
-    background: linear-gradient(45deg, gold, orange);
-    border: none;
-    border-radius: 12px;
-    font-size: 1.2em;
-    cursor: pointer;
-    transition: 0.2s;
-}
+        .main-stats {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--gold);
+            margin: 20px 0;
+        }
 
-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 0 20px gold;
-}
+        /* Hovedknap */
+        .clicker-container {
+            position: relative;
+            margin: 40px 0;
+        }
 
-.money {
-    position: fixed;
-    font-size: 1.5em;
-    pointer-events: none;
-    animation: fall 1s linear forwards;
-}
+        .main-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 8px solid var(--gold);
+            background: radial-gradient(circle, #222, #111);
+            cursor: pointer;
+            font-size: 5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, box-shadow 0.3s;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+            user-select: none;
+        }
 
-@keyframes fall {
-    0% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(120px); }
-}
-</style>
+        .main-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Shop System */
+        .shop-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 90%;
+            max-width: 1000px;
+            padding: 40px 0;
+        }
+
+        .upgrade-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            text-align: left;
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upgrade-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+        }
+
+        .upgrade-card h3 {
+            margin: 0 0 10px 0;
+            color: var(--gold);
+        }
+
+        .upgrade-card p {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .buy-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: var(--gold);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .buy-btn:disabled {
+            background: #444;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        /* Flyvende Penge Animation */
+        .particle {
+            position: absolute;
+            color: #4cd137;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+            animation: moveUp 0.8s ease-out forwards;
+        }
+
+        @keyframes moveUp {
+            0% { transform: translateY(0) opacity(1); }
+            100% { transform: translateY(-100px); opacity(0); }
+        }
+
+        /* Status Bar */
+        .info-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            border-top: 1px solid var(--gold);
+            backdrop-filter: blur(10px);
+        }
+    </style>
 </head>
-
 <body>
 
-<h1>💰 ZanderBliverRig 💰</h1>
+<header>
+    <h1>ZANDER RIGER</h1>
+    <div class="main-stats"><span id="money">0</span> kr</div>
+</header>
 
-<div class="box">
-Besøgende: <span id="visits">0</span>
+<div class="clicker-container">
+    <div class="main-btn" id="clickBtn">💸</div>
 </div>
 
-<br>
+<div class="shop-container">
+    <!-- Upgrade 1 -->
+    <div class="upgrade-card">
+        <h3>💪 Træn dine fingre</h3>
+        <p>Giver +1 per klik</p>
+        <button class="buy-btn" onclick="buyUpgrade('click')" id="btnClick">Pris: 50 kr</button>
+    </div>
 
-<div class="box">
-Dine penge: <span id="money">0</span> kr
+    <!-- Upgrade 2 -->
+    <div class="upgrade-card">
+        <h3>🏭 Penge-maskine</h3>
+        <p>Giver +2 kr i sekundet</p>
+        <button class="buy-btn" onclick="buyUpgrade('auto')" id="btnAuto">Pris: 150 kr</button>
+    </div>
+
+    <!-- Upgrade 3 -->
+    <div class="upgrade-card">
+        <h3>🔫 Bankrøver Kit</h3>
+        <p>Giver +10 per klik</p>
+        <button class="buy-btn" onclick="buyUpgrade('gun')" id="btnGun">Pris: 1.000 kr</button>
+    </div>
+
+    <!-- Upgrade 4 -->
+    <div class="upgrade-card">
+        <h3>🔥 SAHUR MODE</h3>
+        <p>Fordobler ALT indtjening (x2)</p>
+        <button class="buy-btn" onclick="buyUpgrade('multiplier')" id="btnMult">Pris: 5.000 kr</button>
+    </div>
 </div>
 
-<br>
-
-<button onclick="earn(event)">Tjen penge 💸</button>
-
-<h2>🛒 Shop</h2>
-
-<div class="box">
-💪 Bedre klik (+1)<br>
-Pris: <span id="priceClick">50</span><br>
-<button onclick="buyClick()">Køb</button>
-</div>
-
-<div class="box">
-🏭 Auto penge (+1/s)<br>
-Pris: <span id="priceAuto">100</span><br>
-<button onclick="buyAuto()">Køb</button>
-</div>
-
-<div class="box">
-🔫 Gun upgrade (+5 klik power)<br>
-Pris: <span id="priceGun">500</span><br>
-<button onclick="buyGun()">Køb</button>
-</div>
-
-<div class="box">
-🔥 TUNG TUNG SAHUR (x2 alt income)<br>
-Pris: <span id="priceSahur">2000</span><br>
-<button onclick="buySahur()">Køb</button>
+<div class="info-bar">
+    <span>Per klik: <b id="statClick">1</b> kr</span>
+    <span>Auto-indkomst: <b id="statAuto">0</b> kr/s</span>
+    <span>Multiplier: <b id="statMult">1</b>x</span>
 </div>
 
 <script>
+    // Stats
+    let balance = 0;
+    let clickPower = 1;
+    let autoIncome = 0;
+    let multiplier = 1;
 
-let visits = localStorage.getItem("visits") || 0;
-visits++;
-localStorage.setItem("visits", visits);
-document.getElementById("visits").innerText = visits;
+    // Priser
+    let prices = {
+        click: 50,
+        auto: 150,
+        gun: 1000,
+        multiplier: 5000
+    };
 
-let money = parseInt(localStorage.getItem("money")) || 0;
-let clickPower = parseInt(localStorage.getItem("clickPower")) || 1;
-let auto = parseInt(localStorage.getItem("auto")) || 0;
-let multiplier = parseInt(localStorage.getItem("multiplier")) || 1;
+    const moneyEl = document.getElementById('money');
+    const clickBtn = document.getElementById('clickBtn');
 
-let priceClick = parseInt(localStorage.getItem("priceClick")) || 50;
-let priceAuto = parseInt(localStorage.getItem("priceAuto")) || 100;
-let priceGun = parseInt(localStorage.getItem("priceGun")) || 500;
-let priceSahur = parseInt(localStorage.getItem("priceSahur")) || 2000;
+    // Hoved klik-funktion
+    clickBtn.addEventListener('click', (e) => {
+        const amount = clickPower * multiplier;
+        balance += amount;
+        updateUI();
+        createParticle(e.clientX, e.clientY, `+${amount}`);
+    });
 
-function update() {
-    document.getElementById("money").innerText = money;
-    document.getElementById("priceClick").innerText = priceClick;
-    document.getElementById("priceAuto").innerText = priceAuto;
-    document.getElementById("priceGun").innerText = priceGun;
-    document.getElementById("priceSahur").innerText = priceSahur;
-}
+    // Køb system
+    function buyUpgrade(type) {
+        if (balance >= prices[type]) {
+            balance -= prices[type];
+            
+            if (type === 'click') {
+                clickPower += 1;
+                prices.click = Math.round(prices.click * 1.5);
+            } else if (type === 'auto') {
+                autoIncome += 2;
+                prices.auto = Math.round(prices.auto * 1.6);
+            } else if (type === 'gun') {
+                clickPower += 10;
+                prices.gun = Math.round(prices.gun * 1.8);
+            } else if (type === 'multiplier') {
+                multiplier += 1;
+                prices.multiplier = Math.round(prices.multiplier * 3);
+            }
 
-function earn(e) {
-    money += clickPower * multiplier;
-    spawnMoney(e.target);
-    save();
-}
-
-function spawnMoney(btn) {
-    const rect = btn.getBoundingClientRect();
-
-    for (let i = 0; i < 6; i++) {
-        const el = document.createElement("div");
-        el.className = "money";
-        el.innerText = "💸";
-
-        el.style.left = (rect.left + rect.width / 2 + (Math.random() * 60 - 30)) + "px";
-        el.style.top = rect.top + "px";
-
-        document.body.appendChild(el);
-
-        setTimeout(() => el.remove(), 1000);
+            updateUI();
+        }
     }
-}
 
-function buyClick() {
-    if (money >= priceClick) {
-        money -= priceClick;
-        clickPower += 1;
-        priceClick = Math.floor(priceClick * 1.5);
-        save();
+    // Update UI
+    function updateUI() {
+        moneyEl.innerText = Math.floor(balance).toLocaleString();
+        
+        document.getElementById('btnClick').innerText = `Pris: ${prices.click} kr`;
+        document.getElementById('btnAuto').innerText = `Pris: ${prices.auto} kr`;
+        document.getElementById('btnGun').innerText = `Pris: ${prices.gun} kr`;
+        document.getElementById('btnMult').innerText = `Pris: ${prices.multiplier} kr`;
+
+        document.getElementById('statClick').innerText = clickPower;
+        document.getElementById('statAuto').innerText = autoIncome * multiplier;
+        document.getElementById('statMult').innerText = multiplier;
+
+        // Check om man har råd (disable/enable knapper)
+        const btns = document.querySelectorAll('.buy-btn');
+        if (balance < prices.click) document.getElementById('btnClick').disabled = true; else document.getElementById('btnClick').disabled = false;
+        if (balance < prices.auto) document.getElementById('btnAuto').disabled = true; else document.getElementById('btnAuto').disabled = false;
+        if (balance < prices.gun) document.getElementById('btnGun').disabled = true; else document.getElementById('btnGun').disabled = false;
+        if (balance < prices.multiplier) document.getElementById('btnMult').disabled = true; else document.getElementById('btnMult').disabled = false;
     }
-}
 
-function buyAuto() {
-    if (money >= priceAuto) {
-        money -= priceAuto;
-        auto += 1;
-        priceAuto = Math.floor(priceAuto * 1.7);
-        save();
+    // Auto-money loop
+    setInterval(() => {
+        if (autoIncome > 0) {
+            balance += (autoIncome * multiplier) / 10; // Kører hver 100ms
+            updateUI();
+        }
+    }, 100);
+
+    // Partikel effekt
+    function createParticle(x, y, text) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.innerText = text;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 800);
     }
-}
 
-function buyGun() {
-    if (money >= priceGun) {
-        money -= priceGun;
-        clickPower += 5;
-        priceGun = Math.floor(priceGun * 2);
-        save();
-    }
-}
-
-function buySahur() {
-    if (money >= priceSahur) {
-        money -= priceSahur;
-        multiplier *= 2;
-        priceSahur = Math.floor(priceSahur * 3);
-        save();
-    }
-}
-
-setInterval(() => {
-    money += auto * multiplier;
-    save();
-}, 1000);
-
-function save() {
-    localStorage.setItem("money", money);
-    localStorage.setItem("clickPower", clickPower);
-    localStorage.setItem("auto", auto);
-    localStorage.setItem("multiplier", multiplier);
-    localStorage.setItem("priceClick", priceClick);
-    localStorage.setItem("priceAuto", priceAuto);
-    localStorage.setItem("priceGun", priceGun);
-    localStorage.setItem("priceSahur", priceSahur);
-    update();
-}
-
-update();
-
+    updateUI(); // Start setup
 </script>
 
 </body>
