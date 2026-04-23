@@ -3,244 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Monster Slayer Pro</title>
+    <title>Zander: Shadow Hunter</title>
+    <link href="https://googleapis.com" rel="stylesheet">
     <style>
         :root {
-            --gold: #ffd700;
-            --blood: #8e0000;
-            --hp-green: #2ecc71;
+            --gold: #d4af37;
+            --blood: #bc0000;
+            --ui-bg: rgba(20, 20, 20, 0.9);
         }
 
-        body {
-            margin: 0;
-            background: #050505;
-            color: white;
-            font-family: 'Courier New', Courier, monospace;
-            overflow: hidden;
-            user-select: none;
+        body, html {
+            margin: 0; padding: 0;
+            background: #000; color: white;
+            font-family: 'Roboto', sans-serif;
+            overflow: hidden; height: 100%;
         }
 
-        /* HUD */
-        #hud {
-            position: fixed;
-            top: 0; width: 100%;
-            padding: 20px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
-            display: flex;
-            justify-content: space-around;
-            z-index: 100;
-            border-bottom: 1px solid #333;
+        /* Overlay Menu */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; transition: 0.5s;
         }
 
-        .stat { text-align: center; }
-        .stat b { display: block; font-size: 1.5rem; color: var(--gold); }
+        #overlay h1 { font-family: 'Cinzel', serif; font-size: 4rem; color: var(--gold); margin-bottom: 20px; }
 
-        /* Game Arena */
+        .start-btn {
+            padding: 20px 60px; font-size: 1.5rem; font-weight: bold;
+            background: var(--gold); border: none; cursor: pointer;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+            transition: 0.3s;
+        }
+        .start-btn:hover { transform: scale(1.1); background: white; }
+
+        /* Game UI */
+        #ui-top {
+            position: fixed; top: 0; width: 100%; padding: 20px;
+            display: flex; justify-content: space-around;
+            background: linear-gradient(to bottom, black, transparent);
+            z-index: 100; pointer-events: none;
+        }
+
+        .stat-card { text-align: center; }
+        .stat-card span { display: block; font-size: 0.8rem; color: #888; letter-spacing: 2px; }
+        .stat-card b { font-size: 2rem; color: var(--gold); }
+
+        /* Arena */
         #arena {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-            background: radial-gradient(circle, #111 0%, #000 100%);
-            cursor: crosshair;
+            height: 100vh; display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle, #1a0505 0%, #000 100%);
         }
 
-        /* Det "Realistiske" Monster */
-        .monster {
-            position: absolute;
-            width: 120px;
-            height: 120px;
-            background: #2c3e50;
-            border-radius: 20% 70% 30% 50%; /* Organisk form */
-            box-shadow: inset -10px -10px 20px #000, 0 0 30px rgba(255,0,0,0.2);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: transform 0.1s, background 0.3s;
-            animation: breathe 2s infinite ease-in-out;
+        /* Det Realistiske Monster */
+        #monster-anchor { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; }
+
+        .monster-body {
+            width: 200px; height: 200px;
+            background: #1a1a1a;
+            border-radius: 40% 60% 60% 40% / 40% 40% 60% 60%;
+            box-shadow: inset 0 0 50px #000, 0 0 40px var(--blood);
+            transition: 0.1s; cursor: crosshair;
+            position: relative; animation: hover 3s infinite ease-in-out;
         }
 
-        .monster::before { /* Øje */
-            content: '';
-            width: 40px; height: 10px;
-            background: red;
-            box-shadow: 0 0 15px red;
-            border-radius: 50%;
+        .eye {
+            position: absolute; top: 30%; width: 40px; height: 5px;
+            background: red; box-shadow: 0 0 20px red; border-radius: 50%;
+        }
+        .eye.left { left: 20%; transform: rotate(-10deg); }
+        .eye.right { right: 20%; transform: rotate(10deg); }
+
+        @keyframes hover {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            50% { transform: translateY(-20px) rotate(2deg); }
         }
 
-        @keyframes breathe {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1) rotate(5deg); }
-        }
+        /* Health Bars */
+        .hp-container { width: 300px; height: 10px; background: #222; border: 1px solid #444; margin-bottom: 10px; }
+        .hp-fill { height: 100%; width: 100%; transition: 0.1s; }
+        #m-hp { background: var(--blood); }
+        #p-hp { background: #2ecc71; }
 
-        /* HP Bar over monster */
-        .m-hp-wrap {
-            position: absolute;
-            top: -25px;
-            width: 100%;
-            height: 8px;
-            background: #000;
-            border: 1px solid #444;
-        }
-        .m-hp-fill { height: 100%; background: var(--blood); transition: width 0.1s; }
-
-        /* UI elements */
+        /* Shop Sidebar */
         #shop {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 15px;
-            z-index: 100;
+            position: fixed; right: 20px; top: 50%; transform: translateY(-50%);
+            display: flex; flex-direction: column; gap: 10px;
         }
 
-        .btn {
-            background: #222;
-            border: 1px solid var(--gold);
-            color: white;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
+        .shop-item {
+            background: var(--ui-bg); border-left: 4px solid var(--gold);
+            padding: 15px; width: 180px; transition: 0.3s;
+        }
+        .shop-item:hover { background: #333; }
+        .shop-item button { 
+            width: 100%; margin-top: 10px; background: none; border: 1px solid var(--gold); 
+            color: white; padding: 5px; cursor: pointer;
         }
 
-        .btn:hover { background: var(--gold); color: black; }
-
-        /* Effects */
-        .blood {
-            position: absolute;
-            width: 10px; height: 10px;
-            background: var(--blood);
-            border-radius: 50%;
-            pointer-events: none;
-            animation: explode 0.5s forwards;
-        }
-
-        @keyframes explode {
-            to { transform: translate(var(--x), var(--y)); opacity: 0; }
-        }
-
-        .p-hp-bar {
-            position: fixed;
-            left: 20px; top: 100px;
-            width: 200px; height: 20px;
-            background: #222;
-            border: 2px solid white;
-        }
-        #p-fill { height: 100%; background: var(--hp-green); width: 100%; }
-
+        /* Animationer */
+        .hit-flash { filter: brightness(3) saturate(2); }
     </style>
 </head>
 <body>
 
-<div id="hud">
-    <div class="stat">PENGE<b id="money">0</b></div>
-    <div class="stat">LEVEL<b id="lvl">1</b></div>
+<div id="overlay">
+    <h1>SHADOW HUNTER</h1>
+    <button class="start-btn" onclick="toggleGame()">START SPIL</button>
+    <p style="color: #666; margin-top: 20px;">Zander, monstrene venter i mørket...</p>
 </div>
 
-<div class="p-hp-bar"><div id="p-fill"></div><small style="position:absolute; top:2px; left:5px">DIT LIV</small></div>
+<div id="ui-top">
+    <div class="stat-card"><span>GULD</span><b id="money">0</b></div>
+    <div class="stat-card"><span>LEVEL</span><b id="lvl">1</b></div>
+    <button onclick="toggleGame()" style="pointer-events: auto; background: none; border: 1px solid #444; color: white; cursor: pointer; padding: 5px 15px;">PAUSE</button>
+</div>
 
-<div id="arena" onclick="missedClick(event)">
-    <div id="monster" class="monster" onclick="hitMonster(event)">
-        <div class="m-hp-wrap"><div id="m-fill" class="m-hp-fill"></div></div>
+<div id="arena">
+    <div id="monster-anchor">
+        <div style="position: absolute; top: -120px; text-align: center;">
+            <span id="m-name" style="font-weight: bold; color: var(--blood); letter-spacing: 2px;">SHADOW BEAST</span>
+            <div class="hp-container"><div id="m-hp" class="hp-fill"></div></div>
+            <div class="hp-container" style="width: 200px; height: 5px;"><div id="p-hp" class="hp-fill"></div></div>
+            <small style="color: #2ecc71;">DIT LIV</small>
+        </div>
+        
+        <div class="monster-body" id="monster" onclick="attackMonster()">
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+        </div>
     </div>
 </div>
 
 <div id="shop">
-    <button class="btn" onclick="buy('dmg')">SKADE (50 kr)</button>
-    <button class="btn" onclick="buy('heal')">HEAL (25 kr)</button>
+    <div class="shop-item">
+        <b>Skarpt Sværd</b>
+        <small id="p-dmg-display">Skade: 1</small>
+        <button onclick="buy('dmg')">Køb: <span id="c-dmg">50</span></button>
+    </div>
+    <div class="shop-item">
+        <b>Rustning</b>
+        <small id="p-arm-display">Beskyttelse: 0</small>
+        <button onclick="buy('arm')">Køb: 150</button>
+    </div>
+    <div class="shop-item">
+        <b>Eliksir</b>
+        <button onclick="buy('heal')">Heal: 30</button>
+    </div>
 </div>
 
 <script>
+    let gameActive = false;
     let money = 0;
     let lvl = 1;
+    
+    // Player
+    let pMaxHP = 100;
     let pHP = 100;
     let pDmg = 1;
+    let pArmor = 0;
 
+    // Monster
     let mMaxHP = 10;
     let mHP = 10;
     let mDmg = 5;
+    let mType = "Normal";
 
-    const monsterEl = document.getElementById('monster');
-    const arena = document.getElementById('arena');
+    function toggleGame() {
+        gameActive = !gameActive;
+        document.getElementById('overlay').style.display = gameActive ? 'none' : 'flex';
+        if(gameActive) gameLoop();
+    }
 
-    function hitMonster(e) {
-        e.stopPropagation(); // Undgå at ramme arenaen også
+    function attackMonster() {
+        if(!gameActive) return;
+        
         mHP -= pDmg;
         money += pDmg;
         
-        // Spawn blod
-        for(let i=0; i<5; i++) spawnBlood(e.clientX, e.clientY);
-        
-        if (mHP <= 0) {
-            killMonster();
-        } else {
-            moveMonster(); // Flyt sig ved hver hit for at gøre det svært
-        }
+        const mEl = document.getElementById('monster');
+        mEl.classList.add('hit-flash');
+        setTimeout(() => mEl.classList.remove('hit-flash'), 100);
+
+        if(mHP <= 0) spawnNewMonster();
         updateUI();
     }
 
-    function killMonster() {
+    function spawnNewMonster() {
         lvl++;
-        money += lvl * 5;
-        mMaxHP = Math.round(10 * Math.pow(1.2, lvl));
+        money += lvl * 10;
+        
+        // Vælg type
+        const types = ["Normal", "Tank", "Hurtig"];
+        mType = types[Math.floor(Math.random() * types.length)];
+        
+        // Skaler stats
+        mMaxHP = Math.round(10 * Math.pow(1.3, lvl));
+        if(mType === "Tank") mMaxHP *= 2;
+        
         mHP = mMaxHP;
-        mDmg = Math.round(5 * Math.pow(1.1, lvl));
+        mDmg = Math.round(3 * Math.pow(1.15, lvl));
         
-        // Gør det større
-        let newSize = 100 + (lvl * 2);
-        monsterEl.style.width = newSize + "px";
-        monsterEl.style.height = newSize + "px";
+        // Visuel opdatering
+        const mEl = document.getElementById('monster');
+        let size = 180 + (lvl * 3);
+        if(size > 350) size = 350;
+        mEl.style.width = size + "px";
+        mEl.style.height = size + "px";
         
-        moveMonster();
-    }
+        if(mType === "Tank") mEl.style.boxShadow = "inset 0 0 50px #000, 0 0 40px gray";
+        else if(mType === "Hurtig") mEl.style.boxShadow = "inset 0 0 50px #000, 0 0 40px purple";
+        else mEl.style.boxShadow = "inset 0 0 50px #000, 0 0 40px var(--blood)";
 
-    function moveMonster() {
-        const maxX = window.innerWidth - 150;
-        const maxY = window.innerHeight - 250;
-        const minX = 50;
-        const minY = 150;
-
-        const randomX = Math.floor(Math.random() * (maxX - minX)) + minX;
-        const randomY = Math.floor(Math.random() * (maxY - minY)) + minY;
-
-        monsterEl.style.left = randomX + "px";
-        monsterEl.style.top = randomY + "px";
-        
-        // Farve skifter baseret på HP
-        let hpPercent = (mHP / mMaxHP) * 100;
-        monsterEl.style.background = `rgb(${255 - hpPercent}, 60, 80)`;
+        document.getElementById('m-name').innerText = mType.toUpperCase() + " SHADOW (LVL " + lvl + ")";
     }
 
     function monsterAttack() {
-        pHP -= mDmg;
-        document.body.style.boxShadow = "inset 0 0 50px red";
-        setTimeout(() => document.body.style.boxShadow = "none", 150);
-
-        if (pHP <= 0) {
-            alert("Du blev slagtet! Level reset.");
-            pHP = 100;
+        if(!gameActive) return;
+        
+        let damageDealt = mDmg - pArmor;
+        if(damageDealt < 1) damageDealt = 1;
+        
+        pHP -= damageDealt;
+        
+        if(pHP <= 0) {
+            alert("Du faldt i kamp! Du mister guld.");
+            money = Math.floor(money / 2);
+            pHP = pMaxHP;
             lvl = Math.max(1, lvl - 2);
-            killMonster();
+            spawnNewMonster();
         }
         updateUI();
     }
 
-    function spawnBlood(x, y) {
-        const b = document.createElement('div');
-        b.className = 'blood';
-        b.style.left = x + 'px';
-        b.style.top = y + 'px';
-        b.style.setProperty('--x', (Math.random() * 100 - 50) + 'px');
-        b.style.setProperty('--y', (Math.random() * 100 - 50) + 'px');
-        document.body.appendChild(b);
-        setTimeout(() => b.remove(), 500);
+    function gameLoop() {
+        if(!gameActive) return;
+        
+        // Hurtige monstre angriber oftere
+        let attackSpeed = (mType === "Hurtig") ? 1000 : 2000;
+        
+        setTimeout(() => {
+            monsterAttack();
+            if(gameActive) gameLoop();
+        }, attackSpeed);
     }
 
     function buy(type) {
-        if (type === 'dmg' && money >= 50) {
-            money -= 50; pDmg += 2;
-        } else if (type === 'heal' && money >= 25) {
-            money -= 25; pHP = 100;
+        if(type === 'dmg' && money >= (pDmg * 50)) {
+            money -= (pDmg * 50); pDmg += 2;
+        } else if(type === 'arm' && money >= 150) {
+            money -= 150; pArmor += 1;
+        } else if(type === 'heal' && money >= 30) {
+            money -= 30; pHP = pMaxHP;
         }
         updateUI();
     }
@@ -248,23 +262,14 @@
     function updateUI() {
         document.getElementById('money').innerText = money;
         document.getElementById('lvl').innerText = lvl;
-        document.getElementById('m-fill').style.width = (mHP / mMaxHP * 100) + "%";
-        document.getElementById('p-fill').style.width = pHP + "%";
+        document.getElementById('m-hp').style.width = (mHP/mMaxHP * 100) + "%";
+        document.getElementById('p-hp').style.width = (pHP/pMaxHP * 100) + "%";
+        document.getElementById('p-dmg-display').innerText = "Skade: " + pDmg;
+        document.getElementById('p-arm-display').innerText = "Beskyttelse: " + pArmor;
+        document.getElementById('c-dmg').innerText = (pDmg * 50);
     }
 
-    function missedClick(e) {
-        // Hvis man misser monstret
-    }
-
-    // Monsteret angriber langsommere i starten
-    setInterval(() => {
-        monsterAttack();
-    }, 3000);
-
-    // Start position
-    moveMonster();
     updateUI();
-
 </script>
 
 </body>
