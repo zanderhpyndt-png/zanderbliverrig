@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <title>ZanderBliverRig</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            margin-top: 50px;
+            font-size: 3em;
+        }
+        p {
+            font-size: 1.5em;
+        }
+        .counter {
+            margin-top: 30px;
+            font-size: 2em;
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 15px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>💰 ZanderBliverRig 💰</h1>
+    <p>Velkommen til min hjemmeside!</p>
+
+    <div class="counter">
+        Besøgende: <span id="visitCount">0</span>
+    </div>
+
+    <script>
+        // Simpel besøgs-tæller (gemmes i browseren)
+        let count = localStorage.getItem('visitCount');
+
+        if (count === null) {
+            count = 1;
+        } else {
+            count = parseInt(count) + 1;
+        }
+
+        localStorage.setItem('visitCount', count);
+        document.getElementById('visitCount').innerText = count;
+    </script>
+
+</body>
+</html>
