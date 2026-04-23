@@ -3,292 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander vs. Gigant-Monstre</title>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <title>Zander: Monster Slayer Pro</title>
     <style>
         :root {
             --gold: #ffd700;
-            --red: #ff4757;
-            --blue: #2e86de;
-            --bg: #050505;
+            --blood: #8e0000;
+            --hp-green: #2ecc71;
         }
 
         body {
             margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
+            background: #050505;
             color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
             user-select: none;
         }
 
-        /* Stats Top */
-        .header {
+        /* HUD */
+        #hud {
+            position: fixed;
+            top: 0; width: 100%;
+            padding: 20px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent);
             display: flex;
             justify-content: space-around;
-            width: 100%;
-            padding: 20px;
-            background: rgba(255,255,255,0.05);
-            border-bottom: 3px solid var(--red);
+            z-index: 100;
+            border-bottom: 1px solid #333;
         }
 
-        .stat-box { text-align: center; }
-        .stat-label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; }
-        .stat-value { font-size: 1.5rem; font-family: 'Orbitron'; color: var(--gold); }
+        .stat { text-align: center; }
+        .stat b { display: block; font-size: 1.5rem; color: var(--gold); }
 
-        /* Combat Zone */
+        /* Game Arena */
         #arena {
-            flex-grow: 1;
-            width: 100%;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: radial-gradient(circle, #111 0%, #000 100%);
+            cursor: crosshair;
+        }
+
+        /* Det "Realistiske" Monster */
+        .monster {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: #2c3e50;
+            border-radius: 20% 70% 30% 50%; /* Organisk form */
+            box-shadow: inset -10px -10px 20px #000, 0 0 30px rgba(255,0,0,0.2);
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
-            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            transition: transform 0.1s, background 0.3s;
+            animation: breathe 2s infinite ease-in-out;
         }
 
-        /* Monster Styling */
-        .monster-container {
-            position: relative;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .monster::before { /* Øje */
+            content: '';
+            width: 40px; height: 10px;
+            background: red;
+            box-shadow: 0 0 15px red;
+            border-radius: 50%;
         }
 
-        #monster {
-            font-size: 100px; /* Starter størrelse */
-            cursor: crosshair;
-            transition: transform 0.1s, filter 0.3s;
-            filter: drop-shadow(0 0 20px var(--red));
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1) rotate(5deg); }
         }
 
-        #monster:active { transform: scale(0.9); }
-
-        /* Health Bars */
-        .bar-wrap { width: 200px; height: 15px; background: #333; border-radius: 10px; margin: 5px; overflow: hidden; border: 1px solid #555; }
-        .bar-fill { height: 100%; width: 100%; transition: width 0.2s; }
-        .hp-monster { background: var(--red); }
-        .hp-player { background: #4cd137; }
-
-        /* Player HP Display */
-        .player-status {
+        /* HP Bar over monster */
+        .m-hp-wrap {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            text-align: left;
-        }
-
-        /* Shop */
-        .shop {
+            top: -25px;
             width: 100%;
-            background: #111;
-            padding: 15px;
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            border-top: 2px solid #333;
-        }
-
-        .upgrade {
-            min-width: 150px;
-            background: #222;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
+            height: 8px;
+            background: #000;
             border: 1px solid #444;
         }
+        .m-hp-fill { height: 100%; background: var(--blood); transition: width 0.1s; }
 
-        button {
-            background: var(--blue);
-            color: white;
-            border: none;
-            padding: 8px;
-            width: 100%;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-
-        button:disabled { background: #333; color: #777; }
-
-        /* Combat Text */
-        .floating-text {
-            position: absolute;
-            pointer-events: none;
-            font-weight: 900;
-            font-family: 'Orbitron';
-            animation: floatUp 0.7s forwards;
-        }
-
-        @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-80px); opacity: 0; }
-        }
-
-        .screen-flash {
+        /* UI elements */
+        #shop {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: red; opacity: 0; pointer-events: none;
-            z-index: 999;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
         }
+
+        .btn {
+            background: #222;
+            border: 1px solid var(--gold);
+            color: white;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .btn:hover { background: var(--gold); color: black; }
+
+        /* Effects */
+        .blood {
+            position: absolute;
+            width: 10px; height: 10px;
+            background: var(--blood);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: explode 0.5s forwards;
+        }
+
+        @keyframes explode {
+            to { transform: translate(var(--x), var(--y)); opacity: 0; }
+        }
+
+        .p-hp-bar {
+            position: fixed;
+            left: 20px; top: 100px;
+            width: 200px; height: 20px;
+            background: #222;
+            border: 2px solid white;
+        }
+        #p-fill { height: 100%; background: var(--hp-green); width: 100%; }
+
     </style>
 </head>
 <body>
 
-<div class="screen-flash" id="flash"></div>
+<div id="hud">
+    <div class="stat">PENGE<b id="money">0</b></div>
+    <div class="stat">LEVEL<b id="lvl">1</b></div>
+</div>
 
-<div class="header">
-    <div class="stat-box">
-        <div class="stat-label">Penge</div>
-        <div class="stat-value" id="money">0 kr</div>
-    </div>
-    <div class="stat-box">
-        <div class="stat-label">Level</div>
-        <div class="stat-value" id="level">1</div>
+<div class="p-hp-bar"><div id="p-fill"></div><small style="position:absolute; top:2px; left:5px">DIT LIV</small></div>
+
+<div id="arena" onclick="missedClick(event)">
+    <div id="monster" class="monster" onclick="hitMonster(event)">
+        <div class="m-hp-wrap"><div id="m-fill" class="m-hp-fill"></div></div>
     </div>
 </div>
 
-<div id="arena">
-    <div class="monster-container" id="m-cont">
-        <span style="font-size: 0.8rem; color: var(--red);">MONSTER HP</span>
-        <div class="bar-wrap"><div id="m-hp-bar" class="bar-fill hp-monster"></div></div>
-        <div id="monster" onclick="playerAttack(event)">👹</div>
-    </div>
-
-    <div class="player-status">
-        <span style="font-size: 0.8rem; color: #4cd137;">DIT LIV (ZANDER)</span>
-        <div class="bar-wrap"><div id="p-hp-bar" class="bar-fill hp-player"></div></div>
-    </div>
-</div>
-
-<div class="shop">
-    <div class="upgrade">
-        <div>⚔️ Skade</div>
-        <small id="cost-dmg">Pris: 50</small>
-        <button onclick="buy('dmg')">Opgradér</button>
-    </div>
-    <div class="upgrade">
-        <div>🛡️ Rustning</div>
-        <small id="cost-armor">Pris: 100</small>
-        <button onclick="buy('armor')">Opgradér</button>
-    </div>
-    <div class="upgrade">
-        <div>❤️ Heal</div>
-        <small>Pris: 30</small>
-        <button onclick="buy('heal')">Køb Liv</button>
-    </div>
+<div id="shop">
+    <button class="btn" onclick="buy('dmg')">SKADE (50 kr)</button>
+    <button class="btn" onclick="buy('heal')">HEAL (25 kr)</button>
 </div>
 
 <script>
     let money = 0;
     let lvl = 1;
-    
-    // Player stats
     let pHP = 100;
-    let pMaxHP = 100;
     let pDmg = 1;
-    let pArmor = 0;
 
-    // Monster stats
-    let mHP = 10;
     let mMaxHP = 10;
-    let mDmg = 2;
-    let mSize = 100;
+    let mHP = 10;
+    let mDmg = 5;
 
-    const monsters = ['👹', '👾', '🧟', '🧛', '🐉', '💀', '👽', '🤡'];
+    const monsterEl = document.getElementById('monster');
+    const arena = document.getElementById('arena');
 
-    function playerAttack(e) {
+    function hitMonster(e) {
+        e.stopPropagation(); // Undgå at ramme arenaen også
         mHP -= pDmg;
         money += pDmg;
-        spawnText(e.clientX, e.clientY, `-${pDmg}`, 'var(--gold)');
+        
+        // Spawn blod
+        for(let i=0; i<5; i++) spawnBlood(e.clientX, e.clientY);
         
         if (mHP <= 0) {
-            victory();
+            killMonster();
+        } else {
+            moveMonster(); // Flyt sig ved hver hit for at gøre det svært
         }
         updateUI();
+    }
+
+    function killMonster() {
+        lvl++;
+        money += lvl * 5;
+        mMaxHP = Math.round(10 * Math.pow(1.2, lvl));
+        mHP = mMaxHP;
+        mDmg = Math.round(5 * Math.pow(1.1, lvl));
+        
+        // Gør det større
+        let newSize = 100 + (lvl * 2);
+        monsterEl.style.width = newSize + "px";
+        monsterEl.style.height = newSize + "px";
+        
+        moveMonster();
+    }
+
+    function moveMonster() {
+        const maxX = window.innerWidth - 150;
+        const maxY = window.innerHeight - 250;
+        const minX = 50;
+        const minY = 150;
+
+        const randomX = Math.floor(Math.random() * (maxX - minX)) + minX;
+        const randomY = Math.floor(Math.random() * (maxY - minY)) + minY;
+
+        monsterEl.style.left = randomX + "px";
+        monsterEl.style.top = randomY + "px";
+        
+        // Farve skifter baseret på HP
+        let hpPercent = (mHP / mMaxHP) * 100;
+        monsterEl.style.background = `rgb(${255 - hpPercent}, 60, 80)`;
     }
 
     function monsterAttack() {
-        let finalDmg = mDmg - pArmor;
-        if (finalDmg < 1) finalDmg = 1;
-
-        pHP -= finalDmg;
-        
-        // Flash screen red
-        const flash = document.getElementById('flash');
-        flash.style.opacity = "0.3";
-        setTimeout(() => flash.style.opacity = "0", 100);
+        pHP -= mDmg;
+        document.body.style.boxShadow = "inset 0 0 50px red";
+        setTimeout(() => document.body.style.boxShadow = "none", 150);
 
         if (pHP <= 0) {
-            gameOver();
+            alert("Du blev slagtet! Level reset.");
+            pHP = 100;
+            lvl = Math.max(1, lvl - 2);
+            killMonster();
         }
         updateUI();
     }
 
-    function victory() {
-        lvl++;
-        money += lvl * 10;
-        
-        // Gør monstret stærkere og større
-        mMaxHP = Math.round(10 * Math.pow(1.3, lvl));
-        mHP = mMaxHP;
-        mDmg = Math.round(2 * Math.pow(1.2, lvl));
-        mSize = 100 + (lvl * 5); // Bliver 5px større hver gang
-        if (mSize > 300) mSize = 300; // Max størrelse
-
-        document.getElementById('monster').innerText = monsters[Math.floor(Math.random() * monsters.length)];
-        document.getElementById('monster').style.fontSize = mSize + "px";
-    }
-
-    function gameOver() {
-        alert("Du døde! Monstrene stjal nogle af dine penge.");
-        money = Math.floor(money * 0.7);
-        pHP = pMaxHP;
-        lvl = Math.max(1, lvl - 1); // Gå et level ned
-        victory(); // Reset monster til det lavere level
+    function spawnBlood(x, y) {
+        const b = document.createElement('div');
+        b.className = 'blood';
+        b.style.left = x + 'px';
+        b.style.top = y + 'px';
+        b.style.setProperty('--x', (Math.random() * 100 - 50) + 'px');
+        b.style.setProperty('--y', (Math.random() * 100 - 50) + 'px');
+        document.body.appendChild(b);
+        setTimeout(() => b.remove(), 500);
     }
 
     function buy(type) {
-        if (type === 'dmg' && money >= (lvl * 50)) {
-            money -= (lvl * 50); pDmg += 2;
-        } else if (type === 'armor' && money >= 100) {
-            money -= 100; pArmor += 1;
-        } else if (type === 'heal' && money >= 30) {
-            money -= 30; pHP = pMaxHP;
+        if (type === 'dmg' && money >= 50) {
+            money -= 50; pDmg += 2;
+        } else if (type === 'heal' && money >= 25) {
+            money -= 25; pHP = 100;
         }
         updateUI();
     }
 
     function updateUI() {
-        document.getElementById('money').innerText = money + " kr";
-        document.getElementById('level').innerText = lvl;
-        document.getElementById('m-hp-bar').style.width = (mHP / mMaxHP * 100) + "%";
-        document.getElementById('p-hp-bar').style.width = (pHP / pMaxHP * 100) + "%";
+        document.getElementById('money').innerText = money;
+        document.getElementById('lvl').innerText = lvl;
+        document.getElementById('m-fill').style.width = (mHP / mMaxHP * 100) + "%";
+        document.getElementById('p-fill').style.width = pHP + "%";
     }
 
-    function spawnText(x, y, txt, color) {
-        const div = document.createElement('div');
-        div.className = 'floating-text';
-        div.style.left = x + 'px';
-        div.style.top = y + 'px';
-        div.style.color = color;
-        div.innerText = txt;
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 700);
+    function missedClick(e) {
+        // Hvis man misser monstret
     }
 
-    // Monsteret angriber hvert 2. sekund
+    // Monsteret angriber langsommere i starten
     setInterval(() => {
-        if (mHP > 0) monsterAttack();
-    }, 2000);
+        monsterAttack();
+    }, 3000);
 
+    // Start position
+    moveMonster();
     updateUI();
+
 </script>
 
 </body>
