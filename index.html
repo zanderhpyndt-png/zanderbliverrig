@@ -3,121 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Tactical Hunter Elite</title>
+    <title>Zander og Theos : Nightmare Realm</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --gold: #ffd700; --red: #ff4757; --blue: #00a8ff; --neon: #0ff; }
-        body { margin: 0; background: #000; color: white; font-family: 'Share Tech Mono', monospace; overflow: hidden; user-select: none; }
+        :root { --gold: #ffd700; --blood: #660000; --fog: #1a1a2e; }
+        body { margin: 0; background: #050505; color: white; font-family: 'Arial', sans-serif; overflow: hidden; user-select: none; }
+
+        /* Baggrunds-effekt */
+        #bg-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, #000 0%, var(--fog) 100%);
+            z-index: -1; transition: background 2s;
+        }
 
         #menu-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); display: none; flex-direction: column;
+            background: rgba(0,0,0,0.9); display: none; flex-direction: column;
             align-items: center; justify-content: center; z-index: 500;
-        }
-
-        #win-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, #ffd700, #000);
-            display: none; flex-direction: column; align-items: center;
-            justify-content: center; z-index: 1000; text-align: center;
         }
 
         .hud {
             position: fixed; top: 0; width: 100%; padding: 20px;
             display: flex; justify-content: space-around;
-            background: linear-gradient(to bottom, black, transparent); z-index: 100;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); z-index: 100;
+            font-family: 'Orbitron';
         }
 
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #050505; transition: transform 0.05s; }
+        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 
-        #monster {
-            position: absolute; left: 50%; top: 75%; transform: translate(-50%, -50%);
-            width: 180px; height: 180px; background: #111;
-            border-radius: 50%; box-shadow: 0 0 50px rgba(255,0,0,0.4);
-            display: flex; justify-content: center; align-items: center; z-index: 40;
-            border: 3px solid #333;
-        }
-
+        /* Zander (Mennesket) */
         #player {
-            position: absolute; width: 45px; height: 45px;
+            position: absolute; width: 50px; height: 60px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 60; font-size: 40px; transition: transform 0.1s;
+        }
+        #player-name { font-size: 10px; color: #aaa; margin-top: -5px; font-family: 'Orbitron'; }
+
+        /* Uhyggeligt Monster */
+        #monster {
+            position: absolute; width: 150px; height: 150px;
             display: flex; justify-content: center; align-items: center;
-            font-size: 28px; border-radius: 10px; z-index: 60;
-            background: #111; border: 2px solid var(--blue);
-            box-shadow: 0 0 20px var(--blue);
+            z-index: 40; filter: drop-shadow(0 0 20px var(--blood));
+            cursor: crosshair; transition: filter 0.2s;
+        }
+        .monster-eye { 
+            position: absolute; width: 15px; height: 15px; background: red; 
+            border-radius: 50%; box-shadow: 0 0 15px red; top: 40%;
         }
 
         /* Menu Design */
-        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; }
-        .shop-box { background: #111; padding: 15px; border: 1px solid #333; border-radius: 10px; text-align: center; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 90%; max-width: 900px; }
+        .shop-box { background: #111; padding: 15px; border: 1px solid #333; border-radius: 10px; }
         
         .btn {
-            background: #1a1a1a; color: var(--gold); border: 2px solid var(--gold);
-            padding: 10px 20px; cursor: pointer; font-family: 'Orbitron';
-            margin: 5px; border-radius: 5px; transition: 0.2s; font-size: 0.8rem;
+            background: #000; color: #fff; border: 1px solid #444;
+            padding: 12px; cursor: pointer; font-family: 'Orbitron';
+            margin: 5px; width: 90%; border-radius: 5px; transition: 0.2s;
         }
-        .btn:hover:not(:disabled) { background: var(--gold); color: black; }
+        .btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
         .btn:disabled { opacity: 0.2; cursor: default; }
 
-        .hp-bar-bg { width: 100%; height: 8px; background: #000; margin-top: 10px; border-radius: 5px; overflow: hidden; }
-        .hp-fill { height: 100%; background: var(--red); width: 100%; transition: 0.1s; }
+        .hp-bar { width: 120px; height: 6px; background: #000; border: 1px solid #333; margin-top: 10px; }
+        .hp-fill { height: 100%; background: var(--blood); transition: width 0.1s; }
         
-        .bullet { position: absolute; border-radius: 50%; z-index: 55; }
-        .m-bullet { width: 12px; height: 12px; background: var(--red); box-shadow: 0 0 15px var(--red); }
-        .p-bullet { width: 6px; height: 6px; background: var(--neon); box-shadow: 0 0 10px var(--neon); }
-        .particle { position: absolute; width: 4px; height: 4px; background: var(--red); pointer-events: none; border-radius: 50%; }
+        .m-bullet { position: absolute; width: 10px; height: 10px; background: #ff0000; border-radius: 50%; box-shadow: 0 0 10px red; }
+        .p-bullet { position: absolute; width: 4px; height: 15px; background: #00f2ff; box-shadow: 0 0 10px #00f2ff; }
+        
+        #current-area { font-family: 'Creepster'; color: var(--blood); font-size: 2rem; position: fixed; bottom: 20px; right: 20px; }
     </style>
 </head>
 <body>
 
+<div id="bg-layer"></div>
+
 <div id="menu-overlay">
-    <h1 style="color: var(--gold); font-family: 'Orbitron'; margin-bottom: 5px;">CENTRAL HUB</h1>
-    <p>DIN FORMUE: <b id="menu-money" style="color:var(--gold)">0</b> KR</p>
-    
+    <h1 style="color: var(--blood); font-family: 'Creepster'; font-size: 4rem; margin: 0;">SHOP</h1>
     <div class="shop-grid">
         <div class="shop-box">
-            <h3>UPGRADES</h3>
-            <button class="btn" id="btn-dmg" onclick="buy('dmg', 150)">+5 SKADE (150)</button>
-            <button class="btn" id="btn-auto" onclick="buy('auto', 500)">AUTO-VÅBEN (500)</button>
-            <button class="btn" onclick="buy('heal', 50)">REPARER LIV (50)</button>
+            <h3 style="font-family: 'Orbitron'; color: var(--gold);">UPGRADES</h3>
+            <button class="btn" id="btn-dmg" onclick="buy('dmg', 200)">SKARPERE AMMO (200)</button>
+            <button class="btn" id="btn-auto" onclick="buy('auto', 800)">AUTO-DRONE (800)</button>
+            <button class="btn" onclick="buy('heal', 100)">MEDKIT (100)</button>
         </div>
         <div class="shop-box">
-            <h3>AVATARS</h3>
-            <button class="btn" id="btn-ninja" onclick="buySkin('ninja', 800, '🥷', '#2ecc71', 1.8, 4)">NINJA (800)</button>
-            <button class="btn" id="btn-king" onclick="buySkin('king', 5000, '👑', '#f1c40f', 1.3, 20)">KONGE (5000)</button>
+            <h3 style="font-family: 'Orbitron'; color: var(--gold);">AVATARS</h3>
+            <button class="btn" id="btn-soldier" onclick="buySkin('soldier', 1000, '👨‍✈️', 1.2, 3)">SOLDAT (1000)</button>
+            <button class="btn" id="btn-hunter" onclick="buySkin('hunter', 3000, '🕵️‍♂️', 1.5, 6)">HUNTER (3000)</button>
+            <button class="btn" id="btn-cyborg" onclick="buySkin('cyborg', 7000, '🤖', 1.1, 15)">CYBORG (7000)</button>
         </div>
     </div>
-    <p style="margin-top:20px; font-size: 0.8rem; color: #555;">ESC: LUK MENU | ENTER: ANGRIV</p>
-</div>
-
-<div id="win-screen">
-    <h1 style="color:black">MISSION COMPLETE</h1>
-    <h2 id="final-gold" style="color:black"></h2>
-    <button class="btn" style="border-color:black; color:black" onclick="location.reload()">GENSTART EVENTYR</button>
+    <p style="color: #666;">Tryk ESC for at kæmpe videre</p>
 </div>
 
 <div class="hud">
-    <div>GULD: <b id="money">0</b></div>
+    <div>GULD: <b id="money" style="color: var(--gold);">0</b></div>
     <div>SEKTOR: <b id="lvl">1/20</b></div>
-    <div>SKADE: <b id="p-dmg-ui">6</b></div>
     <div style="color: #4cd137;">LIV: <b id="p-hp">100</b></div>
 </div>
 
+<div id="current-area">DEN MØRKE SKOV</div>
+
 <div id="game-container">
-    <div id="player">🟦</div>
+    <div id="player">
+        <span>👨</span>
+        <div id="player-name">ZANDER</div>
+    </div>
+    
     <div id="monster" onclick="attackMonster()">
-        <div style="position: absolute; top: -50px; width: 180px; text-align: center;">
-            <div class="hp-bar-bg"><div id="m-hp-fill" class="hp-fill"></div></div>
+        <div style="position: absolute; top: -40px; text-align: center;">
+            <div class="hp-bar"><div id="m-hp-fill" class="hp-fill"></div></div>
         </div>
-        <div id="m-icon" style="font-size: 70px;">💀</div>
+        <div id="m-visual" style="font-size: 100px;">👹</div>
+        <div class="monster-eye" style="left: 30%;"></div>
+        <div class="monster-eye" style="right: 30%;"></div>
     </div>
 </div>
 
 <script>
-    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 6, pSpeed = 7, gMult = 2, monsterAlive = true, inMenu = false;
-    let mHP = 60, mMaxHP = 60, px = window.innerWidth/2, py = 100, autoOwned = false, lastAuto = 0;
-    const keys = {}, mBullets = [], pBullets = [], particles = [];
+    let money = 0, lvl = 1, pHP = 100, pDmg = 10, pSpeed = 6, gMult = 2, monsterAlive = true, inMenu = false;
+    let mHP = 100, mMaxHP = 100, mx = 500, my = 500;
+    let px = window.innerWidth/2, py = 200, autoOwned = false, lastAuto = 0;
+    const keys = {}, mBullets = [], pBullets = [];
 
-    // Tjekker for enkelttryk på Enter
+    const areas = ["DEN MØRKE SKOV", "DE GLEMTE HULER", "HELVEDES PORT", "DIMENSION X"];
+
     window.addEventListener('keydown', e => {
         if(e.code === 'Escape') inMenu ? closeMenu() : openMenu();
         if(e.code === 'Enter' && !keys[e.code] && monsterAlive && !inMenu) attackMonster();
@@ -130,10 +139,6 @@
 
     function attackMonster() {
         if(!monsterAlive || inMenu) return;
-        const mR = document.getElementById('monster').getBoundingClientRect();
-        for(let i=0; i<10; i++) spawnParticle(mR.left + 90, mR.top + 90);
-        
-        shake(4);
         mHP -= pDmg;
         money += pDmg * gMult;
         if(mHP <= 0) killMonster();
@@ -143,131 +148,125 @@
     function killMonster() {
         monsterAlive = false;
         money += 500 * lvl;
-        shake(15);
-        if(lvl >= 20) endGame();
-        else setTimeout(nextLevel, 2000);
+        setTimeout(nextLevel, 2000);
     }
 
     function nextLevel() {
         lvl++;
-        mMaxHP = Math.round(60 * Math.pow(1.35, lvl));
+        if(lvl > 20) { alert("DU OVERLEVEDE NATTEN!"); location.reload(); return; }
+        
+        mMaxHP = Math.round(100 * Math.pow(1.25, lvl));
         mHP = mMaxHP;
         monsterAlive = true;
-        document.getElementById('m-icon').innerText = ['💀', '👾', '👹', '👽', '🤖'][lvl % 5];
+        
+        // Skift bane grafisk
+        const areaIdx = Math.floor((lvl-1)/5);
+        document.getElementById('current-area').innerText = areas[areaIdx];
+        const bgColors = ["#1a1a2e", "#16213e", "#4e0000", "#1b1b1b"];
+        document.getElementById('bg-layer').style.background = `linear-gradient(to bottom, #000, ${bgColors[areaIdx]})`;
+
+        document.getElementById('m-visual').innerText = ['👹', '👽', '🕷️', '💀', '🧛'][Math.floor(Math.random()*5)];
         updateUI();
     }
 
     function buy(type, cost) {
         if(money >= cost) {
             money -= cost;
-            if(type === 'dmg') pDmg += 5;
+            if(type === 'dmg') pDmg += 10;
             if(type === 'auto') autoOwned = true;
-            if(type === 'heal') pHP = pMaxHP;
+            if(type === 'heal') pHP = 100;
             updateUI();
         }
     }
 
-    function buySkin(id, cost, icon, color, speed, mult) {
+    function buySkin(id, cost, icon, speed, mult) {
         if(money >= cost) {
             money -= cost;
-            const p = document.getElementById('player');
-            p.innerText = icon;
-            p.style.borderColor = color;
-            p.style.boxShadow = `0 0 20px ${color}`;
-            pSpeed = 7 * speed; gMult = mult;
+            document.querySelector('#player span').innerText = icon;
+            pSpeed = 6 * speed; gMult = mult;
             document.getElementById('btn-' + id).disabled = true;
             updateUI();
         }
     }
 
-    function shake(amt) {
-        const gc = document.getElementById('game-container');
-        gc.style.transform = `translate(${Math.random()*amt-amt/2}px, ${Math.random()*amt-amt/2}px)`;
-        setTimeout(() => gc.style.transform = "translate(0,0)", 50);
-    }
-
-    function spawnParticle(x, y) {
-        const p = { el: document.createElement('div'), x, y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.8)*15, life: 1 };
-        p.el.className = 'particle'; document.getElementById('game-container').appendChild(p.el);
-        particles.push(p);
-    }
-
-    function fireBullet(who) {
-        const b = document.createElement('div');
-        b.className = 'bullet ' + (who === 'player' ? 'p-bullet' : 'm-bullet');
-        const mR = document.getElementById('monster').getBoundingClientRect();
-        if(who === 'player') {
-            const ang = Math.atan2((mR.top+90)-py, (mR.left+90)-px);
-            pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*15, vy: Math.sin(ang)*15 });
-        } else {
-            const ang = Math.atan2(py-(mR.top+90), px-(mR.left+90));
-            mBullets.push({ el: b, x: mR.left+90, y: mR.top+90, vx: Math.cos(ang)*(4+lvl*0.4), vy: Math.sin(ang)*(4+lvl*0.4) });
-        }
-        document.getElementById('game-container').appendChild(b);
-    }
-
     function updateUI() {
         document.getElementById('money').innerText = Math.floor(money);
-        document.getElementById('menu-money').innerText = Math.floor(money);
         document.getElementById('lvl').innerText = lvl + "/20";
         document.getElementById('p-hp').innerText = Math.floor(pHP);
-        document.getElementById('p-dmg-ui').innerText = pDmg;
         document.getElementById('m-hp-fill').style.width = (mHP/mMaxHP*100) + "%";
-        
-        document.getElementById('btn-dmg').disabled = money < 150;
-        document.getElementById('btn-auto').disabled = money < 500 || autoOwned;
-        document.getElementById('btn-ninja').disabled = money < 800;
-        document.getElementById('btn-king').disabled = money < 5000;
+        document.getElementById('btn-dmg').disabled = money < 200;
+        document.getElementById('btn-auto').disabled = money < 800 || autoOwned;
     }
 
     function loop(time) {
         if(!inMenu) {
+            // Player bevægelse
             if(keys['ArrowUp'] || keys['KeyW']) py -= pSpeed;
             if(keys['ArrowDown'] || keys['KeyS']) py += pSpeed;
             if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
             if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
             
-            px = Math.max(0, Math.min(window.innerWidth-45, px));
+            px = Math.max(0, Math.min(window.innerWidth-50, px));
             py = Math.max(0, Math.min(window.innerHeight-100, py));
-            const pEl = document.getElementById('player');
-            pEl.style.left = px + 'px'; pEl.style.top = py + 'px';
+            document.getElementById('player').style.left = px + 'px';
+            document.getElementById('player').style.top = py + 'px';
 
-            if(autoOwned && monsterAlive && time - lastAuto > 600) { fireBullet('player'); lastAuto = time; }
-            if(monsterAlive && Math.random() < 0.02 + (lvl*0.002)) fireBullet('monster');
+            // Monster forfølgelse (Uhyggeligt!)
+            if(monsterAlive) {
+                const dx = px - mx;
+                const dy = py - my;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const mSpeed = 1 + (lvl * 0.2);
+                
+                mx += (dx/dist) * mSpeed;
+                my += (dy/dist) * mSpeed;
+                
+                const mEl = document.getElementById('monster');
+                mEl.style.left = (mx - 75) + 'px';
+                mEl.style.top = (my - 75) + 'px';
 
-            // Bullets
-            pBullets.forEach((b, i) => {
-                b.x += b.vx; b.y += b.vy; b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
-                const mR = document.getElementById('monster').getBoundingClientRect();
-                if(monsterAlive && b.x > mR.left && b.x < mR.right && b.y > mR.top && b.y < mR.bottom) {
-                    damageMonster(2); b.el.remove(); pBullets.splice(i, 1);
-                } else if(b.x < 0 || b.x > window.innerWidth || b.y < 0 || b.y > window.innerHeight) { b.el.remove(); pBullets.splice(i, 1); }
-            });
+                // Skyde
+                if(Math.random() < 0.02 + (lvl*0.002)) {
+                    const b = document.createElement('div');
+                    b.className = 'm-bullet';
+                    const ang = Math.atan2(dy, dx);
+                    mBullets.push({ el: b, x: mx, y: my, vx: Math.cos(ang)*5, vy: Math.sin(ang)*5 });
+                    document.getElementById('game-container').appendChild(b);
+                }
+            }
 
+            // Auto-fire
+            if(autoOwned && monsterAlive && time - lastAuto > 600) {
+                const b = document.createElement('div');
+                b.className = 'p-bullet';
+                const ang = Math.atan2(my-py, mx-px);
+                pBullets.push({ el: b, x: px+25, y: py+30, vx: Math.cos(ang)*12, vy: Math.sin(ang)*12 });
+                document.getElementById('game-container').appendChild(b);
+                lastAuto = time;
+            }
+
+            // Opdater skud
             mBullets.forEach((b, i) => {
-                b.x += b.vx; b.y += b.vy; b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
-                if(b.x > px && b.x < px+45 && b.y > py && b.y < py+45) {
-                    pHP -= 10; updateUI(); shake(10); b.el.remove(); mBullets.splice(i, 1);
-                    if(pHP <= 0) { alert("MISSION FEJLEDE!"); location.reload(); }
-                } else if(b.y > window.innerHeight || b.y < 0) { b.el.remove(); mBullets.splice(i, 1); }
+                b.x += b.vx; b.y += b.vy;
+                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
+                if(b.x > px && b.x < px+50 && b.y > py && b.y < py+60) {
+                    pHP -= 5; updateUI(); b.el.remove(); mBullets.splice(i, 1);
+                    if(pHP <= 0) { alert("DU BLEV OPSLUGT AF MØRKET!"); location.reload(); }
+                }
             });
 
-            particles.forEach((p, i) => {
-                p.vy += 0.5; p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-                p.el.style.left = p.x+'px'; p.el.style.top = p.y+'px'; p.el.style.opacity = p.life;
-                if(p.life <= 0) { p.el.remove(); particles.splice(i, 1); }
+            pBullets.forEach((b, i) => {
+                b.x += b.vx; b.y += b.vy;
+                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
+                if(b.x > mx-75 && b.x < mx+75 && b.y > my-75 && b.y < my+75) {
+                    attackMonster(); b.el.remove(); pBullets.splice(i, 1);
+                }
             });
         }
         requestAnimationFrame(loop);
     }
 
-    function endGame() {
-        document.getElementById('win-screen').style.display = 'flex';
-        document.getElementById('final-gold').innerText = "DU ENDTE MED: " + Math.floor(money) + " KR";
-    }
-
     requestAnimationFrame(loop);
-    updateUI();
 </script>
 </body>
 </html>
