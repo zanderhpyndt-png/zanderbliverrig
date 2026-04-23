@@ -46,7 +46,6 @@ button:hover {
     box-shadow: 0 0 20px gold;
 }
 
-/* 💸 FALDENDE PENGE */
 .money {
     position: fixed;
     font-size: 1.5em;
@@ -93,36 +92,49 @@ Pris: <span id="priceAuto">100</span><br>
 <button onclick="buyAuto()">Køb</button>
 </div>
 
+<div class="box">
+🔫 Gun upgrade (+5 klik power)<br>
+Pris: <span id="priceGun">500</span><br>
+<button onclick="buyGun()">Køb</button>
+</div>
+
+<div class="box">
+🔥 TUNG TUNG SAHUR (x2 alt income)<br>
+Pris: <span id="priceSahur">2000</span><br>
+<button onclick="buySahur()">Køb</button>
+</div>
+
 <script>
 
-// 👀 besøg
 let visits = localStorage.getItem("visits") || 0;
 visits++;
 localStorage.setItem("visits", visits);
 document.getElementById("visits").innerText = visits;
 
-// 💰 data
 let money = parseInt(localStorage.getItem("money")) || 0;
 let clickPower = parseInt(localStorage.getItem("clickPower")) || 1;
 let auto = parseInt(localStorage.getItem("auto")) || 0;
+let multiplier = parseInt(localStorage.getItem("multiplier")) || 1;
 
 let priceClick = parseInt(localStorage.getItem("priceClick")) || 50;
 let priceAuto = parseInt(localStorage.getItem("priceAuto")) || 100;
+let priceGun = parseInt(localStorage.getItem("priceGun")) || 500;
+let priceSahur = parseInt(localStorage.getItem("priceSahur")) || 2000;
 
 function update() {
     document.getElementById("money").innerText = money;
     document.getElementById("priceClick").innerText = priceClick;
     document.getElementById("priceAuto").innerText = priceAuto;
+    document.getElementById("priceGun").innerText = priceGun;
+    document.getElementById("priceSahur").innerText = priceSahur;
 }
 
-// 💸 klik + animation
 function earn(e) {
-    money += clickPower;
+    money += clickPower * multiplier;
     spawnMoney(e.target);
     save();
 }
 
-// 💸 penge der falder fra knappen
 function spawnMoney(btn) {
     const rect = btn.getBoundingClientRect();
 
@@ -140,11 +152,10 @@ function spawnMoney(btn) {
     }
 }
 
-// 🛒 shop
 function buyClick() {
     if (money >= priceClick) {
         money -= priceClick;
-        clickPower++;
+        clickPower += 1;
         priceClick = Math.floor(priceClick * 1.5);
         save();
     }
@@ -153,25 +164,44 @@ function buyClick() {
 function buyAuto() {
     if (money >= priceAuto) {
         money -= priceAuto;
-        auto++;
+        auto += 1;
         priceAuto = Math.floor(priceAuto * 1.7);
         save();
     }
 }
 
-// ⚙️ auto income
+function buyGun() {
+    if (money >= priceGun) {
+        money -= priceGun;
+        clickPower += 5;
+        priceGun = Math.floor(priceGun * 2);
+        save();
+    }
+}
+
+function buySahur() {
+    if (money >= priceSahur) {
+        money -= priceSahur;
+        multiplier *= 2;
+        priceSahur = Math.floor(priceSahur * 3);
+        save();
+    }
+}
+
 setInterval(() => {
-    money += auto;
+    money += auto * multiplier;
     save();
 }, 1000);
 
-// 💾 save
 function save() {
     localStorage.setItem("money", money);
     localStorage.setItem("clickPower", clickPower);
     localStorage.setItem("auto", auto);
+    localStorage.setItem("multiplier", multiplier);
     localStorage.setItem("priceClick", priceClick);
     localStorage.setItem("priceAuto", priceAuto);
+    localStorage.setItem("priceGun", priceGun);
+    localStorage.setItem("priceSahur", priceSahur);
     update();
 }
 
