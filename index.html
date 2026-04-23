@@ -3,176 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Rich Hunter Pro</title>
+    <title>Zander: Tactical Hunter</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --gold: #ffd700; --blue: #00a8ff; --red: #ff4757; }
-        body { margin: 0; background: #080808; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; user-select: none; }
+        :root { --gold: #ffd700; --red: #ff4757; --blue: #00a8ff; }
+        body { margin: 0; background: #020202; color: white; font-family: 'Share Tech Mono', monospace; overflow: hidden; user-select: none; }
+
+        /* Cinematic Overlay */
+        #vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, transparent 40%, black 150%); pointer-events: none; z-index: 50; }
 
         #hud {
-            position: fixed; top: 0; width: 100%; padding: 15px;
+            position: fixed; top: 0; width: 100%; padding: 20px;
             display: flex; justify-content: space-around;
-            background: rgba(0,0,0,0.9); z-index: 100; border-bottom: 2px solid #333;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.9), transparent); z-index: 100;
         }
-        .stat b { color: var(--gold); font-family: 'Orbitron'; }
+        .stat b { color: var(--gold); font-family: 'Orbitron'; font-size: 1.4rem; text-shadow: 0 0 10px var(--gold); }
 
-        #game-container { position: relative; width: 100vw; height: 100vh; background: #050505; }
+        /* Level Transition */
+        #timer-wrap {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; z-index: 200; display: none;
+        }
+        #timer-wrap h2 { font-family: 'Orbitron'; font-size: 3rem; color: var(--gold); margin: 0; }
 
+        /* Game Elements */
         #player {
             position: absolute; width: 40px; height: 40px;
             display: flex; justify-content: center; align-items: center;
-            font-size: 25px; border-radius: 8px; z-index: 10;
-            background: var(--blue); box-shadow: 0 0 15px var(--blue);
+            font-size: 24px; border-radius: 4px; z-index: 60;
+            background: #111; border: 1px solid var(--blue);
+            box-shadow: 0 0 15px var(--blue);
         }
 
         #monster {
             position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%);
-            width: 180px; height: 180px; background: #1a1a1a;
-            border-radius: 50%; box-shadow: 0 0 60px var(--red);
-            display: flex; justify-content: center; align-items: center; z-index: 5;
-            transition: transform 0.05s;
+            width: 200px; height: 200px; background: #0f0f0f;
+            border-radius: 20px; box-shadow: 0 0 40px rgba(255,0,0,0.1);
+            display: flex; justify-content: center; align-items: center; z-index: 40;
+            transition: transform 0.05s; border: 2px solid #222;
         }
 
         .particle {
-            position: absolute; width: 6px; height: 6px;
-            background: var(--red); border-radius: 50%;
-            pointer-events: none; z-index: 15;
-            animation: explode 0.6s ease-out forwards;
-        }
-        @keyframes explode {
-            0% { transform: translate(0,0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; }
+            position: absolute; width: 4px; height: 4px;
+            background: var(--red); pointer-events: none; z-index: 70;
         }
 
-        .bullet { position: absolute; border-radius: 50%; z-index: 8; }
-        .m-bullet { width: 12px; height: 12px; background: var(--red); box-shadow: 0 0 10px red; }
-        .p-bullet { width: 10px; height: 10px; background: #fff; box-shadow: 0 0 10px var(--blue); }
+        /* Projectiles */
+        .bullet { position: absolute; border-radius: 2px; z-index: 55; }
+        .p-bullet { width: 4px; height: 12px; background: #fff; box-shadow: 0 0 10px white; }
+        .m-bullet { width: 10px; height: 10px; background: var(--red); border-radius: 50%; box-shadow: 0 0 15px var(--red); }
 
+        /* Shop */
         #shop-sidebar {
-            position: fixed; left: 0; top: 75px; bottom: 0;
-            width: 240px; background: rgba(15, 15, 15, 0.95);
-            padding: 15px; border-right: 2px solid #444; overflow-y: auto; z-index: 100;
+            position: fixed; left: 20px; top: 100px; width: 220px;
+            background: rgba(10,10,10,0.9); padding: 15px; border: 1px solid #333; z-index: 100;
         }
-        .shop-section { margin-bottom: 20px; }
-        .shop-section h3 { font-size: 0.8rem; color: var(--gold); text-transform: uppercase; border-bottom: 1px solid #333; }
-        .item { background: #222; padding: 10px; margin: 8px 0; border-radius: 6px; font-size: 0.8rem; }
-        button { width: 100%; background: var(--gold); border: none; padding: 6px; font-weight: bold; cursor: pointer; border-radius: 4px; }
-        button:disabled { background: #444; cursor: default; opacity: 0.6; }
-        
-        .hp-container { width: 200px; height: 12px; background: #222; border: 1px solid #555; position: absolute; top: -30px; left: -10px; }
-        .hp-fill { height: 100%; width: 100%; transition: 0.1s; }
-        #p-hp-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 400px; height: 20px; background: #111; border: 2px solid white; z-index: 100; }
+        .item { background: #111; padding: 10px; margin: 10px 0; border: 1px solid #222; }
+        button { width: 100%; background: #222; color: var(--gold); border: 1px solid var(--gold); padding: 8px; cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; }
+        button:hover:not(:disabled) { background: var(--gold); color: black; }
+        button:disabled { opacity: 0.3; cursor: default; }
+
+        .hp-bar-bg { width: 100%; height: 6px; background: #111; margin-top: 5px; }
+        .hp-fill { height: 100%; background: var(--red); width: 100%; transition: width 0.1s; }
+        #p-hp-bar { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 400px; height: 10px; background: #111; border: 1px solid #333; z-index: 100; }
     </style>
 </head>
 <body>
 
+<div id="vignette"></div>
+
 <div id="hud">
-    <div class="stat">GULD: <b id="money">0</b></div>
+    <div class="stat">KREDITS: <b id="money">0</b></div>
     <div class="stat">SKADE: <b id="stat-dmg">1</b></div>
-    <div class="stat">LVL: <b id="lvl">1</b></div>
+    <div class="stat">SEKTOR: <b id="lvl">1</b></div>
+</div>
+
+<div id="timer-wrap">
+    <p>MONSTER ELIMINERET</p>
+    <h2>NÆSTE OM <span id="countdown">10</span>s</h2>
+    <small>Brug pausen til at opgradere dit udstyr</small>
 </div>
 
 <div id="shop-sidebar">
-    <div class="shop-section">
-        <h3>⚔️ OPGRADERINGER</h3>
-        <div class="item"><b>Muskler (+2)</b><button onclick="buy('dmg', 75)">75 kr</button></div>
-        <div class="item"><b>Super Skud (+10)</b><button onclick="buy('big-dmg', 500)">500 kr</button></div>
-        <div class="item"><b>Auto-Pistol</b><button id="btn-pistol" onclick="buy('pistol', 150)">150 kr</button></div>
-    </div>
-
-    <div class="shop-section">
-        <h3>🎭 AVATARS</h3>
-        <div class="item"><b>🥷 Ninja (Fart)</b><button id="btn-ninja" onclick="buySkin('ninja', 300, '🥷', '#2ecc71', 1.5, 0, 1)">300 kr</button></div>
-        <div class="item"><b>🤖 Robot (Tank)</b><button id="btn-robot" onclick="buySkin('robot', 1000, '🤖', '#95a5a6', 1, 4, 1)">1000 kr</button></div>
-        <div class="item"><b>👑 Konge (x2 Penge)</b><button id="btn-king" onclick="buySkin('king', 3000, '👑', '#f1c40f', 1.2, 1, 2)">3000 kr</button></div>
-    </div>
-
-    <div class="item"><b>Heal Full HP</b><button onclick="buy('heal', 40)">40 kr</button></div>
+    <div class="item"><b>STYRKE (+5)</b><button onclick="buy('dmg', 150)">150 KR</button></div>
+    <div class="item"><b>AUTO-FIRE</b><button id="btn-auto" onclick="buy('auto', 300)">300 KR</button></div>
+    <div class="item"><b>REPARATION</b><button onclick="buy('heal', 50)">50 KR</button></div>
+    <div style="margin-top:20px; color:#555; font-size:0.7rem">AVATARS</div>
+    <button id="btn-ninja" onclick="buySkin('ninja', 500, '🥷', 1.5, 2)">NINJA (500)</button>
+    <button id="btn-king" style="margin-top:5px" onclick="buySkin('king', 2000, '👑', 1.1, 4)">KING (2000)</button>
 </div>
 
 <div id="game-container">
     <div id="player">🟦</div>
     <div id="monster" onclick="attackMonster()">
-        <div class="hp-container"><div id="m-hp-fill" class="hp-fill" style="background: var(--red);"></div></div>
-        <div id="m-icon" style="font-size: 70px;">👺</div>
+        <div style="position: absolute; top: -50px; width: 100%;">
+            <small id="m-name">SHADOW UNIT</small>
+            <div class="hp-bar-bg"><div id="m-hp-fill" class="hp-fill"></div></div>
+        </div>
+        <div id="m-icon" style="font-size: 80px; filter: grayscale(1) brightness(0.5);">💀</div>
     </div>
 </div>
 
-<div id="p-hp-bar"><div id="p-hp-fill" class="hp-fill" style="background: #2ecc71;"></div></div>
+<div id="p-hp-bar"><div id="p-hp-fill" class="hp-fill" style="background: var(--blue);"></div></div>
 
 <script>
-    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 1, pSpeed = 6, pDef = 0, gMult = 1, weaponOwned = false, lastAutoFire = 0;
-    let mHP = 50, mMaxHP = 50, px = window.innerWidth/2, py = window.innerHeight-150;
-    const keys = {}, mBullets = [], pBullets = [];
-
-    // DOBBELT INDTÆGT: Vi ganger base-beløbet med 2
-    const baseReward = 2; 
+    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 1, pSpeed = 6, pDef = 0, gMult = 2, autoFire = false;
+    let mHP = 50, mMaxHP = 50, px = window.innerWidth/2, py = window.innerHeight-150, monsterAlive = true;
+    const keys = {}, mBullets = [], pBullets = [], particles = [];
 
     window.addEventListener('keydown', e => {
         keys[e.code] = true;
-        if(e.code === 'Enter') attackMonster();
+        if(e.code === 'Enter' && monsterAlive) attackMonster();
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
 
     function attackMonster() {
-        const mRect = document.getElementById('monster').getBoundingClientRect();
-        for(let i=0; i<6; i++) createParticle(mRect.left + 90, mRect.top + 90);
+        if(!monsterAlive) return;
+        const mR = document.getElementById('monster').getBoundingClientRect();
+        for(let i=0; i<10; i++) spawnParticle(mR.left + 100, mR.top + 100);
         
-        document.getElementById('monster').style.transform = `translate(-50%, -50%) scale(0.95)`;
-        setTimeout(() => document.getElementById('monster').style.transform = `translate(-50%, -50%) scale(1)`, 50);
-
+        // Muzzle flash / Shake
+        document.body.style.backgroundColor = "#111";
+        setTimeout(() => document.body.style.backgroundColor = "#020202", 30);
+        document.getElementById('monster').style.transform = "translate(-50%, -50%) scale(0.98)";
+        
         damageMonster(pDmg);
     }
 
-    function createParticle(x, y) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        p.style.left = x + 'px'; p.style.top = y + 'px';
-        p.style.setProperty('--dx', (Math.random()*150-75) + 'px');
-        p.style.setProperty('--dy', (Math.random()*150-75) + 'px');
-        document.getElementById('game-container').appendChild(p);
-        setTimeout(() => p.remove(), 600);
+    function spawnParticle(x, y) {
+        const p = {
+            el: document.createElement('div'),
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 10,
+            vy: (Math.random() - 0.8) * 12,
+            life: 1.0
+        };
+        p.el.className = 'particle';
+        document.getElementById('game-container').appendChild(p.el);
+        particles.push(p);
     }
 
     function damageMonster(amt) {
         mHP -= amt;
-        // TJEN DOBBELT: (Skade * 2) * Avatar-multiplier
-        money += (amt * baseReward) * gMult;
-        if(mHP <= 0) {
-            lvl++;
-            mMaxHP = Math.round(50 * Math.pow(1.3, lvl));
-            mHP = mMaxHP;
-            money += (200 * lvl); // Dobbelt level bonus
-            document.getElementById('m-icon').innerText = ['👹', '👽', '👾', '🧛', '🐲'][lvl % 5];
+        money += amt * gMult;
+        if(mHP <= 0 && monsterAlive) {
+            monsterAlive = false;
+            money += 500 * lvl;
+            startNextLevelTimer();
         }
+        updateUI();
+    }
+
+    function startNextLevelTimer() {
+        document.getElementById('monster').style.opacity = "0";
+        document.getElementById('timer-wrap').style.display = "block";
+        let count = 10;
+        document.getElementById('countdown').innerText = count;
+
+        const interval = setInterval(() => {
+            count--;
+            document.getElementById('countdown').innerText = count;
+            if(count <= 0) {
+                clearInterval(interval);
+                spawnMonster();
+            }
+        }, 1000);
+    }
+
+    function spawnMonster() {
+        lvl++;
+        mMaxHP = Math.round(50 * Math.pow(1.4, lvl));
+        mHP = mMaxHP;
+        monsterAlive = true;
+        document.getElementById('monster').style.opacity = "1";
+        document.getElementById('timer-wrap').style.display = "none";
+        document.getElementById('m-icon').innerText = ['💀', '🤖', '👹', '👽'][lvl % 4];
         updateUI();
     }
 
     function buy(type, cost) {
         if(money >= cost) {
             money -= cost;
-            if(type === 'dmg') pDmg += 2;
-            if(type === 'big-dmg') pDmg += 10;
-            if(type === 'pistol') { weaponOwned = true; document.getElementById('btn-pistol').disabled = true; }
+            if(type === 'dmg') pDmg += 5;
+            if(type === 'auto') { autoFire = true; document.getElementById('btn-auto').disabled = true; }
             if(type === 'heal') pHP = pMaxHP;
             updateUI();
         }
     }
 
-    function buySkin(id, cost, icon, color, speed, def, mult) {
+    function buySkin(id, cost, icon, speed, mult) {
         if(money >= cost) {
             money -= cost;
-            const p = document.getElementById('player');
-            p.innerText = icon;
-            p.style.background = color;
-            p.style.boxShadow = `0 0 20px ${color}`;
+            document.getElementById('player').innerText = icon;
             pSpeed = 6 * speed;
-            pDef = def;
-            gMult = mult;
+            gMult = 2 * mult;
             document.getElementById('btn-' + id).disabled = true;
-            document.getElementById('btn-' + id).innerText = "AKTIV";
+            updateUI();
         }
-        updateUI();
     }
 
     function updateUI() {
@@ -180,21 +207,35 @@
         document.getElementById('lvl').innerText = lvl;
         document.getElementById('stat-dmg').innerText = pDmg;
         document.getElementById('m-hp-fill').style.width = (mHP/mMaxHP*100) + "%";
-        document.getElementById('p-hp-fill').style.width = pHP + "%";
+        document.getElementById('p-hp-fill').style.width = (pHP/pMaxHP*100) + "%";
     }
 
     function loop(time) {
+        // Player Move
         if(keys['ArrowUp'] || keys['KeyW']) py -= pSpeed;
         if(keys['ArrowDown'] || keys['KeyS']) py += pSpeed;
         if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
         if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
-        px = Math.max(0, Math.min(window.innerWidth - 40, px));
-        py = Math.max(0, Math.min(window.innerHeight - 100, py));
-        const p = document.getElementById('player');
-        p.style.left = px + 'px'; p.style.top = py + 'px';
+        
+        px = Math.max(0, Math.min(window.innerWidth-40, px));
+        py = Math.max(0, Math.min(window.innerHeight-100, py));
+        document.getElementById('player').style.left = px + 'px';
+        document.getElementById('player').style.top = py + 'px';
 
-        if(weaponOwned && time - lastAutoFire > 600) { fireBullet('player'); lastAutoFire = time; }
-        if(Math.random() < 0.02 + (lvl * 0.003)) fireBullet('monster');
+        // Auto fire
+        if(autoFire && monsterAlive && time % 500 < 20) fireBullet('player');
+        if(monsterAlive && Math.random() < 0.02 + (lvl*0.002)) fireBullet('monster');
+
+        // Particles (Gravity)
+        particles.forEach((p, i) => {
+            p.vy += 0.5; // Tyngdekraft
+            p.x += p.vx; p.y += p.vy;
+            p.life -= 0.02;
+            p.el.style.left = p.x + 'px'; p.el.style.top = p.y + 'px';
+            p.el.style.opacity = p.life;
+            if(p.life <= 0) { p.el.remove(); particles.splice(i, 1); }
+        });
+
         updateBullets();
         requestAnimationFrame(loop);
     }
@@ -202,38 +243,34 @@
     function fireBullet(who) {
         const b = document.createElement('div');
         b.className = 'bullet ' + (who === 'player' ? 'p-bullet' : 'm-bullet');
-        const mRect = document.getElementById('monster').getBoundingClientRect();
-        let sX, sY, ang;
+        const mR = document.getElementById('monster').getBoundingClientRect();
         if(who === 'player') {
-            sX = px + 20; sY = py + 20;
-            ang = Math.atan2((mRect.top + 90) - py, (mRect.left + 90) - px);
-            pBullets.push({ el: b, x: sX, y: sY, vx: Math.cos(ang) * 12, vy: Math.sin(ang) * 12 });
+            const ang = Math.atan2((mR.top+100)-py, (mR.left+100)-px);
+            pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*15, vy: Math.sin(ang)*15 });
         } else {
-            sX = mRect.left + 90; sY = mRect.top + 90;
-            ang = Math.atan2(py - sY, px - sX);
-            mBullets.push({ el: b, x: sX, y: sY, vx: Math.cos(ang) * (4 + lvl * 0.2), vy: Math.sin(ang) * (4 + lvl * 0.2) });
+            const ang = Math.atan2(py-(mR.top+100), px-(mR.left+100));
+            mBullets.push({ el: b, x: mR.left+100, y: mR.top+100, vx: Math.cos(ang)*(5+lvl*0.5), vy: Math.sin(ang)*(5+lvl*0.5) });
         }
         document.getElementById('game-container').appendChild(b);
     }
 
     function updateBullets() {
         pBullets.forEach((b, i) => {
-            b.x += b.vx; b.y += b.vy; b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+            b.x += b.vx; b.y += b.vy; b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
             const mR = document.getElementById('monster').getBoundingClientRect();
-            if(b.x > mR.left && b.x < mR.right && b.y > mR.top && b.y < mR.bottom) {
-                damageMonster(pDmg); createParticle(b.x, b.y); b.el.remove(); pBullets.splice(i, 1);
+            if(monsterAlive && b.x > mR.left && b.x < mR.right && b.y > mR.top && b.y < mR.bottom) {
+                damageMonster(pDmg); b.el.remove(); pBullets.splice(i, 1);
             }
         });
         mBullets.forEach((b, i) => {
-            b.x += b.vx; b.y += b.vy; b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
-            if(b.x > px && b.x < px + 40 && b.y > py && b.y < py + 40) {
-                pHP -= Math.max(1, 10 - pDef); updateUI(); b.el.remove(); mBullets.splice(i, 1);
-                if(pHP <= 0) { alert("Zander faldt! Du blev dog ret rig."); location.reload(); }
+            b.x += b.vx; b.y += b.vy; b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
+            if(b.x > px && b.x < px+40 && b.y > py && b.y < py+40) {
+                pHP -= 10; updateUI(); b.el.remove(); mBullets.splice(i, 1);
+                if(pHP <= 0) { alert("MISSION FAILED. Sektor nået: " + lvl); location.reload(); }
             }
         });
     }
 
-    updateUI();
     requestAnimationFrame(loop);
 </script>
 </body>
