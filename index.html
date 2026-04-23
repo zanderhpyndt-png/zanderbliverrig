@@ -11,33 +11,52 @@ body {
     font-family: Arial;
     text-align: center;
     color: white;
-    background: black;
+    background: radial-gradient(circle at top, #111, #000);
+    overflow-x: hidden;
 }
 
 h1 {
     margin-top: 40px;
-    text-shadow: 0 0 15px gold;
+    font-size: 3em;
+    text-shadow: 0 0 20px gold;
 }
 
 .box {
     margin: 15px;
     padding: 15px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 15px;
     display: inline-block;
+    box-shadow: 0 0 15px rgba(255,215,0,0.2);
 }
 
 button {
-    padding: 10px 20px;
-    margin: 5px;
-    background: gold;
+    padding: 15px 30px;
+    margin: 10px;
+    background: linear-gradient(45deg, gold, orange);
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
+    font-size: 1.2em;
     cursor: pointer;
+    transition: 0.2s;
 }
 
 button:hover {
     transform: scale(1.1);
+    box-shadow: 0 0 20px gold;
+}
+
+/* 💸 FALDENDE PENGE */
+.money {
+    position: fixed;
+    font-size: 1.5em;
+    pointer-events: none;
+    animation: fall 1s linear forwards;
+}
+
+@keyframes fall {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(120px); }
 }
 </style>
 </head>
@@ -58,30 +77,31 @@ Dine penge: <span id="money">0</span> kr
 
 <br>
 
-<button onclick="earn()">Tjen penge 💸</button>
+<button onclick="earn(event)">Tjen penge 💸</button>
 
 <h2>🛒 Shop</h2>
 
 <div class="box">
-<p>💪 Bedre klik (+1)</p>
-<p>Pris: <span id="priceClick">50</span></p>
+💪 Bedre klik (+1)<br>
+Pris: <span id="priceClick">50</span><br>
 <button onclick="buyClick()">Køb</button>
 </div>
 
 <div class="box">
-<p>🏭 Auto penge (+1/s)</p>
-<p>Pris: <span id="priceAuto">100</span></p>
+🏭 Auto penge (+1/s)<br>
+Pris: <span id="priceAuto">100</span><br>
 <button onclick="buyAuto()">Køb</button>
 </div>
 
 <script>
-// BESØGENDE
+
+// 👀 besøg
 let visits = localStorage.getItem("visits") || 0;
 visits++;
 localStorage.setItem("visits", visits);
 document.getElementById("visits").innerText = visits;
 
-// DATA
+// 💰 data
 let money = parseInt(localStorage.getItem("money")) || 0;
 let clickPower = parseInt(localStorage.getItem("clickPower")) || 1;
 let auto = parseInt(localStorage.getItem("auto")) || 0;
@@ -89,20 +109,38 @@ let auto = parseInt(localStorage.getItem("auto")) || 0;
 let priceClick = parseInt(localStorage.getItem("priceClick")) || 50;
 let priceAuto = parseInt(localStorage.getItem("priceAuto")) || 100;
 
-// UPDATE UI
 function update() {
     document.getElementById("money").innerText = money;
     document.getElementById("priceClick").innerText = priceClick;
     document.getElementById("priceAuto").innerText = priceAuto;
 }
 
-// TJEN PENGE
-function earn() {
+// 💸 klik + animation
+function earn(e) {
     money += clickPower;
+    spawnMoney(e.target);
     save();
 }
 
-// KØB CLICK UPGRADE
+// 💸 penge der falder fra knappen
+function spawnMoney(btn) {
+    const rect = btn.getBoundingClientRect();
+
+    for (let i = 0; i < 6; i++) {
+        const el = document.createElement("div");
+        el.className = "money";
+        el.innerText = "💸";
+
+        el.style.left = (rect.left + rect.width / 2 + (Math.random() * 60 - 30)) + "px";
+        el.style.top = rect.top + "px";
+
+        document.body.appendChild(el);
+
+        setTimeout(() => el.remove(), 1000);
+    }
+}
+
+// 🛒 shop
 function buyClick() {
     if (money >= priceClick) {
         money -= priceClick;
@@ -112,7 +150,6 @@ function buyClick() {
     }
 }
 
-// KØB AUTO
 function buyAuto() {
     if (money >= priceAuto) {
         money -= priceAuto;
@@ -122,13 +159,13 @@ function buyAuto() {
     }
 }
 
-// AUTO INCOME
+// ⚙️ auto income
 setInterval(() => {
     money += auto;
     save();
 }, 1000);
 
-// GEM
+// 💾 save
 function save() {
     localStorage.setItem("money", money);
     localStorage.setItem("clickPower", clickPower);
@@ -139,6 +176,7 @@ function save() {
 }
 
 update();
+
 </script>
 
 </body>
