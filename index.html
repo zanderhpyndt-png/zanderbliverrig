@@ -3,218 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Bullet Hunter</title>
+    <title>Zander: Arsenal Hunter</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         body {
-            margin: 0; background: #050505; color: white;
-            font-family: 'Segoe UI', sans-serif; overflow: hidden;
-            user-select: none;
+            margin: 0; background: #0a0a0a; color: white;
+            font-family: 'Segoe UI', sans-serif; overflow: hidden; user-select: none;
         }
 
         /* HUD */
         #hud {
             position: fixed; top: 0; width: 100%; padding: 15px;
             display: flex; justify-content: space-around;
-            background: rgba(0,0,0,0.8); z-index: 100;
-            border-bottom: 2px solid #444;
+            background: rgba(0,0,0,0.9); z-index: 100; border-bottom: 2px solid #333;
         }
-        .stat b { color: #ffd700; font-family: 'Orbitron'; }
+        .stat b { color: #ffd700; font-family: 'Orbitron'; font-size: 1.2rem; }
 
-        /* Game Canvas Area */
-        #game-container {
-            position: relative; width: 100vw; height: 100vh;
-            background: radial-gradient(circle, #111 0%, #000 100%);
-        }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: #050505; }
 
-        /* Spilleren */
+        /* Entiteter */
         #player {
-            position: absolute; width: 40px; height: 40px;
+            position: absolute; width: 35px; height: 35px;
             background: #00a8ff; border: 2px solid white;
-            box-shadow: 0 0 15px #00a8ff; border-radius: 5px;
-            z-index: 10; transition: transform 0.1s;
+            box-shadow: 0 0 15px #00a8ff; border-radius: 5px; z-index: 10;
         }
 
-        /* Monsteret */
         #monster {
-            position: absolute; left: 50%; top: 40%;
-            transform: translate(-50%, -50%);
-            width: 150px; height: 150px;
-            background: #1a1a1a; border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-            box-shadow: 0 0 40px #ff4757;
-            display: flex; justify-content: center; align-items: center;
-            cursor: crosshair; z-index: 5; transition: 0.2s;
+            position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%);
+            width: 160px; height: 160px; background: #1a1a1a;
+            border-radius: 50% 20% 50% 20%; box-shadow: 0 0 50px #ff4757;
+            display: flex; justify-content: center; align-items: center; z-index: 5;
         }
-        #monster:active { scale: 0.95; }
-        #monster::after { content: '👁️'; font-size: 40px; }
+        #monster::after { content: '👹'; font-size: 60px; }
 
         /* Projektiler */
-        .bullet {
-            position: absolute; width: 12px; height: 12px;
-            background: #ff4757; border-radius: 50%;
-            box-shadow: 0 0 10px #ff4757; z-index: 8;
-        }
+        .bullet { position: absolute; border-radius: 50%; z-index: 8; pointer-events: none; }
+        .m-bullet { width: 12px; height: 12px; background: #ff4757; box-shadow: 0 0 10px red; }
+        .p-bullet { width: 8px; height: 8px; background: #00ffcc; box-shadow: 0 0 10px #00ffcc; }
 
-        /* Shop */
-        #shop {
-            position: fixed; bottom: 0; width: 100%;
-            padding: 15px; background: #111;
-            display: flex; justify-content: center; gap: 20px;
+        /* Side Menu (Shop) */
+        #shop-sidebar {
+            position: fixed; left: 0; top: 80px; bottom: 100px;
+            width: 220px; background: rgba(20, 20, 20, 0.9);
+            padding: 15px; border-right: 2px solid #d4af37; overflow-y: auto; z-index: 100;
         }
-        .item { background: #222; padding: 10px; border-radius: 5px; border: 1px solid #d4af37; }
-        button { cursor: pointer; background: #d4af37; border: none; padding: 5px 10px; font-weight: bold; }
+        .shop-section { margin-bottom: 20px; }
+        .shop-section h3 { font-size: 0.9rem; color: #d4af37; border-bottom: 1px solid #444; }
+        
+        .item { background: #333; padding: 10px; margin: 5px 0; border-radius: 4px; font-size: 0.8rem; }
+        .item button { 
+            width: 100%; margin-top: 5px; background: #d4af37; border: none; 
+            padding: 5px; cursor: pointer; font-weight: bold; 
+        }
+        .item button:disabled { background: #555; cursor: not-allowed; }
 
-        /* HP Bars */
-        .hp-bar { width: 150px; height: 10px; background: #333; margin-top: 5px; }
-        .hp-fill { height: 100%; background: #ff4757; width: 100%; }
-        #p-hp-fill { background: #2ecc71; }
+        /* Bars */
+        .hp-bar { width: 150px; height: 10px; background: #333; margin: 5px auto; }
+        .hp-fill { height: 100%; background: #ff4757; width: 100%; transition: 0.1s; }
+        #p-hp-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 300px; height: 20px; border: 2px solid white; }
     </style>
 </head>
 <body>
 
 <div id="hud">
     <div class="stat">GULD: <b id="money">0</b></div>
+    <div class="stat">VÅBEN: <b id="weapon-name">Hænder</b></div>
     <div class="stat">LEVEL: <b id="lvl">1</b></div>
+</div>
+
+<div id="shop-sidebar">
+    <div class="shop-section">
+        <h3>💰 ØKONOMI</h3>
+        <div class="item">Mere Guld (x2)<br><button id="buy-mult" onclick="buy('mult')">Pris: 200</button></div>
+    </div>
+    <div class="shop-section">
+        <h3>🔫 ARSENAL</h3>
+        <div class="item">Pistol (Auto)<br><button id="buy-pistol" onclick="buy('pistol')">Pris: 100</button></div>
+        <div class="item">Uzi (Hurtig)<br><button id="buy-uzi" onclick="buy('uzi')">Pris: 500</button></div>
+        <div class="item">Minigun (OP)<br><button id="buy-mini" onclick="buy('mini')">Pris: 2500</button></div>
+    </div>
+    <div class="shop-section">
+        <h3>❤️ OVERLEVELSE</h3>
+        <div class="item">Heal Full HP<br><button onclick="buy('heal')">Pris: 50</button></div>
+    </div>
 </div>
 
 <div id="game-container">
     <div id="player"></div>
-    
-    <div id="monster" onclick="hitMonster()">
-        <div style="position: absolute; top: -40px; text-align: center; width: 200px;">
-            <div class="hp-bar" style="margin: 0 auto;"><div id="m-hp-fill" class="hp-fill"></div></div>
+    <div id="monster" onclick="clickMonster()">
+        <div style="position: absolute; top: -40px; width: 200px; text-align: center;">
+            <div class="hp-bar"><div id="m-hp-fill" class="hp-fill"></div></div>
         </div>
     </div>
 </div>
 
-<div id="shop">
-    <div class="item">⚔️ Skade: <span id="dmg-val">1</span> <button onclick="buy('dmg')">50 kr</button></div>
-    <div class="item">🛡️ Liv: <span id="hp-val">100</span> <button onclick="buy('heal')">20 kr</button></div>
-    <div style="color: #666; font-size: 0.8rem;">Brug PILTASTER til at gå!</div>
-</div>
+<div id="p-hp-bar"><div id="p-hp-fill" class="hp-fill" style="background: #2ecc71;"></div></div>
 
 <script>
     let money = 0;
+    let moneyMult = 1;
     let lvl = 1;
     let pHP = 100;
     let pMaxHP = 100;
-    let pDmg = 1;
+    
+    // Våben stats
+    let weapon = "None";
+    let fireRate = 0; // ms mellem skud
+    let lastFire = 0;
 
-    // Spiller position
-    let px = window.innerWidth / 2 - 20;
+    // Bevægelse
+    let px = window.innerWidth / 2;
     let py = window.innerHeight - 150;
-    const pSpeed = 7;
     const keys = {};
 
-    // Monster stats
-    let mHP = 20;
-    let mMaxHP = 20;
-    let bullets = [];
+    // Monster
+    let mHP = 30;
+    let mMaxHP = 30;
+    let bullets = []; // Fjendens skud
+    let playerBullets = []; // Dine skud
 
-    const player = document.getElementById('player');
-    const monster = document.getElementById('monster');
+    const playerEl = document.getElementById('player');
+    const monsterEl = document.getElementById('monster');
 
-    // Kontrol
     window.addEventListener('keydown', e => keys[e.code] = true);
     window.addEventListener('keyup', e => keys[e.code] = false);
 
-    function hitMonster() {
-        mHP -= pDmg;
-        money += pDmg;
-        if(mHP <= 0) spawnNew();
+    function clickMonster() {
+        damageMonster(1);
+    }
+
+    function damageMonster(amt) {
+        mHP -= amt;
+        money += amt * moneyMult;
+        if(mHP <= 0) {
+            lvl++;
+            mMaxHP = Math.round(30 * Math.pow(1.3, lvl));
+            mHP = mMaxHP;
+            money += 50 * lvl;
+        }
         updateUI();
     }
 
-    function spawnNew() {
-        lvl++;
-        money += 20;
-        mMaxHP = Math.round(20 * Math.pow(1.2, lvl));
-        mHP = mMaxHP;
-        monster.style.background = `hsl(${Math.random() * 360}, 50%, 20%)`;
-    }
-
     function buy(type) {
-        if(type === 'dmg' && money >= 50) { money -= 50; pDmg++; }
-        if(type === 'heal' && money >= 20) { money -= 20; pHP = pMaxHP; }
+        if(type === 'mult' && money >= 200) { money -= 200; moneyMult += 1; }
+        if(type === 'pistol' && money >= 100) { money -= 100; weapon = "Pistol"; fireRate = 800; }
+        if(type === 'uzi' && money >= 500) { money -= 500; weapon = "Uzi"; fireRate = 300; }
+        if(type === 'mini' && money >= 2500) { money -= 2500; weapon = "Minigun"; fireRate = 100; }
+        if(type === 'heal' && money >= 50) { money -= 50; pHP = pMaxHP; }
         updateUI();
     }
 
     function updateUI() {
-        document.getElementById('money').innerText = money;
+        document.getElementById('money').innerText = Math.floor(money);
         document.getElementById('lvl').innerText = lvl;
-        document.getElementById('dmg-val').innerText = pDmg;
+        document.getElementById('weapon-name').innerText = weapon === "None" ? "Hænder" : weapon;
         document.getElementById('m-hp-fill').style.width = (mHP/mMaxHP*100) + "%";
-        document.getElementById('p-hp-fill-ui'); // Not used, handled in loop
+        document.getElementById('p-hp-fill').style.width = pHP + "%";
+        
+        // Disable knapper hvis ingen råd
+        document.getElementById('buy-mult').disabled = money < 200;
+        document.getElementById('buy-pistol').disabled = money < 100 || weapon === "Pistol" || weapon === "Uzi" || weapon === "Minigun";
+        document.getElementById('buy-uzi').disabled = money < 500 || weapon === "Uzi" || weapon === "Minigun";
+        document.getElementById('buy-mini').disabled = money < 2500 || weapon === "Minigun";
     }
 
-    // Spil Loop
-    function loop() {
-        // Bevægelse
-        if(keys['ArrowUp'] || keys['KeyW']) py -= pSpeed;
-        if(keys['ArrowDown'] || keys['KeyS']) py += pSpeed;
-        if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
-        if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
-
-        // Grænser
-        px = Math.max(0, Math.min(window.innerWidth - 40, px));
-        py = Math.max(0, Math.min(window.innerHeight - 100, py));
+    function gameLoop(time) {
+        // 1. Bevægelse
+        if(keys['ArrowUp'] || keys['KeyW']) py -= 6;
+        if(keys['ArrowDown'] || keys['KeyS']) py += 6;
+        if(keys['ArrowLeft'] || keys['KeyA']) px -= 6;
+        if(keys['ArrowRight'] || keys['KeyD']) px += 6;
         
-        player.style.left = px + 'px';
-        player.style.top = py + 'px';
+        playerEl.style.left = px + 'px';
+        playerEl.style.top = py + 'px';
 
-        // Monster skyder
-        if(Math.random() < 0.03 + (lvl * 0.005)) {
-            createBullet();
+        // 2. Auto-fire (Spiller)
+        if(weapon !== "None" && time - lastFire > fireRate) {
+            firePlayerBullet();
+            lastFire = time;
         }
 
-        // Opdater projektiler
-        bullets.forEach((b, index) => {
-            b.x += b.vx;
-            b.y += b.vy;
-            b.el.style.left = b.x + 'px';
-            b.el.style.top = b.y + 'px';
+        // 3. Monster skud
+        if(Math.random() < 0.02 + (lvl * 0.005)) {
+            fireMonsterBullet();
+        }
 
-            // Collision check
-            if(px < b.x + 12 && px + 40 > b.x && py < b.y + 12 && py + 40 > b.y) {
-                pHP -= 5;
-                b.el.remove();
-                bullets.splice(index, 1);
-                if(pHP <= 0) { alert("Game Over! Du nåede level " + lvl); location.reload(); }
-            }
+        // 4. Opdater alle skud
+        updateBullets();
 
-            // Fjern hvis ude af skærm
-            if(b.y > window.innerHeight) {
-                b.el.remove();
-                bullets.splice(index, 1);
-            }
-        });
-
-        requestAnimationFrame(loop);
+        requestAnimationFrame(gameLoop);
     }
 
-    function createBullet() {
-        const el = document.createElement('div');
-        el.className = 'bullet';
-        const mRect = monster.getBoundingClientRect();
-        let bx = mRect.left + mRect.width/2;
-        let by = mRect.top + mRect.height/2;
+    function firePlayerBullet() {
+        const b = document.createElement('div');
+        b.className = 'bullet p-bullet';
+        const mRect = monsterEl.getBoundingClientRect();
+        const angle = Math.atan2((mRect.top + 80) - py, (mRect.left + 80) - px);
         
-        // Retning mod spiller
-        const angle = Math.atan2(py - by, px - bx);
-        const speed = 3 + (lvl * 0.2);
+        playerBullets.push({
+            el: b, x: px + 15, y: py + 15,
+            vx: Math.cos(angle) * 10, vy: Math.sin(angle) * 10
+        });
+        document.getElementById('game-container').appendChild(b);
+    }
+
+    function fireMonsterBullet() {
+        const b = document.createElement('div');
+        b.className = 'bullet m-bullet';
+        const mRect = monsterEl.getBoundingClientRect();
+        const angle = Math.atan2(py - (mRect.top + 80), px - (mRect.left + 80));
         
         bullets.push({
-            el: el,
-            x: bx,
-            y: by,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed
+            el: b, x: mRect.left + 80, y: mRect.top + 80,
+            vx: Math.cos(angle) * (4 + lvl*0.2), vy: Math.sin(angle) * (4 + lvl*0.2)
         });
-        document.getElementById('game-container').appendChild(el);
+        document.getElementById('game-container').appendChild(b);
     }
 
-    loop();
+    function updateBullets() {
+        // Spillerens skud rammer monster
+        playerBullets.forEach((b, i) => {
+            b.x += b.vx; b.y += b.vy;
+            b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+            
+            const mRect = monsterEl.getBoundingClientRect();
+            if(b.x > mRect.left && b.x < mRect.right && b.y > mRect.top && b.y < mRect.bottom) {
+                damageMonster(2);
+                b.el.remove();
+                playerBullets.splice(i, 1);
+            } else if(b.x < 0 || b.x > window.innerWidth || b.y < 0 || b.y > window.innerHeight) {
+                b.el.remove(); playerBullets.splice(i, 1);
+            }
+        });
+
+        // Monstrets skud rammer spiller
+        bullets.forEach((b, i) => {
+            b.x += b.vx; b.y += b.vy;
+            b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+            
+            if(b.x > px && b.x < px + 35 && b.y > py && b.y < py + 35) {
+                pHP -= 10;
+                updateUI();
+                b.el.remove();
+                bullets.splice(i, 1);
+                if(pHP <= 0) { alert("Zander faldt i kamp! Level: " + lvl); location.reload(); }
+            } else if(b.y > window.innerHeight || b.y < 0) {
+                b.el.remove(); bullets.splice(i, 1);
+            }
+        });
+    }
+
     updateUI();
+    requestAnimationFrame(gameLoop);
 </script>
 
 </body>
