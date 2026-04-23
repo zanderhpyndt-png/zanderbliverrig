@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Particle Hunter</title>
+    <title>Zander: Rich Hunter Pro</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         :root { --gold: #ffd700; --blue: #00a8ff; --red: #ff4757; }
@@ -22,6 +22,7 @@
             position: absolute; width: 40px; height: 40px;
             display: flex; justify-content: center; align-items: center;
             font-size: 25px; border-radius: 8px; z-index: 10;
+            background: var(--blue); box-shadow: 0 0 15px var(--blue);
         }
 
         #monster {
@@ -32,7 +33,6 @@
             transition: transform 0.05s;
         }
 
-        /* Partikler */
         .particle {
             position: absolute; width: 6px; height: 6px;
             background: var(--red); border-radius: 50%;
@@ -50,11 +50,14 @@
 
         #shop-sidebar {
             position: fixed; left: 0; top: 75px; bottom: 0;
-            width: 220px; background: rgba(15, 15, 15, 0.95);
+            width: 240px; background: rgba(15, 15, 15, 0.95);
             padding: 15px; border-right: 2px solid #444; overflow-y: auto; z-index: 100;
         }
+        .shop-section { margin-bottom: 20px; }
+        .shop-section h3 { font-size: 0.8rem; color: var(--gold); text-transform: uppercase; border-bottom: 1px solid #333; }
         .item { background: #222; padding: 10px; margin: 8px 0; border-radius: 6px; font-size: 0.8rem; }
         button { width: 100%; background: var(--gold); border: none; padding: 6px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        button:disabled { background: #444; cursor: default; opacity: 0.6; }
         
         .hp-container { width: 200px; height: 12px; background: #222; border: 1px solid #555; position: absolute; top: -30px; left: -10px; }
         .hp-fill { height: 100%; width: 100%; transition: 0.1s; }
@@ -70,16 +73,26 @@
 </div>
 
 <div id="shop-sidebar">
-    <div class="item"><b>Træn Muskler (+2)</b><button onclick="buy('dmg', 75)">75 kr</button></div>
-    <div class="item"><b>Super Skud (+10)</b><button onclick="buy('big-dmg', 500)">500 kr</button></div>
-    <div class="item"><b>Auto-Pistol</b><button id="btn-pistol" onclick="buy('pistol', 150)">150 kr</button></div>
+    <div class="shop-section">
+        <h3>⚔️ OPGRADERINGER</h3>
+        <div class="item"><b>Muskler (+2)</b><button onclick="buy('dmg', 75)">75 kr</button></div>
+        <div class="item"><b>Super Skud (+10)</b><button onclick="buy('big-dmg', 500)">500 kr</button></div>
+        <div class="item"><b>Auto-Pistol</b><button id="btn-pistol" onclick="buy('pistol', 150)">150 kr</button></div>
+    </div>
+
+    <div class="shop-section">
+        <h3>🎭 AVATARS</h3>
+        <div class="item"><b>🥷 Ninja (Fart)</b><button id="btn-ninja" onclick="buySkin('ninja', 300, '🥷', '#2ecc71', 1.5, 0, 1)">300 kr</button></div>
+        <div class="item"><b>🤖 Robot (Tank)</b><button id="btn-robot" onclick="buySkin('robot', 1000, '🤖', '#95a5a6', 1, 4, 1)">1000 kr</button></div>
+        <div class="item"><b>👑 Konge (x2 Penge)</b><button id="btn-king" onclick="buySkin('king', 3000, '👑', '#f1c40f', 1.2, 1, 2)">3000 kr</button></div>
+    </div>
+
     <div class="item"><b>Heal Full HP</b><button onclick="buy('heal', 40)">40 kr</button></div>
-    <p style="font-size: 0.7rem; color: #888; margin-top: 20px;">TIP: Tryk på ENTER for at angribe monsteret lynhurtigt!</p>
 </div>
 
 <div id="game-container">
-    <div id="player" style="background: var(--blue); box-shadow: 0 0 15px var(--blue);">🟦</div>
-    <div id="monster" onclick="attackMonster(event)">
+    <div id="player">🟦</div>
+    <div id="monster" onclick="attackMonster()">
         <div class="hp-container"><div id="m-hp-fill" class="hp-fill" style="background: var(--red);"></div></div>
         <div id="m-icon" style="font-size: 70px;">👺</div>
     </div>
@@ -88,9 +101,12 @@
 <div id="p-hp-bar"><div id="p-hp-fill" class="hp-fill" style="background: #2ecc71;"></div></div>
 
 <script>
-    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 1, pSpeed = 6, weaponOwned = false, lastAutoFire = 0;
+    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 1, pSpeed = 6, pDef = 0, gMult = 1, weaponOwned = false, lastAutoFire = 0;
     let mHP = 50, mMaxHP = 50, px = window.innerWidth/2, py = window.innerHeight-150;
     const keys = {}, mBullets = [], pBullets = [];
+
+    // DOBBELT INDTÆGT: Vi ganger base-beløbet med 2
+    const baseReward = 2; 
 
     window.addEventListener('keydown', e => {
         keys[e.code] = true;
@@ -98,16 +114,11 @@
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
 
-    function attackMonster(e) {
+    function attackMonster() {
         const mRect = document.getElementById('monster').getBoundingClientRect();
-        const centerX = mRect.left + mRect.width/2;
-        const centerY = mRect.top + mRect.height/2;
+        for(let i=0; i<6; i++) createParticle(mRect.left + 90, mRect.top + 90);
         
-        // Lav partikler
-        for(let i=0; i<8; i++) createParticle(centerX, centerY);
-        
-        // Ryst monster
-        document.getElementById('monster').style.transform = `translate(-50%, -50%) scale(0.9) rotate(${Math.random()*10-5}deg)`;
+        document.getElementById('monster').style.transform = `translate(-50%, -50%) scale(0.95)`;
         setTimeout(() => document.getElementById('monster').style.transform = `translate(-50%, -50%) scale(1)`, 50);
 
         damageMonster(pDmg);
@@ -116,22 +127,22 @@
     function createParticle(x, y) {
         const p = document.createElement('div');
         p.className = 'particle';
-        p.style.left = x + 'px';
-        p.style.top = y + 'px';
-        p.style.setProperty('--dx', (Math.random()*200-100) + 'px');
-        p.style.setProperty('--dy', (Math.random()*200-100) + 'px');
+        p.style.left = x + 'px'; p.style.top = y + 'px';
+        p.style.setProperty('--dx', (Math.random()*150-75) + 'px');
+        p.style.setProperty('--dy', (Math.random()*150-75) + 'px');
         document.getElementById('game-container').appendChild(p);
         setTimeout(() => p.remove(), 600);
     }
 
     function damageMonster(amt) {
         mHP -= amt;
-        money += amt;
+        // TJEN DOBBELT: (Skade * 2) * Avatar-multiplier
+        money += (amt * baseReward) * gMult;
         if(mHP <= 0) {
             lvl++;
             mMaxHP = Math.round(50 * Math.pow(1.3, lvl));
             mHP = mMaxHP;
-            money += 100;
+            money += (200 * lvl); // Dobbelt level bonus
             document.getElementById('m-icon').innerText = ['👹', '👽', '👾', '🧛', '🐲'][lvl % 5];
         }
         updateUI();
@@ -148,6 +159,22 @@
         }
     }
 
+    function buySkin(id, cost, icon, color, speed, def, mult) {
+        if(money >= cost) {
+            money -= cost;
+            const p = document.getElementById('player');
+            p.innerText = icon;
+            p.style.background = color;
+            p.style.boxShadow = `0 0 20px ${color}`;
+            pSpeed = 6 * speed;
+            pDef = def;
+            gMult = mult;
+            document.getElementById('btn-' + id).disabled = true;
+            document.getElementById('btn-' + id).innerText = "AKTIV";
+        }
+        updateUI();
+    }
+
     function updateUI() {
         document.getElementById('money').innerText = Math.floor(money);
         document.getElementById('lvl').innerText = lvl;
@@ -161,15 +188,13 @@
         if(keys['ArrowDown'] || keys['KeyS']) py += pSpeed;
         if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
         if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
-
         px = Math.max(0, Math.min(window.innerWidth - 40, px));
         py = Math.max(0, Math.min(window.innerHeight - 100, py));
-        document.getElementById('player').style.left = px + 'px';
-        document.getElementById('player').style.top = py + 'px';
+        const p = document.getElementById('player');
+        p.style.left = px + 'px'; p.style.top = py + 'px';
 
         if(weaponOwned && time - lastAutoFire > 600) { fireBullet('player'); lastAutoFire = time; }
         if(Math.random() < 0.02 + (lvl * 0.003)) fireBullet('monster');
-
         updateBullets();
         requestAnimationFrame(loop);
     }
@@ -178,35 +203,32 @@
         const b = document.createElement('div');
         b.className = 'bullet ' + (who === 'player' ? 'p-bullet' : 'm-bullet');
         const mRect = document.getElementById('monster').getBoundingClientRect();
-        let startX, startY, angle;
-
+        let sX, sY, ang;
         if(who === 'player') {
-            startX = px + 20; startY = py + 20;
-            angle = Math.atan2((mRect.top + 90) - py, (mRect.left + 90) - px);
-            pBullets.push({ el: b, x: startX, y: startY, vx: Math.cos(angle) * 12, vy: Math.sin(angle) * 12 });
+            sX = px + 20; sY = py + 20;
+            ang = Math.atan2((mRect.top + 90) - py, (mRect.left + 90) - px);
+            pBullets.push({ el: b, x: sX, y: sY, vx: Math.cos(ang) * 12, vy: Math.sin(ang) * 12 });
         } else {
-            startX = mRect.left + 90; startY = mRect.top + 90;
-            angle = Math.atan2(py - startY, px - startX);
-            mBullets.push({ el: b, x: startX, y: startY, vx: Math.cos(angle) * (4 + lvl * 0.2), vy: Math.sin(angle) * (4 + lvl * 0.2) });
+            sX = mRect.left + 90; sY = mRect.top + 90;
+            ang = Math.atan2(py - sY, px - sX);
+            mBullets.push({ el: b, x: sX, y: sY, vx: Math.cos(ang) * (4 + lvl * 0.2), vy: Math.sin(ang) * (4 + lvl * 0.2) });
         }
         document.getElementById('game-container').appendChild(b);
     }
 
     function updateBullets() {
         pBullets.forEach((b, i) => {
-            b.x += b.vx; b.y += b.vy;
-            b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
-            const mRect = document.getElementById('monster').getBoundingClientRect();
-            if(b.x > mRect.left && b.x < mRect.right && b.y > mRect.top && b.y < mRect.bottom) {
+            b.x += b.vx; b.y += b.vy; b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+            const mR = document.getElementById('monster').getBoundingClientRect();
+            if(b.x > mR.left && b.x < mR.right && b.y > mR.top && b.y < mR.bottom) {
                 damageMonster(pDmg); createParticle(b.x, b.y); b.el.remove(); pBullets.splice(i, 1);
             }
         });
         mBullets.forEach((b, i) => {
-            b.x += b.vx; b.y += b.vy;
-            b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+            b.x += b.vx; b.y += b.vy; b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
             if(b.x > px && b.x < px + 40 && b.y > py && b.y < py + 40) {
-                pHP -= 10; updateUI(); b.el.remove(); mBullets.splice(i, 1);
-                if(pHP <= 0) { alert("Zander faldt! Level: " + lvl); location.reload(); }
+                pHP -= Math.max(1, 10 - pDef); updateUI(); b.el.remove(); mBullets.splice(i, 1);
+                if(pHP <= 0) { alert("Zander faldt! Du blev dog ret rig."); location.reload(); }
             }
         });
     }
