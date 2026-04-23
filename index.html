@@ -8,62 +8,36 @@
 <style>
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: Arial;
     text-align: center;
     color: white;
-    overflow: hidden;
-    background: linear-gradient(270deg, #000000, #1a1a1a, #333333);
-    background-size: 600% 600%;
-    animation: bg 10s ease infinite;
-}
-
-@keyframes bg {
-    0% {background-position:0%}
-    50% {background-position:100%}
-    100% {background-position:0%}
+    background: black;
 }
 
 h1 {
-    margin-top: 50px;
-    font-size: 3em;
-    text-shadow: 0 0 20px gold;
+    margin-top: 40px;
+    text-shadow: 0 0 15px gold;
 }
 
-.counter, .moneyBox {
-    margin-top: 20px;
-    font-size: 1.5em;
-    background: rgba(0,0,0,0.5);
+.box {
+    margin: 15px;
     padding: 15px;
-    border-radius: 15px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
     display: inline-block;
 }
 
 button {
-    margin-top: 20px;
-    padding: 15px 30px;
-    font-size: 1.2em;
-    border: none;
-    border-radius: 10px;
+    padding: 10px 20px;
+    margin: 5px;
     background: gold;
-    color: black;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
-    transition: 0.2s;
 }
 
 button:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 20px gold;
-}
-
-.money {
-    position: fixed;
-    top: -50px;
-    font-size: 2em;
-    animation: fall linear infinite;
-}
-
-@keyframes fall {
-    to { transform: translateY(110vh); }
 }
 </style>
 </head>
@@ -71,66 +45,100 @@ button:hover {
 <body>
 
 <h1>💰 ZanderBliverRig 💰</h1>
-<p>Start din rejse mod rigdom 🚀</p>
 
-<div class="counter">
-Besøgende: <span id="visitCount">0</span>
+<div class="box">
+Besøgende: <span id="visits">0</span>
 </div>
 
 <br>
 
-<div class="moneyBox">
+<div class="box">
 Dine penge: <span id="money">0</span> kr
 </div>
 
 <br>
 
-<button onclick="earnMoney()">Tjen penge 💸</button>
+<button onclick="earn()">Tjen penge 💸</button>
+
+<h2>🛒 Shop</h2>
+
+<div class="box">
+<p>💪 Bedre klik (+1)</p>
+<p>Pris: <span id="priceClick">50</span></p>
+<button onclick="buyClick()">Køb</button>
+</div>
+
+<div class="box">
+<p>🏭 Auto penge (+1/s)</p>
+<p>Pris: <span id="priceAuto">100</span></p>
+<button onclick="buyAuto()">Køb</button>
+</div>
 
 <script>
-// Besøgstæller (lokal)
-let visits = localStorage.getItem('visitCount');
-visits = visits ? parseInt(visits) + 1 : 1;
-localStorage.setItem('visitCount', visits);
-document.getElementById('visitCount').innerText = visits;
+// BESØGENDE
+let visits = localStorage.getItem("visits") || 0;
+visits++;
+localStorage.setItem("visits", visits);
+document.getElementById("visits").innerText = visits;
 
-// Penge system
-let money = localStorage.getItem('money');
-money = money ? parseInt(money) : 0;
+// DATA
+let money = parseInt(localStorage.getItem("money")) || 0;
+let clickPower = parseInt(localStorage.getItem("clickPower")) || 1;
+let auto = parseInt(localStorage.getItem("auto")) || 0;
 
-function updateMoney() {
-    document.getElementById('money').innerText = money;
+let priceClick = parseInt(localStorage.getItem("priceClick")) || 50;
+let priceAuto = parseInt(localStorage.getItem("priceAuto")) || 100;
+
+// UPDATE UI
+function update() {
+    document.getElementById("money").innerText = money;
+    document.getElementById("priceClick").innerText = priceClick;
+    document.getElementById("priceAuto").innerText = priceAuto;
 }
 
-function earnMoney() {
-    let earned = Math.floor(Math.random() * 10) + 1;
-    money += earned;
-    localStorage.setItem('money', money);
-    updateMoney();
+// TJEN PENGE
+function earn() {
+    money += clickPower;
+    save();
 }
 
-// Auto penge (passiv indkomst 😏)
+// KØB CLICK UPGRADE
+function buyClick() {
+    if (money >= priceClick) {
+        money -= priceClick;
+        clickPower++;
+        priceClick = Math.floor(priceClick * 1.5);
+        save();
+    }
+}
+
+// KØB AUTO
+function buyAuto() {
+    if (money >= priceAuto) {
+        money -= priceAuto;
+        auto++;
+        priceAuto = Math.floor(priceAuto * 1.7);
+        save();
+    }
+}
+
+// AUTO INCOME
 setInterval(() => {
-    money += 1;
-    localStorage.setItem('money', money);
-    updateMoney();
-}, 2000);
+    money += auto;
+    save();
+}, 1000);
 
-updateMoney();
-
-// Money rain
-function createMoney() {
-    const el = document.createElement('div');
-    el.classList.add('money');
-    el.innerText = '💸';
-    el.style.left = Math.random() * 100 + 'vw';
-    el.style.animationDuration = (Math.random() * 3 + 2) + 's';
-    document.body.appendChild(el);
-
-    setTimeout(() => el.remove(), 5000);
+// GEM
+function save() {
+    localStorage.setItem("money", money);
+    localStorage.setItem("clickPower", clickPower);
+    localStorage.setItem("auto", auto);
+    localStorage.setItem("priceClick", priceClick);
+    localStorage.setItem("priceAuto", priceAuto);
+    update();
 }
 
-setInterval(createMoney, 300);
+update();
 </script>
 
 </body>
