@@ -3,60 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Nightmare Sector</title>
+    <title>Zander: Horde Survival</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --blood: #660000; --gold: #ffd700; --laser: #00f2ff; --plasma: #ff00ff; }
+        :root { --blood: #880000; --gold: #ffd700; --laser: #00f2ff; --acid: #2ecc71; }
         body { margin: 0; background: #000; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; user-select: none; }
-        
         #game-container { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #111, #000); }
 
         /* HUD */
-        .hud { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.9); z-index: 300; border-bottom: 2px solid var(--blood); }
-        .hud b { color: var(--gold); }
+        .hud { position: fixed; top: 0; width: 100%; padding: 15px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.9); z-index: 300; border-bottom: 2px solid var(--blood); }
+        
+        /* Entities */
+        #player { position: absolute; width: 40px; height: 40px; font-size: 35px; z-index: 100; text-align: center; }
+        .monster { position: absolute; width: 60px; height: 60px; z-index: 40; filter: drop-shadow(0 0 10px var(--blood)); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; }
+        .m-bullet { position: absolute; width: 12px; height: 12px; background: var(--acid); border-radius: 50%; box-shadow: 0 0 10px var(--acid); z-index: 50; }
+        
+        /* HP Bars på monstre */
+        .m-hp-bar { width: 40px; height: 4px; background: #000; border: 1px solid #333; margin-bottom: 2px; }
+        .m-hp-fill { height: 100%; background: var(--blood); }
 
-        /* Monster */
-        .monster { position: absolute; width: 100px; height: 120px; z-index: 40; filter: drop-shadow(0 0 15px var(--blood)); text-align: center; }
-        .monster-head { width: 50px; height: 60px; background: #3a443a; border-radius: 40%; position: relative; border: 2px solid #1a1a1a; margin: auto; }
-        .monster-smile { position: absolute; bottom: 10px; left: 5px; width: 40px; height: 15px; border-bottom: 4px solid #fff; border-radius: 50%; box-shadow: 0 5px 10px red; }
-
-        /* Spiller & Skud */
-        #player { position: absolute; width: 50px; height: 60px; font-size: 45px; z-index: 60; text-align: center; }
-        .bullet { position: absolute; border-radius: 50%; pointer-events: none; z-index: 55; }
-        .laser-bolt { width: 6px; height: 20px; background: var(--laser); box-shadow: 0 0 15px var(--laser); }
-        .shotgun-shell { width: 8px; height: 8px; background: #fff; box-shadow: 0 0 8px #fff; }
-        .plasma-orb { width: 25px; height: 25px; background: var(--plasma); box-shadow: 0 0 25px var(--plasma); border: 2px solid #fff; }
-
-        /* Menuer */
-        #menu-overlay, #timer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 500; text-align: center; }
+        /* Overlays */
+        #menu-overlay, #timer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 500; text-align: center; }
         h1 { font-family: 'Creepster'; font-size: 4rem; color: var(--blood); margin: 0; }
-        .btn { background: #111; color: white; border: 1px solid var(--gold); padding: 15px; cursor: pointer; font-family: 'Orbitron'; margin: 10px; width: 300px; border-radius: 5px; transition: 0.2s; }
-        .btn:hover { background: var(--gold); color: black; }
+        .btn { background: #111; color: white; border: 1px solid var(--gold); padding: 12px; cursor: pointer; font-family: 'Orbitron'; margin: 5px; width: 280px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div id="timer-overlay">
-    <h1>SEKTOR RENSET</h1>
-    <p style="font-size: 1.5rem;">Næste mareridt begynder om:</p>
+    <h1 id="timer-title">SEKTOR OVERLEVET</h1>
+    <p>Gør dig klar til næste bølge...</p>
     <div id="countdown" style="font-size: 5rem; color: var(--blood);">5</div>
 </div>
 
 <div id="menu-overlay">
-    <h1>UDSTYR</h1>
+    <h1>MARKEDSPLADS</h1>
     <p>GULD: <span id="menu-money">0</span></p>
     <button class="btn" onclick="setWeapon('laser')">LASER (Præcis)</button>
-    <button class="btn" onclick="setWeapon('shotgun')">SHOTGUN (Spredning)</button>
+    <button class="btn" onclick="setWeapon('shotgun')">SHOTGUN (Område)</button>
     <button class="btn" onclick="setWeapon('plasma')">PLASMA (Tung)</button>
-    <button class="btn" onclick="buyDmg()">OPGRADER SKADE (<span id="dmg-cost">500</span> Guld)</button>
-    <button class="btn" style="background: var(--blood);" onclick="closeMenu()">FORTSÆT</button>
+    <button class="btn" onclick="buyDmg()">SKADE [+50] (<span id="dmg-cost">500</span> Guld)</button>
+    <button class="btn" onclick="buyHeal()">HEAL [+50 HP] (300 Guld)</button>
+    <button class="btn" style="background: var(--blood);" onclick="closeMenu()">FORTSÆT KAMPEN</button>
 </div>
 
 <div class="hud">
     <div>GULD: <b id="money-ui">0</b></div>
     <div>SEKTOR: <b id="sector-ui">1</b></div>
-    <div>VÅBEN: <b id="weapon-ui" style="color: var(--laser);">LASER</b></div>
-    <div>LIV: <b id="hp-ui" style="color: red;">100</b></div>
+    <div>MONSTRE: <b id="count-ui">0</b></div>
+    <div>LIV: <b id="hp-ui" style="color: #2ecc71;">100</b></div>
 </div>
 
 <div id="game-container">
@@ -65,14 +60,14 @@
 
 <script>
     let money = 0, sector = 1, hp = 100, dmgBase = 50, dmgCost = 500;
-    let currentWeapon = 'laser', inMenu = false, monsterAlive = false;
+    let currentWeapon = 'laser', inMenu = false, waveActive = false;
     let px = window.innerWidth/2, py = window.innerHeight/2;
-    const keys = {}, monsters = [], pBullets = [];
+    const keys = {}, monsters = [], pBullets = [], mBullets = [];
     const container = document.getElementById('game-container');
 
     window.addEventListener('keydown', e => {
         if(e.code === 'Escape') inMenu ? closeMenu() : openMenu();
-        if(e.code === 'Enter' && !keys[e.code] && !inMenu && monsterAlive) fireWeapon();
+        if(e.code === 'Enter' && !keys[e.code] && !inMenu && waveActive) fireWeapon();
         keys[e.code] = true;
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
@@ -80,47 +75,31 @@
     function openMenu() { inMenu = true; document.getElementById('menu-overlay').style.display = 'flex'; document.getElementById('menu-money').innerText = money; }
     function closeMenu() { inMenu = false; document.getElementById('menu-overlay').style.display = 'none'; }
 
-    function setWeapon(type) {
-        currentWeapon = type;
-        const ui = document.getElementById('weapon-ui');
-        ui.innerText = type.toUpperCase();
-        ui.style.color = type === 'laser' ? 'var(--laser)' : (type === 'plasma' ? 'var(--plasma)' : '#fff');
-    }
-
-    function buyDmg() {
-        if(money >= dmgCost) {
-            money -= dmgCost;
-            dmgBase += 50;
-            dmgCost = Math.round(dmgCost * 1.5);
-            document.getElementById('dmg-cost').innerText = dmgCost;
-            document.getElementById('menu-money').innerText = money;
-            updateUI();
-        }
-    }
+    function setWeapon(t) { currentWeapon = t; closeMenu(); }
+    function buyHeal() { if(money >= 300) { money -= 300; hp = Math.min(100, hp + 50); updateUI(); } }
+    function buyDmg() { if(money >= dmgCost) { money -= dmgCost; dmgBase += 50; dmgCost = Math.round(dmgCost * 1.6); updateUI(); openMenu(); } }
 
     function fireWeapon() {
         if(monsters.length === 0) return;
-        const target = monsters[0];
-        const ang = Math.atan2(target.y - py, target.x - px);
-
-        if(currentWeapon === 'laser') {
-            createBullet('laser-bolt', ang, 22, dmgBase);
-        } else if(currentWeapon === 'shotgun') {
-            for(let i = -2; i <= 2; i++) createBullet('shotgun-shell', ang + (i * 0.2), 16, dmgBase * 0.4);
-        } else if(currentWeapon === 'plasma') {
-            createBullet('plasma-orb', ang, 9, dmgBase * 3);
-        }
+        let target = monsters[0];
+        let ang = Math.atan2(target.y - py, target.x - px);
+        if(currentWeapon === 'laser') spawnBullet(ang, 25, dmgBase, 'laser-bolt');
+        else if(currentWeapon === 'shotgun') { for(let i=-2; i<=2; i++) spawnBullet(ang + (i*0.2), 18, dmgBase*0.5, 'shotgun-shell'); }
+        else { spawnBullet(ang, 10, dmgBase*3, 'plasma-orb'); }
     }
 
-    function createBullet(cls, ang, spd, d) {
+    function spawnBullet(ang, spd, d, cls) {
         const el = document.createElement('div');
-        el.className = 'bullet ' + cls;
+        el.className = 'p-bullet ' + cls;
+        el.style.position = 'absolute';
+        el.style.width = '10px'; el.style.height = '10px';
+        el.style.background = 'white'; el.style.borderRadius = '50%';
         container.appendChild(el);
         pBullets.push({ el, x: px+20, y: py+20, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, d });
     }
 
-    function startNextSector() {
-        monsterAlive = false;
+    function startWave() {
+        waveActive = false;
         document.getElementById('timer-overlay').style.display = 'flex';
         let count = 5;
         const timer = setInterval(() => {
@@ -129,33 +108,50 @@
             if(count <= 0) {
                 clearInterval(timer);
                 document.getElementById('timer-overlay').style.display = 'none';
-                document.getElementById('countdown').innerText = "5";
-                spawnMonster();
+                spawnHorde();
             }
         }, 1000);
     }
 
-    function spawnMonster() {
-        const div = document.createElement('div');
-        div.className = 'monster';
-        div.innerHTML = `<div class="monster-head"><div class="monster-smile"></div></div><div style="font-size: 50px;">🧟</div>`;
-        container.appendChild(div);
-        monsters.push({ el: div, x: Math.random() * window.innerWidth, y: -150, hp: 100 * Math.pow(1.3, sector), maxHp: 100 * Math.pow(1.3, sector) });
-        monsterAlive = true;
+    function spawnHorde() {
+        const amount = 3 + (sector * 2);
+        for(let i=0; i < amount; i++) {
+            const types = ['tank', 'sprinter', 'spitter'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            createMonster(type);
+        }
+        waveActive = true;
+        updateUI();
+    }
+
+    function createMonster(type) {
+        const el = document.createElement('div');
+        el.className = 'monster';
+        let stats = { hp: 100 * sector, speed: 1.5, icon: '👹', power: 'none' };
+        
+        if(type === 'sprinter') { stats.hp *= 0.5; stats.speed = 3.5; stats.icon = '👻'; }
+        if(type === 'tank') { stats.hp *= 2.5; stats.speed = 0.8; stats.icon = '👹'; }
+        if(type === 'spitter') { stats.hp *= 0.8; stats.speed = 1.2; stats.icon = '👽'; stats.power = 'shoot'; }
+
+        el.innerHTML = `<div class="m-hp-bar"><div class="m-hp-fill" style="width:100%"></div></div>${stats.icon}`;
+        container.appendChild(el);
+        monsters.push({ el, x: Math.random()*2000 - 1000, y: -200, hp: stats.hp, maxHp: stats.hp, speed: stats.speed, power: stats.power });
     }
 
     function updateUI() {
-        document.getElementById('money-ui').innerText = Math.floor(money);
+        document.getElementById('money-ui').innerText = money;
         document.getElementById('sector-ui').innerText = sector;
-        document.getElementById('hp-ui').innerText = Math.max(0, Math.floor(hp));
+        document.getElementById('count-ui').innerText = monsters.length;
+        document.getElementById('hp-ui').innerText = Math.floor(hp);
+        document.getElementById('dmg-cost').innerText = dmgCost;
     }
 
     function loop() {
         if(!inMenu) {
-            if(keys['ArrowUp']) py -= 7;
-            if(keys['ArrowDown']) py += 7;
-            if(keys['ArrowLeft']) px -= 7;
-            if(keys['ArrowRight']) px += 7;
+            if(keys['ArrowUp'] || keys['KeyW']) py -= 6;
+            if(keys['ArrowDown'] || keys['KeyS']) py += 6;
+            if(keys['ArrowLeft'] || keys['KeyA']) px -= 6;
+            if(keys['ArrowRight'] || keys['KeyD']) px += 6;
 
             document.getElementById('player').style.left = px + 'px';
             document.getElementById('player').style.top = py + 'px';
@@ -163,37 +159,60 @@
             monsters.forEach((m, mi) => {
                 const dx = px - m.x, dy = py - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                m.x += (dx/dist) * (2 + sector * 0.1);
-                m.y += (dy/dist) * (2 + sector * 0.1);
+                
+                // Bevægelse
+                if(m.power === 'shoot' && dist < 300) {
+                    // Spitter stopper op for at skyde
+                    if(Math.random() < 0.01) spawnMonsterBullet(m);
+                } else {
+                    m.x += (dx/dist) * m.speed;
+                    m.y += (dy/dist) * m.speed;
+                }
+                
                 m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
-                if(dist < 50) { hp -= 0.5; updateUI(); }
-                if(hp <= 0) { alert("DU BLEV OPSLUGT AF MARERIDTET!"); location.reload(); }
+                if(dist < 40) { hp -= 0.2; updateUI(); }
             });
 
             pBullets.forEach((b, bi) => {
                 b.x += b.vx; b.y += b.vy;
                 b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
-                if(currentWeapon === 'laser') b.el.style.transform = `rotate(${Math.atan2(b.vy, b.vx) + Math.PI/2}rad)`;
-
                 monsters.forEach((m, mi) => {
-                    if(b.x > m.x && b.x < m.x+100 && b.y > m.y && b.y < m.y+120) {
+                    if(b.x > m.x && b.x < m.x+60 && b.y > m.y && b.y < m.y+60) {
                         m.hp -= b.d;
+                        m.el.querySelector('.m-hp-fill').style.width = (m.hp/m.maxHp*100) + "%";
                         b.el.remove(); pBullets.splice(bi, 1);
                         if(m.hp <= 0) {
                             m.el.remove(); monsters.splice(mi, 1);
-                            money += 500 * sector;
-                            sector++;
+                            money += 100 * sector;
                             updateUI();
-                            startNextSector();
+                            if(monsters.length === 0) { sector++; startWave(); }
                         }
                     }
                 });
             });
+
+            mBullets.forEach((b, bi) => {
+                b.x += b.vx; b.y += b.vy;
+                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
+                if(Math.sqrt((px-b.x)**2 + (py-b.y)**2) < 30) {
+                    hp -= 10; b.el.remove(); mBullets.splice(bi, 1); updateUI();
+                }
+            });
+
+            if(hp <= 0) { alert("DU DØDE I SEKTOR " + sector); location.reload(); }
         }
         requestAnimationFrame(loop);
     }
 
-    spawnMonster();
+    function spawnMonsterBullet(m) {
+        const el = document.createElement('div');
+        el.className = 'm-bullet';
+        container.appendChild(el);
+        const ang = Math.atan2(py - m.y, px - m.x);
+        mBullets.push({ el, x: m.x+30, y: m.y+30, vx: Math.cos(ang)*5, vy: Math.sin(ang)*5 });
+    }
+
+    startWave();
     requestAnimationFrame(loop);
 </script>
 </body>
