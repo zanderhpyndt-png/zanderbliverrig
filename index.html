@@ -3,205 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Tactical Survivor</title>
+    <title>Zander: Tactical Survivor Pro</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --blood: #880000; --gold: #ffd700; --laser: #00f2ff; }
-        body { margin: 0; background: #000; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; user-select: none; }
-        
-        /* Banedesigns */
-        .map-forest { background: radial-gradient(circle, #1a2e1a 0%, #000 100%); }
-        .map-hell { background: radial-gradient(circle, #2e1a1a 0%, #000 100%); }
-        .map-space { background: radial-gradient(circle, #1a1a2e 0%, #000 100%); }
+        :root { --blood: #ff4d4d; --gold: #ffd700; --laser: #00f2ff; --ui-bg: rgba(10, 10, 15, 0.95); }
+        body { margin: 0; background: #000; color: white; font-family: 'Share Tech Mono', monospace; overflow: hidden; user-select: none; }
 
-        #game-container { position: relative; width: 100vw; height: 100vh; transition: background 1s; }
+        /* Baner */
+        .map-forest { background: radial-gradient(circle, #0d1a0d 0%, #000 100%); }
+        .map-hell { background: radial-gradient(circle, #1a0d0d 0%, #000 100%); }
+        .map-space { background: radial-gradient(circle, #0d0d1a 0%, #000 100%); }
 
-        /* HUD */
-        .hud { position: fixed; top: 0; width: 100%; padding: 15px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.9); z-index: 300; border-bottom: 2px solid var(--blood); }
-        
-        /* Menu / Start skærm */
-        #main-menu {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 1000; text-align: center;
-        }
+        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 
-        .select-group { margin: 15px; padding: 10px; border: 1px solid #333; border-radius: 10px; width: 400px; }
-        .select-group h3 { margin: 5px; color: var(--gold); font-size: 0.8rem; }
+        /* HUD & XP Bar */
+        .hud { position: fixed; top: 0; width: 100%; padding: 15px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.8); z-index: 300; border-bottom: 2px solid var(--laser); font-family: 'Orbitron'; }
+        #xp-container { position: fixed; top: 65px; left: 0; width: 100%; height: 5px; background: #222; z-index: 300; }
+        #xp-fill { height: 100%; width: 0%; background: var(--laser); transition: width 0.3s; box-shadow: 0 0 10px var(--laser); }
+
+        /* Start Menu & Upgrade Shop */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--ui-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 600px; margin-top: 20px; }
+        .shop-item { background: #1a1a25; border: 1px solid #333; padding: 15px; border-radius: 8px; }
 
         /* Entities */
-        #player { position: absolute; width: 40px; height: 40px; font-size: 35px; z-index: 100; transition: transform 0.1s; }
-        .monster { position: absolute; width: 60px; height: 60px; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; }
-        .p-bullet { position: absolute; border-radius: 50%; z-index: 55; box-shadow: 0 0 10px white; }
+        #player { position: absolute; width: 40px; height: 40px; font-size: 35px; z-index: 100; transition: transform 0.1s; filter: drop-shadow(0 0 10px var(--laser)); }
+        .monster { position: absolute; width: 50px; height: 50px; z-index: 40; filter: drop-shadow(0 0 15px var(--blood)); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; transition: transform 0.2s; }
+        
+        .m-hp-bar { width: 30px; height: 3px; background: #000; border: 1px solid #444; margin-bottom: 2px; }
+        .m-hp-fill { height: 100%; background: var(--blood); }
 
-        .btn { background: #111; color: white; border: 1px solid var(--gold); padding: 10px; cursor: pointer; font-family: 'Orbitron'; margin: 5px; border-radius: 5px; transition: 0.2s; }
-        .btn:hover { background: var(--gold); color: black; }
-        .btn.active { background: var(--gold); color: black; border-color: white; }
+        /* VFX */
+        .bullet { position: absolute; border-radius: 50%; z-index: 55; box-shadow: 0 0 10px white; pointer-events: none; }
+        .particle { position: absolute; width: 4px; height: 4px; background: orange; border-radius: 50%; pointer-events: none; }
 
-        #timer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 500; }
+        .btn { background: #111; color: white; border: 1px solid var(--laser); padding: 10px; cursor: pointer; font-family: 'Orbitron'; margin: 5px; border-radius: 4px; transition: 0.2s; font-size: 0.8rem; }
+        .btn:hover:not(:disabled) { background: var(--laser); color: black; }
+        .btn:disabled { opacity: 0.3; border-color: #555; }
     </style>
 </head>
 <body class="map-forest">
 
-<div id="main-menu">
-    <h1 style="font-family: 'Creepster'; font-size: 4rem; color: var(--blood); margin: 0;">ZANDER SURVIVOR</h1>
+<!-- Start Menu -->
+<div id="main-menu" class="overlay">
+    <h1 style="font-family: 'Orbitron'; font-size: 3.5rem; color: var(--laser); margin: 0; text-shadow: 0 0 20px var(--laser);">ZANDER: OMEGA</h1>
+    <p style="letter-spacing: 5px; color: #888;">TACTICAL SURVIVAL INTERFACE</p>
     
-    <div class="select-group">
-        <h3>VÆLG BANE</h3>
-        <button class="btn active" onclick="setMap('forest', this)">MØRK SKOV</button>
-        <button class="btn" onclick="setMap('hell', this)">HELVEDE</button>
-        <button class="btn" onclick="setMap('space', this)">DYB RUM</button>
+    <div style="margin: 20px;">
+        <button class="btn" onclick="setMap('forest', this)">FOREST</button>
+        <button class="btn" onclick="setMap('hell', this)">HELL</button>
+        <button class="btn" onclick="setMap('space', this)">VOID</button>
     </div>
 
-    <div class="select-group">
-        <h3>SVÆRHEDSGRAD</h3>
-        <button class="btn active" onclick="setDiff(1, this)">NEMT</button>
-        <button class="btn" onclick="setDiff(2, this)">NORMAL</button>
-        <button class="btn" onclick="setDiff(3, this)">MARERIDT</button>
+    <div style="margin: 20px;">
+        <button class="btn" onclick="setDiff(1, this)">RECRUIT</button>
+        <button class="btn" onclick="setDiff(2, this)">VETERAN</button>
+        <button class="btn" onclick="setDiff(3, this)">ELITE</button>
     </div>
 
-    <button class="btn" style="font-size: 2rem; padding: 20px 50px; background: var(--blood);" onclick="startGame()">START KAMP</button>
+    <button class="btn" style="font-size: 1.5rem; padding: 15px 40px; margin-top: 30px;" onclick="startGame()">INITIALIZE MISSION</button>
 </div>
 
-<div id="timer-overlay">
-    <h1 style="font-family: 'Creepster'; color: var(--gold);">GØR DIG KLAR</h1>
-    <div id="countdown" style="font-size: 5rem;">3</div>
+<!-- Upgrade Shop (ESC) -->
+<div id="upgrade-shop" class="overlay" style="display: none;">
+    <h2 style="font-family: 'Orbitron'; color: var(--gold);">FIELD UPGRADES</h2>
+    <div id="shop-money" style="color: var(--gold); font-size: 1.2rem;">GULD: 0</div>
+    
+    <div class="shop-grid">
+        <div class="shop-item">
+            <div>SKADE: <b id="stat-dmg">60</b></div>
+            <button class="btn" id="buy-dmg" onclick="buy('dmg')">OPGRADER (150)</button>
+        </div>
+        <div class="shop-item">
+            <div>SKUD-FART: <b id="stat-bspd">20</b></div>
+            <button class="btn" id="buy-bspd" onclick="buy('bspd')">OPGRADER (200)</button>
+        </div>
+        <div class="shop-item">
+            <div>MAX LIV: <b id="stat-mhp">100</b></div>
+            <button class="btn" id="buy-mhp" onclick="buy('mhp')">OPGRADER (300)</button>
+        </div>
+        <div class="shop-item">
+            <div>BEVÆGELSE: <b id="stat-pspd">7</b></div>
+            <button class="btn" id="buy-pspd" onclick="buy('pspd')">OPGRADER (250)</button>
+        </div>
+    </div>
+    <button class="btn" style="margin-top: 30px; width: 200px;" onclick="toggleShop()">RESUME</button>
 </div>
 
 <div class="hud">
-    <div>GULD: <b id="money-ui">0</b></div>
-    <div>SEKTOR: <b id="sector-ui">1</b></div>
-    <div>LIV: <b id="hp-ui" style="color: #2ecc71;">100</b></div>
+    <div>GULD: <b id="money-ui" style="color: var(--gold);">0</b></div>
+    <div>LEVEL: <b id="lvl-ui">1</b></div>
+    <div style="color: #4cd137;">LIV: <b id="hp-ui">100</b></div>
 </div>
+<div id="xp-container"><div id="xp-fill"></div></div>
 
 <div id="game-container">
     <div id="player">👨</div>
 </div>
 
 <script>
-    let money = 0, sector = 1, hp = 100, dmgBase = 60;
-    let difficulty = 1, currentMap = 'forest', gameActive = false;
+    let money = 0, sector = 1, hp = 100, maxHp = 100, dmgBase = 60, bSpeed = 20, pSpeed = 7, xp = 0;
+    let difficulty = 1, gameActive = false, shopOpen = false;
     let px = window.innerWidth/2, py = window.innerHeight/2;
-    const keys = {}, monsters = [], pBullets = [];
+    const keys = {}, monsters = [], pBullets = [], particles = [];
     const container = document.getElementById('game-container');
 
-    // SETUP VALG
-    function setMap(type, btn) {
-        currentMap = type;
-        document.body.className = 'map-' + type;
-        document.querySelectorAll('.select-group:nth-child(2) .btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
-
-    function setDiff(val, btn) {
-        difficulty = val;
-        document.querySelectorAll('.select-group:nth-child(3) .btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-    }
+    function setMap(m, b) { document.body.className = 'map-'+m; }
+    function setDiff(d, b) { difficulty = d; }
 
     function startGame() {
         document.getElementById('main-menu').style.display = 'none';
-        document.getElementById('timer-overlay').style.display = 'flex';
-        let count = 3;
-        const t = setInterval(() => {
-            count--;
-            document.getElementById('countdown').innerText = count;
-            if(count <= 0) {
-                clearInterval(t);
-                document.getElementById('timer-overlay').style.display = 'none';
-                gameActive = true;
-                spawnHorde();
-            }
-        }, 1000);
+        gameActive = true;
+        spawnHorde();
+    }
+
+    function toggleShop() {
+        if(!gameActive) return;
+        shopOpen = !shopOpen;
+        document.getElementById('upgrade-shop').style.display = shopOpen ? 'flex' : 'none';
+        document.getElementById('shop-money').innerText = "GULD: " + Math.floor(money);
+        updateStatsUI();
     }
 
     window.addEventListener('keydown', e => {
+        if(e.code === 'Escape') toggleShop();
         keys[e.code] = true;
-        if(e.code === 'Enter' && gameActive) fireAutoShot();
+        if(e.code === 'Enter' && gameActive && !shopOpen) fireAutoShot();
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
 
-    // AUTO-AIM SKYDE MEKANISME
     function fireAutoShot() {
         if(monsters.length === 0) return;
-
-        // Find det tætteste monster
-        let closest = null;
-        let minDist = Infinity;
-
+        let closest = null, minDist = Infinity;
         monsters.forEach(m => {
-            let d = Math.sqrt((px - m.x)**2 + (py - m.y)**2);
-            if(d < minDist) {
-                minDist = d;
-                closest = m;
-            }
+            let d = Math.sqrt((px-m.x)**2 + (py-m.y)**2);
+            if(d < minDist) { minDist = d; closest = m; }
         });
-
         if(closest) {
             const ang = Math.atan2(closest.y - py, closest.x - px);
             const b = document.createElement('div');
-            b.className = 'p-bullet';
-            b.style.width = '12px'; b.style.height = '12px'; b.style.background = 'var(--laser)';
+            b.className = 'bullet';
+            b.style.width = '10px'; b.style.height = '10px'; b.style.background = 'var(--laser)';
             container.appendChild(b);
-            pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*20, vy: Math.sin(ang)*20, d: dmgBase });
+            pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*bSpeed, vy: Math.sin(ang)*bSpeed, d: dmgBase });
         }
     }
 
+    function buy(type) {
+        let costs = { dmg: 150, bspd: 200, mhp: 300, pspd: 250 };
+        if(money >= costs[type]) {
+            money -= costs[type];
+            if(type === 'dmg') dmgBase += 20;
+            if(type === 'bspd') bSpeed += 5;
+            if(type === 'mhp') { maxHp += 50; hp += 50; }
+            if(type === 'pspd') pSpeed += 1;
+            updateStatsUI();
+        }
+    }
+
+    function updateStatsUI() {
+        document.getElementById('money-ui').innerText = Math.floor(money);
+        document.getElementById('shop-money').innerText = "GULD: " + Math.floor(money);
+        document.getElementById('stat-dmg').innerText = dmgBase;
+        document.getElementById('stat-bspd').innerText = bSpeed;
+        document.getElementById('stat-mhp').innerText = maxHp;
+        document.getElementById('stat-pspd').innerText = pSpeed;
+    }
+
     function spawnHorde() {
-        const count = (2 + sector) * difficulty;
-        for(let i=0; i < count; i++) {
+        const count = (3 + sector) * difficulty;
+        for(let i=0; i<count; i++) {
             const el = document.createElement('div');
             el.className = 'monster';
-            el.innerHTML = '👹';
+            el.innerHTML = `<div class="m-hp-bar"><div class="m-hp-fill" style="width:100%"></div></div>💀`;
             container.appendChild(el);
             monsters.push({
-                el, x: Math.random() > 0.5 ? -100 : window.innerWidth + 100,
-                y: Math.random() * window.innerHeight,
-                hp: 100 * sector, speed: 1.5 + (difficulty * 0.5)
+                el, x: Math.random() > 0.5 ? -100 : window.innerWidth+100,
+                y: Math.random()*window.innerHeight,
+                hp: 100 * Math.pow(1.2, sector), maxHp: 100 * Math.pow(1.2, sector),
+                speed: 1.5 + (difficulty * 0.4)
+            });
+        }
+    }
+
+    function createExplosion(x, y) {
+        for(let i=0; i<8; i++) {
+            const el = document.createElement('div');
+            el.className = 'particle';
+            container.appendChild(el);
+            particles.push({
+                el, x, y, 
+                vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
+                life: 1.0
             });
         }
     }
 
     function loop() {
-        if(gameActive) {
-            if(keys['ArrowUp'] || keys['KeyW']) py -= 7;
-            if(keys['ArrowDown'] || keys['KeyS']) py += 7;
-            if(keys['ArrowLeft'] || keys['KeyA']) px -= 7;
-            if(keys['ArrowRight'] || keys['KeyD']) px += 7;
+        if(gameActive && !shopOpen) {
+            if(keys['ArrowUp'] || keys['KeyW']) py -= pSpeed;
+            if(keys['ArrowDown'] || keys['KeyS']) py += pSpeed;
+            if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
+            if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
 
+            px = Math.max(0, Math.min(window.innerWidth-40, px));
+            py = Math.max(0, Math.min(window.innerHeight-40, py));
             document.getElementById('player').style.left = px + 'px';
             document.getElementById('player').style.top = py + 'px';
 
             monsters.forEach((m, mi) => {
                 const dx = px - m.x, dy = py - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                m.x += (dx/dist) * m.speed;
-                m.y += (dy/dist) * m.speed;
+                m.x += (dx/dist) * m.speed; m.y += (dy/dist) * m.speed;
                 m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
-                if(dist < 40) { hp -= 0.5; }
+                if(dist < 40) { hp -= 0.3; }
             });
 
             pBullets.forEach((b, bi) => {
                 b.x += b.vx; b.y += b.vy;
-                b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
-                
+                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
                 monsters.forEach((m, mi) => {
-                    if(b.x > m.x && b.x < m.x+60 && b.y > m.y && b.y < m.y+60) {
+                    if(b.x > m.x && b.x < m.x+50 && b.y > m.y && b.y < m.y+50) {
                         m.hp -= b.d;
+                        m.el.querySelector('.m-hp-fill').style.width = (m.hp/m.maxHp*100) + "%";
+                        createExplosion(b.x, b.y);
                         b.el.remove(); pBullets.splice(bi, 1);
                         if(m.hp <= 0) {
                             m.el.remove(); monsters.splice(mi, 1);
-                            money += 100;
-                            if(monsters.length === 0) { sector++; spawnHorde(); }
+                            money += 50 * difficulty;
+                            xp += 20;
+                            if(xp >= 100) { xp = 0; sector++; spawnHorde(); }
+                            updateStatsUI();
                         }
                     }
                 });
+                if(b.x < 0 || b.x > window.innerWidth || b.y < 0 || b.y > window.innerHeight) { b.el.remove(); pBullets.splice(bi, 1); }
             });
 
-            document.getElementById('money-ui').innerText = money;
-            document.getElementById('sector-ui').innerText = sector;
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+                p.el.style.left = p.x+'px'; p.el.style.top = p.y+'px'; p.el.style.opacity = p.life;
+                if(p.life <= 0) { p.el.remove(); particles.splice(i, 1); }
+            });
+
+            document.getElementById('xp-fill').style.width = xp + "%";
             document.getElementById('hp-ui').innerText = Math.floor(hp);
-            if(hp <= 0) { alert("DU DØDE! Score: " + money); location.reload(); }
+            document.getElementById('lvl-ui').innerText = sector;
+            if(hp <= 0) { alert("MISSION FAILED. Score: " + Math.floor(money)); location.reload(); }
         }
         requestAnimationFrame(loop);
     }
