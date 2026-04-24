@@ -3,54 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Horde Survival</title>
+    <title>Zander: Tactical Survivor</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --blood: #880000; --gold: #ffd700; --laser: #00f2ff; --acid: #2ecc71; }
+        :root { --blood: #880000; --gold: #ffd700; --laser: #00f2ff; }
         body { margin: 0; background: #000; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; user-select: none; }
-        #game-container { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #111, #000); }
+        
+        /* Banedesigns */
+        .map-forest { background: radial-gradient(circle, #1a2e1a 0%, #000 100%); }
+        .map-hell { background: radial-gradient(circle, #2e1a1a 0%, #000 100%); }
+        .map-space { background: radial-gradient(circle, #1a1a2e 0%, #000 100%); }
+
+        #game-container { position: relative; width: 100vw; height: 100vh; transition: background 1s; }
 
         /* HUD */
         .hud { position: fixed; top: 0; width: 100%; padding: 15px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.9); z-index: 300; border-bottom: 2px solid var(--blood); }
         
-        /* Entities */
-        #player { position: absolute; width: 40px; height: 40px; font-size: 35px; z-index: 100; text-align: center; }
-        .monster { position: absolute; width: 60px; height: 60px; z-index: 40; filter: drop-shadow(0 0 10px var(--blood)); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; }
-        .m-bullet { position: absolute; width: 12px; height: 12px; background: var(--acid); border-radius: 50%; box-shadow: 0 0 10px var(--acid); z-index: 50; }
-        
-        /* HP Bars på monstre */
-        .m-hp-bar { width: 40px; height: 4px; background: #000; border: 1px solid #333; margin-bottom: 2px; }
-        .m-hp-fill { height: 100%; background: var(--blood); }
+        /* Menu / Start skærm */
+        #main-menu {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 1000; text-align: center;
+        }
 
-        /* Overlays */
-        #menu-overlay, #timer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 500; text-align: center; }
-        h1 { font-family: 'Creepster'; font-size: 4rem; color: var(--blood); margin: 0; }
-        .btn { background: #111; color: white; border: 1px solid var(--gold); padding: 12px; cursor: pointer; font-family: 'Orbitron'; margin: 5px; width: 280px; border-radius: 5px; }
+        .select-group { margin: 15px; padding: 10px; border: 1px solid #333; border-radius: 10px; width: 400px; }
+        .select-group h3 { margin: 5px; color: var(--gold); font-size: 0.8rem; }
+
+        /* Entities */
+        #player { position: absolute; width: 40px; height: 40px; font-size: 35px; z-index: 100; transition: transform 0.1s; }
+        .monster { position: absolute; width: 60px; height: 60px; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; }
+        .p-bullet { position: absolute; border-radius: 50%; z-index: 55; box-shadow: 0 0 10px white; }
+
+        .btn { background: #111; color: white; border: 1px solid var(--gold); padding: 10px; cursor: pointer; font-family: 'Orbitron'; margin: 5px; border-radius: 5px; transition: 0.2s; }
+        .btn:hover { background: var(--gold); color: black; }
+        .btn.active { background: var(--gold); color: black; border-color: white; }
+
+        #timer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 500; }
     </style>
 </head>
-<body>
+<body class="map-forest">
 
-<div id="timer-overlay">
-    <h1 id="timer-title">SEKTOR OVERLEVET</h1>
-    <p>Gør dig klar til næste bølge...</p>
-    <div id="countdown" style="font-size: 5rem; color: var(--blood);">5</div>
+<div id="main-menu">
+    <h1 style="font-family: 'Creepster'; font-size: 4rem; color: var(--blood); margin: 0;">ZANDER SURVIVOR</h1>
+    
+    <div class="select-group">
+        <h3>VÆLG BANE</h3>
+        <button class="btn active" onclick="setMap('forest', this)">MØRK SKOV</button>
+        <button class="btn" onclick="setMap('hell', this)">HELVEDE</button>
+        <button class="btn" onclick="setMap('space', this)">DYB RUM</button>
+    </div>
+
+    <div class="select-group">
+        <h3>SVÆRHEDSGRAD</h3>
+        <button class="btn active" onclick="setDiff(1, this)">NEMT</button>
+        <button class="btn" onclick="setDiff(2, this)">NORMAL</button>
+        <button class="btn" onclick="setDiff(3, this)">MARERIDT</button>
+    </div>
+
+    <button class="btn" style="font-size: 2rem; padding: 20px 50px; background: var(--blood);" onclick="startGame()">START KAMP</button>
 </div>
 
-<div id="menu-overlay">
-    <h1>MARKEDSPLADS</h1>
-    <p>GULD: <span id="menu-money">0</span></p>
-    <button class="btn" onclick="setWeapon('laser')">LASER (Præcis)</button>
-    <button class="btn" onclick="setWeapon('shotgun')">SHOTGUN (Område)</button>
-    <button class="btn" onclick="setWeapon('plasma')">PLASMA (Tung)</button>
-    <button class="btn" onclick="buyDmg()">SKADE [+50] (<span id="dmg-cost">500</span> Guld)</button>
-    <button class="btn" onclick="buyHeal()">HEAL [+50 HP] (300 Guld)</button>
-    <button class="btn" style="background: var(--blood);" onclick="closeMenu()">FORTSÆT KAMPEN</button>
+<div id="timer-overlay">
+    <h1 style="font-family: 'Creepster'; color: var(--gold);">GØR DIG KLAR</h1>
+    <div id="countdown" style="font-size: 5rem;">3</div>
 </div>
 
 <div class="hud">
     <div>GULD: <b id="money-ui">0</b></div>
     <div>SEKTOR: <b id="sector-ui">1</b></div>
-    <div>MONSTRE: <b id="count-ui">0</b></div>
     <div>LIV: <b id="hp-ui" style="color: #2ecc71;">100</b></div>
 </div>
 
@@ -59,99 +79,95 @@
 </div>
 
 <script>
-    let money = 0, sector = 1, hp = 100, dmgBase = 50, dmgCost = 500;
-    let currentWeapon = 'laser', inMenu = false, waveActive = false;
+    let money = 0, sector = 1, hp = 100, dmgBase = 60;
+    let difficulty = 1, currentMap = 'forest', gameActive = false;
     let px = window.innerWidth/2, py = window.innerHeight/2;
-    const keys = {}, monsters = [], pBullets = [], mBullets = [];
+    const keys = {}, monsters = [], pBullets = [];
     const container = document.getElementById('game-container');
 
-    window.addEventListener('keydown', e => {
-        if(e.code === 'Escape') inMenu ? closeMenu() : openMenu();
-        if(e.code === 'Enter' && !keys[e.code] && !inMenu && waveActive) fireWeapon();
-        keys[e.code] = true;
-    });
-    window.addEventListener('keyup', e => keys[e.code] = false);
-
-    function openMenu() { inMenu = true; document.getElementById('menu-overlay').style.display = 'flex'; document.getElementById('menu-money').innerText = money; }
-    function closeMenu() { inMenu = false; document.getElementById('menu-overlay').style.display = 'none'; }
-
-    function setWeapon(t) { currentWeapon = t; closeMenu(); }
-    function buyHeal() { if(money >= 300) { money -= 300; hp = Math.min(100, hp + 50); updateUI(); } }
-    function buyDmg() { if(money >= dmgCost) { money -= dmgCost; dmgBase += 50; dmgCost = Math.round(dmgCost * 1.6); updateUI(); openMenu(); } }
-
-    function fireWeapon() {
-        if(monsters.length === 0) return;
-        let target = monsters[0];
-        let ang = Math.atan2(target.y - py, target.x - px);
-        if(currentWeapon === 'laser') spawnBullet(ang, 25, dmgBase, 'laser-bolt');
-        else if(currentWeapon === 'shotgun') { for(let i=-2; i<=2; i++) spawnBullet(ang + (i*0.2), 18, dmgBase*0.5, 'shotgun-shell'); }
-        else { spawnBullet(ang, 10, dmgBase*3, 'plasma-orb'); }
+    // SETUP VALG
+    function setMap(type, btn) {
+        currentMap = type;
+        document.body.className = 'map-' + type;
+        document.querySelectorAll('.select-group:nth-child(2) .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
     }
 
-    function spawnBullet(ang, spd, d, cls) {
-        const el = document.createElement('div');
-        el.className = 'p-bullet ' + cls;
-        el.style.position = 'absolute';
-        el.style.width = '10px'; el.style.height = '10px';
-        el.style.background = 'white'; el.style.borderRadius = '50%';
-        container.appendChild(el);
-        pBullets.push({ el, x: px+20, y: py+20, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, d });
+    function setDiff(val, btn) {
+        difficulty = val;
+        document.querySelectorAll('.select-group:nth-child(3) .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
     }
 
-    function startWave() {
-        waveActive = false;
+    function startGame() {
+        document.getElementById('main-menu').style.display = 'none';
         document.getElementById('timer-overlay').style.display = 'flex';
-        let count = 5;
-        const timer = setInterval(() => {
+        let count = 3;
+        const t = setInterval(() => {
             count--;
             document.getElementById('countdown').innerText = count;
             if(count <= 0) {
-                clearInterval(timer);
+                clearInterval(t);
                 document.getElementById('timer-overlay').style.display = 'none';
+                gameActive = true;
                 spawnHorde();
             }
         }, 1000);
     }
 
-    function spawnHorde() {
-        const amount = 3 + (sector * 2);
-        for(let i=0; i < amount; i++) {
-            const types = ['tank', 'sprinter', 'spitter'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            createMonster(type);
+    window.addEventListener('keydown', e => {
+        keys[e.code] = true;
+        if(e.code === 'Enter' && gameActive) fireAutoShot();
+    });
+    window.addEventListener('keyup', e => keys[e.code] = false);
+
+    // AUTO-AIM SKYDE MEKANISME
+    function fireAutoShot() {
+        if(monsters.length === 0) return;
+
+        // Find det tætteste monster
+        let closest = null;
+        let minDist = Infinity;
+
+        monsters.forEach(m => {
+            let d = Math.sqrt((px - m.x)**2 + (py - m.y)**2);
+            if(d < minDist) {
+                minDist = d;
+                closest = m;
+            }
+        });
+
+        if(closest) {
+            const ang = Math.atan2(closest.y - py, closest.x - px);
+            const b = document.createElement('div');
+            b.className = 'p-bullet';
+            b.style.width = '12px'; b.style.height = '12px'; b.style.background = 'var(--laser)';
+            container.appendChild(b);
+            pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*20, vy: Math.sin(ang)*20, d: dmgBase });
         }
-        waveActive = true;
-        updateUI();
     }
 
-    function createMonster(type) {
-        const el = document.createElement('div');
-        el.className = 'monster';
-        let stats = { hp: 100 * sector, speed: 1.5, icon: '👹', power: 'none' };
-        
-        if(type === 'sprinter') { stats.hp *= 0.5; stats.speed = 3.5; stats.icon = '👻'; }
-        if(type === 'tank') { stats.hp *= 2.5; stats.speed = 0.8; stats.icon = '👹'; }
-        if(type === 'spitter') { stats.hp *= 0.8; stats.speed = 1.2; stats.icon = '👽'; stats.power = 'shoot'; }
-
-        el.innerHTML = `<div class="m-hp-bar"><div class="m-hp-fill" style="width:100%"></div></div>${stats.icon}`;
-        container.appendChild(el);
-        monsters.push({ el, x: Math.random()*2000 - 1000, y: -200, hp: stats.hp, maxHp: stats.hp, speed: stats.speed, power: stats.power });
-    }
-
-    function updateUI() {
-        document.getElementById('money-ui').innerText = money;
-        document.getElementById('sector-ui').innerText = sector;
-        document.getElementById('count-ui').innerText = monsters.length;
-        document.getElementById('hp-ui').innerText = Math.floor(hp);
-        document.getElementById('dmg-cost').innerText = dmgCost;
+    function spawnHorde() {
+        const count = (2 + sector) * difficulty;
+        for(let i=0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = 'monster';
+            el.innerHTML = '👹';
+            container.appendChild(el);
+            monsters.push({
+                el, x: Math.random() > 0.5 ? -100 : window.innerWidth + 100,
+                y: Math.random() * window.innerHeight,
+                hp: 100 * sector, speed: 1.5 + (difficulty * 0.5)
+            });
+        }
     }
 
     function loop() {
-        if(!inMenu) {
-            if(keys['ArrowUp'] || keys['KeyW']) py -= 6;
-            if(keys['ArrowDown'] || keys['KeyS']) py += 6;
-            if(keys['ArrowLeft'] || keys['KeyA']) px -= 6;
-            if(keys['ArrowRight'] || keys['KeyD']) px += 6;
+        if(gameActive) {
+            if(keys['ArrowUp'] || keys['KeyW']) py -= 7;
+            if(keys['ArrowDown'] || keys['KeyS']) py += 7;
+            if(keys['ArrowLeft'] || keys['KeyA']) px -= 7;
+            if(keys['ArrowRight'] || keys['KeyD']) px += 7;
 
             document.getElementById('player').style.left = px + 'px';
             document.getElementById('player').style.top = py + 'px';
@@ -159,60 +175,37 @@
             monsters.forEach((m, mi) => {
                 const dx = px - m.x, dy = py - m.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                // Bevægelse
-                if(m.power === 'shoot' && dist < 300) {
-                    // Spitter stopper op for at skyde
-                    if(Math.random() < 0.01) spawnMonsterBullet(m);
-                } else {
-                    m.x += (dx/dist) * m.speed;
-                    m.y += (dy/dist) * m.speed;
-                }
-                
+                m.x += (dx/dist) * m.speed;
+                m.y += (dy/dist) * m.speed;
                 m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
-                if(dist < 40) { hp -= 0.2; updateUI(); }
+                if(dist < 40) { hp -= 0.5; }
             });
 
             pBullets.forEach((b, bi) => {
                 b.x += b.vx; b.y += b.vy;
                 b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+                
                 monsters.forEach((m, mi) => {
                     if(b.x > m.x && b.x < m.x+60 && b.y > m.y && b.y < m.y+60) {
                         m.hp -= b.d;
-                        m.el.querySelector('.m-hp-fill').style.width = (m.hp/m.maxHp*100) + "%";
                         b.el.remove(); pBullets.splice(bi, 1);
                         if(m.hp <= 0) {
                             m.el.remove(); monsters.splice(mi, 1);
-                            money += 100 * sector;
-                            updateUI();
-                            if(monsters.length === 0) { sector++; startWave(); }
+                            money += 100;
+                            if(monsters.length === 0) { sector++; spawnHorde(); }
                         }
                     }
                 });
             });
 
-            mBullets.forEach((b, bi) => {
-                b.x += b.vx; b.y += b.vy;
-                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
-                if(Math.sqrt((px-b.x)**2 + (py-b.y)**2) < 30) {
-                    hp -= 10; b.el.remove(); mBullets.splice(bi, 1); updateUI();
-                }
-            });
-
-            if(hp <= 0) { alert("DU DØDE I SEKTOR " + sector); location.reload(); }
+            document.getElementById('money-ui').innerText = money;
+            document.getElementById('sector-ui').innerText = sector;
+            document.getElementById('hp-ui').innerText = Math.floor(hp);
+            if(hp <= 0) { alert("DU DØDE! Score: " + money); location.reload(); }
         }
         requestAnimationFrame(loop);
     }
 
-    function spawnMonsterBullet(m) {
-        const el = document.createElement('div');
-        el.className = 'm-bullet';
-        container.appendChild(el);
-        const ang = Math.atan2(py - m.y, px - m.x);
-        mBullets.push({ el, x: m.x+30, y: m.y+30, vx: Math.cos(ang)*5, vy: Math.sin(ang)*5 });
-    }
-
-    startWave();
     requestAnimationFrame(loop);
 </script>
 </body>
