@@ -3,225 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FortCraft Royale</title>
+    <title>ZANDER: UNDEAD CORRIDOR 4K</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --mc-green: #5aa136; --mc-dirt: #795548; --mc-sky: #78a7ff; --fortnite-purple: #8000ff; }
-        body { margin: 0; overflow: hidden; background: var(--mc-sky); font-family: 'VT323', monospace; image-rendering: pixelated; }
-
-        /* Verden */
-        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-        #ground { position: absolute; bottom: 0; width: 100%; height: 60px; background: var(--mc-dirt); border-top: 8px solid var(--mc-green); z-index: 10; }
-
-        /* Spiller (Steve-style) */
-        #player {
-            position: absolute; width: 40px; height: 60px; left: 100px; bottom: 60px;
-            background: #00ced1; border: 4px solid #333; z-index: 20;
-            display: flex; flex-direction: column; align-items: center;
+        :root {
+            --neon-blue: #00f2ff;
+            --blood-red: #8b0000;
+            --gold: #ffd700;
+            --panel-bg: rgba(10, 10, 15, 0.9);
         }
-        #player::before { content: ''; width: 24px; height: 24px; background: #ffdbac; margin-top: -24px; border: 4px solid #333; }
 
-        /* Bygninger (Walls) */
-        .wall { position: absolute; width: 40px; height: 40px; background: #8B4513; border: 4px solid #5D2906; z-index: 15; box-shadow: inset 4px 4px 0 #A0522D; }
+        body {
+            margin: 0; background: #000; color: white;
+            font-family: 'Rajdhani', sans-serif; overflow: hidden; user-select: none;
+        }
+
+        /* 3D Korridor Effekt */
+        #game-view {
+            position: relative; width: 100vw; height: 100vh;
+            background: 
+                linear-gradient(45deg, #050505 25%, transparent 25%) -50px 0,
+                linear-gradient(-45deg, #050505 25%, transparent 25%) -50px 0,
+                linear-gradient(45deg, transparent 75%, #050505 75%),
+                linear-gradient(-45deg, transparent 75%, #050505 75%);
+            background-size: 100px 100px;
+            background-color: #0a0a0a;
+            perspective: 1000px;
+            overflow: hidden;
+        }
+
+        /* Dybde i korridoren */
+        #game-view::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 40%, transparent 20%, #000 80%);
+            z-index: 5; pointer-events: none;
+        }
 
         /* HUD */
-        #hud { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
-        .mc-card { background: rgba(0,0,0,0.7); border: 4px solid #fff; padding: 10px; color: white; font-size: 24px; min-width: 150px; }
-        .storm-warning { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); color: var(--fortnite-purple); font-size: 40px; display: none; text-shadow: 2px 2px #000; }
+        #hud {
+            position: fixed; top: 0; width: 100%; padding: 30px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            z-index: 100; pointer-events: none;
+        }
 
-        /* Menu */
-        #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        .mc-btn { background: #bcbcbc; border: 4px solid #000; padding: 10px 40px; font-family: 'VT323'; font-size: 30px; cursor: pointer; margin: 10px; box-shadow: inset -4px -4px 0 #555, inset 4px 4px 0 #fff; }
-        .mc-btn:hover { background: #888; }
+        .stat-group {
+            background: var(--panel-bg); border-left: 4px solid var(--neon-blue);
+            padding: 15px 25px; backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
 
-        /* Entities */
-        .bullet { position: absolute; width: 10px; height: 10px; background: #fff; border: 2px solid #000; box-shadow: 0 0 10px #fff; }
-        .monster { position: absolute; width: 40px; height: 60px; z-index: 15; border: 4px solid #000; }
-        .creeper { background: #228B22; }
-        .zombie { background: #4B5320; }
-        
-        /* Victory Royale */
-        #victory { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,215,0,0.9); border: 8px solid #fff; padding: 40px; display: none; z-index: 2000; text-align: center; }
+        .stat-label { font-family: 'Orbitron'; font-size: 0.7rem; color: #888; letter-spacing: 2px; }
+        .stat-value { font-family: 'Orbitron'; font-size: 1.8rem; color: var(--gold); display: block; }
+
+        /* entities */
+        .zombie {
+            position: absolute; left: 50%; top: 40%;
+            transform: translate(-50%, -50%) scale(0.1);
+            transition: transform 0.05s linear;
+            z-index: 10; filter: drop-shadow(0 0 20px rgba(255,0,0,0.5));
+            text-align: center;
+        }
+
+        .zombie-icon { font-size: 150px; } /* Stor basisstørrelse der skaleres */
+
+        .barricade {
+            position: fixed; bottom: 0; width: 100%; height: 120px;
+            background: linear-gradient(to top, #1a1a1a, #333);
+            border-top: 5px solid #444; z-index: 50;
+            box-shadow: 0 -20px 50px rgba(0,0,0,0.8);
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #player-gun {
+            font-size: 80px; transform: translateY(-20px);
+            filter: drop-shadow(0 0 20px var(--neon-blue));
+        }
+
+        /* Menu / Shop (ESC) */
+        #shop-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; backdrop-filter: blur(15px);
+        }
+
+        .shop-grid {
+            display: grid; grid-template-columns: repeat(3, 280px); gap: 20px; margin-top: 30px;
+        }
+
+        .upgrade-card {
+            background: rgba(255,255,255,0.03); border: 1px solid #333;
+            padding: 20px; border-radius: 15px; text-align: center;
+            transition: 0.3s;
+        }
+        .upgrade-card:hover { border-color: var(--neon-blue); background: rgba(0, 242, 255, 0.05); }
+
+        .buy-btn {
+            width: 100%; background: var(--neon-blue); color: #000;
+            border: none; padding: 12px; font-family: 'Orbitron';
+            font-weight: 900; cursor: pointer; margin-top: 15px; border-radius: 5px;
+        }
+        .buy-btn:disabled { background: #444; color: #888; cursor: default; }
+
+        /* Effekter */
+        #flash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; opacity: 0; pointer-events: none; z-index: 200;
+        }
+
+        .hitmarker {
+            position: absolute; color: red; font-family: 'Orbitron';
+            font-weight: 900; font-size: 2rem; pointer-events: none;
+            animation: hit 0.4s ease-out forwards; z-index: 100;
+        }
+        @keyframes hit { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2) translateY(-50px); opacity: 0; } }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <div id="ground"></div>
-    <div id="player"></div>
-    <div id="storm-effect" style="position:absolute; width:100%; height:100%; pointer-events:none; opacity:0; background:var(--fortnite-purple); z-index:5;"></div>
-</div>
+<div id="flash"></div>
 
 <div id="hud">
-    <div class="mc-card">💰 GULD: <span id="money-ui">0</span><br>🪵 TRÆ: <span id="mats-ui">10</span></div>
-    <div class="mc-card" style="text-align: center;">BØLGE: <span id="lvl-ui">1</span><br><small id="timer-ui">STORM OM: 30</small></div>
-    <div class="mc-card">❤️ HP: <span id="hp-ui">100</span><br>🔫 DMG: <span id="dmg-ui">40</span></div>
+    <div class="stat-group">
+        <span class="stat-label">VAULT CREDITS</span>
+        <span id="money-ui" class="stat-value">0</span>
+    </div>
+    <div class="stat-group" style="text-align: center; border-left-color: var(--blood-red);">
+        <span class="stat-label">CORRIDOR DEPTH</span>
+        <span id="sector-ui" class="stat-value">1</span>
+    </div>
+    <div class="stat-group" style="border-left-color: #2ecc71;">
+        <span class="stat-label">BARRICADE INTEGRITY</span>
+        <span id="hp-ui" class="stat-value">100</span>
+    </div>
 </div>
 
-<div class="storm-warning" id="storm-msg">STORMEN KOMMER!</div>
-
-<div id="menu">
-    <h1 style="color: white; font-size: 60px;">FORTCRAFT SHOP</h1>
-    <button class="mc-btn" onclick="buy('dmg')">SKARPERE SVÆRD (500 GULD)</button>
-    <button class="mc-btn" onclick="buy('mats')">+20 TRÆ (200 GULD)</button>
-    <button class="mc-btn" onclick="buy('hp')">REPARER RUSTNING (100 GULD)</button>
-    <p style="color: #ccc; margin-top: 20px;">[SPACE] FOR AT BYGGE VÆG (KOSTER 5 TRÆ)</p>
-    <button class="mc-btn" style="background: #5aa136;" onclick="toggleMenu()">TILBAGE</button>
+<div id="game-view">
+    <!-- Monstre spawner her -->
+    <div class="barricade">
+        <div id="player-gun">🔫</div>
+    </div>
 </div>
 
-<div id="victory">
-    <h1 style="font-size: 70px; margin: 0;">VICTORY ROYALE!</h1>
-    <p style="font-size: 30px;">ZANDER ER DEN SIDSTE OVERLEVENDE</p>
-    <button class="mc-btn" onclick="location.reload()">SPIL IGEN</button>
+<div id="shop-overlay">
+    <h1 style="font-family: 'Orbitron'; font-size: 3rem; color: var(--gold); margin: 0;">ARSENAL & UPGRADES</h1>
+    <p style="color: #666; letter-spacing: 5px;">PAUSED SYSTEM INTERFACE</p>
+    
+    <div class="shop-grid">
+        <div class="upgrade-card">
+            <h3 style="color: var(--neon-blue);">FIREPOWER</h3>
+            <p>Skade: <b id="val-dmg">50</b></p>
+            <button class="buy-btn" id="btn-dmg" onclick="buy('dmg')">OPGRADER: 200</button>
+        </div>
+        <div class="upgrade-card">
+            <h3 style="color: var(--neon-blue);">WEAPONRY</h3>
+            <button class="buy-btn" id="btn-shotgun" onclick="buy('shotgun')">SHOTGUN (1500)</button>
+            <button class="buy-btn" id="btn-sniper" onclick="buy('sniper')" style="margin-top:10px">RAILGUN (5000)</button>
+        </div>
+        <div class="upgrade-card">
+            <h3 style="color: var(--neon-blue);">REINFORCE</h3>
+            <button class="buy-btn" onclick="buy('heal')" style="background: #2ecc71;">REPARER ALT: 150</button>
+            <button class="buy-btn" id="btn-king" onclick="buy('king')" style="margin-top:10px; background: var(--gold);">KING AVATAR (10000)</button>
+        </div>
+    </div>
+    <button class="buy-btn" style="width: 300px; margin-top: 50px; background: white;" onclick="toggleMenu()">RESUME MISSION [ESC]</button>
 </div>
 
 <script>
-    let money = 0, mats = 10, lvl = 1, hp = 100, pDmg = 40, pSpeed = 8, stormTime = 30;
-    let px = 100, py = 0, vy = 0, isPaused = false;
-    let monsters = [], bullets = [], walls = [];
-    const keys = {};
+    let money = 0, sector = 1, hp = 100, dmg = 50, goldMult = 1;
+    let isPaused = false, monsterAlive = false, enterPressed = false;
+    let currentWeapon = 'pistol', weaponModel = '🔫';
+    let prices = { dmg: 200, shotgun: 1500, sniper: 5000, king: 10000 };
+    
+    const view = document.getElementById('game-view');
+    const flash = document.getElementById('flash');
+    const zombies = [];
 
+    // KONTROL
     window.addEventListener('keydown', e => {
         if(e.code === 'Escape') toggleMenu();
-        if(e.code === 'Enter' && !isPaused) fire();
-        if(e.code === 'Space' && !isPaused) buildWall();
-        keys[e.code] = true;
+        if(e.code === 'Enter' && !isPaused && !enterPressed) {
+            shoot();
+            enterPressed = true;
+        }
     });
-    window.addEventListener('keyup', e => keys[e.code] = false);
+    window.addEventListener('keyup', e => {
+        if(e.code === 'Enter') enterPressed = false;
+    });
 
     function toggleMenu() {
         isPaused = !isPaused;
-        document.getElementById('menu').style.display = isPaused ? 'flex' : 'none';
-    }
-
-    function buildWall() {
-        if(mats >= 5) {
-            mats -= 5;
-            const w = document.createElement('div');
-            w.className = 'wall';
-            w.style.left = (px + 60) + 'px';
-            w.style.bottom = (60 + py) + 'px';
-            document.getElementById('game-container').appendChild(w);
-            walls.push({ el: w, x: px + 60, y: py, hp: 100 });
-        }
-    }
-
-    function fire() {
-        const b = document.createElement('div');
-        b.className = 'bullet';
-        document.getElementById('game-container').appendChild(b);
-        bullets.push({ el: b, x: px + 45, y: window.innerHeight - 100 - py, vx: 20 });
-    }
-
-    function buy(type) {
-        if(type === 'dmg' && money >= 500) { money -= 500; pDmg += 30; }
-        if(type === 'mats' && money >= 200) { money -= 200; mats += 20; }
-        if(type === 'hp' && money >= 100) { money -= 100; hp = 100; }
+        document.getElementById('shop-overlay').style.display = isPaused ? 'flex' : 'none';
         updateUI();
     }
 
-    function spawnMonster() {
-        if(monsters.length > 5 + lvl) return;
+    function shoot() {
+        if (zombies.length === 0) return;
+
+        // Vfx
+        flash.style.opacity = "0.3";
+        setTimeout(() => flash.style.opacity = "0", 50);
+        view.style.transform = `translateY(${Math.random()*10-5}px)`;
+        setTimeout(() => view.style.transform = `translateY(0)`, 50);
+
+        // Ram tætteste monster
+        let target = zombies[0]; 
+        target.hp -= dmg;
+        
+        // Hitmarker
+        const hm = document.createElement('div');
+        hm.className = 'hitmarker';
+        hm.innerText = `-${dmg}`;
+        hm.style.left = "50%"; hm.style.top = "40%";
+        view.appendChild(hm);
+        setTimeout(() => hm.remove(), 400);
+
+        if(target.hp <= 0) {
+            money += Math.round(150 * sector * goldMult);
+            killZombie(target);
+        }
+    }
+
+    function spawnZombie() {
         const el = document.createElement('div');
-        const type = Math.random() > 0.5 ? 'creeper' : 'zombie';
-        el.className = 'monster ' + type;
-        document.getElementById('game-container').appendChild(el);
-        monsters.push({
-            el, x: window.innerWidth + 100, y: 0,
-            hp: 80 * lvl, speed: type === 'creeper' ? 5 : 3, type
-        });
+        el.className = 'zombie';
+        el.innerHTML = `<div class="zombie-icon">${['🧟', '💀', '🤡', '👹'][Math.floor(Math.random()*4)]}</div>`;
+        view.appendChild(el);
+        
+        const zObj = {
+            el: el,
+            dist: 0.1, // Fra 0.1 (langt væk) til 1.0 (helt tæt på)
+            hp: 100 * Math.pow(1.2, sector),
+            speed: 0.002 + (sector * 0.0005)
+        };
+        zombies.push(zObj);
+    }
+
+    function killZombie(z) {
+        z.el.style.filter = "brightness(5) saturate(0)";
+        setTimeout(() => {
+            z.el.remove();
+            zombies.splice(zombies.indexOf(z), 1);
+            if(zombies.length === 0) {
+                sector++;
+                updateUI();
+                setTimeout(spawnZombie, 1000);
+            }
+        }, 100);
+    }
+
+    function buy(type) {
+        if(money >= prices[type]) {
+            money -= prices[type];
+            if(type === 'dmg') { dmg += 50; prices.dmg = Math.round(prices.dmg * 1.8); }
+            if(type === 'shotgun') { currentWeapon = 'shotgun'; dmg += 150; document.getElementById('player-gun').innerText = '🔫🔥'; prices.shotgun = 999999; }
+            if(type === 'sniper') { currentWeapon = 'sniper'; dmg += 1000; document.getElementById('player-gun').innerText = '🔱'; prices.sniper = 999999; }
+            if(type === 'heal') { hp = 100; }
+            if(type === 'king') { goldMult = 5; document.getElementById('player-gun').innerText = '👑⚡'; }
+            updateUI();
+        }
     }
 
     function updateUI() {
         document.getElementById('money-ui').innerText = money;
-        document.getElementById('mats-ui').innerText = mats;
-        document.getElementById('lvl-ui').innerText = lvl;
+        document.getElementById('sector-ui').innerText = sector;
         document.getElementById('hp-ui').innerText = Math.floor(hp);
-        document.getElementById('dmg-ui').innerText = pDmg;
+        document.getElementById('val-dmg').innerText = dmg;
+        document.getElementById('btn-dmg').innerText = `OPGRADER: ${prices.dmg}`;
     }
 
-    // Storm timer
-    setInterval(() => {
+    function gameLoop() {
         if(!isPaused) {
-            stormTime--;
-            if(stormTime <= 5) document.getElementById('storm-msg').style.display = 'block';
-            if(stormTime <= 0) {
-                hp -= 2;
-                document.getElementById('storm-effect').style.opacity = '0.3';
-            } else {
-                document.getElementById('storm-effect').style.opacity = '0';
-                document.getElementById('storm-msg').style.display = 'none';
-            }
-            document.getElementById('timer-ui').innerText = "STORM OM: " + Math.max(0, stormTime);
-        }
-    }, 1000);
+            if(zombies.length === 0) spawnZombie();
 
-    function loop() {
-        if(!isPaused) {
-            // Flyv/Gå
-            if(keys['ArrowUp']) vy = 8;
-            else if(keys['ArrowDown']) vy = -8;
-            else vy *= 0.9;
+            zombies.forEach(z => {
+                z.dist += z.speed;
+                z.el.style.transform = `translate(-50%, -50%) scale(${z.dist})`;
+                z.el.style.opacity = z.dist + 0.2;
 
-            if(keys['ArrowLeft']) px -= pSpeed;
-            if(keys['ArrowRight']) px += pSpeed;
-
-            py += vy;
-            if(py <= 0) py = 0;
-            if(py > window.innerHeight - 150) py = window.innerHeight - 150;
-            px = Math.max(0, Math.min(window.innerWidth - 40, px));
-
-            const pEl = document.getElementById('player');
-            pEl.style.left = px + 'px';
-            pEl.style.bottom = (60 + py) + 'px';
-
-            // Monstre
-            if(Math.random() < 0.02) spawnMonster();
-            monsters.forEach((m, mi) => {
-                let blocked = false;
-                walls.forEach(w => {
-                    if(m.x < w.x + 40 && m.x + 40 > w.x && m.y < w.y + 40 && m.y + 60 > w.y) {
-                        blocked = true;
-                        w.hp -= 1;
-                        if(w.hp <= 0) { w.el.remove(); walls = walls.filter(wa => wa !== w); }
+                // Hvis zombien rammer barrikaden
+                if(z.dist >= 0.9) {
+                    hp -= 0.5;
+                    view.style.backgroundColor = "rgba(255,0,0,0.1)";
+                    setTimeout(() => view.style.backgroundColor = "transparent", 50);
+                    if(hp <= 0) {
+                        alert("FORSVARET ER FALDET! Du nåede Sektor " + sector);
+                        location.reload();
                     }
-                });
-
-                if(!blocked) m.x -= m.speed;
-                m.el.style.left = m.x + 'px';
-                m.el.style.bottom = (60 + m.y) + 'px';
-
-                if(m.x < px + 40 && m.x + 40 > px && (py < m.y + 60 && py + 60 > m.y)) {
-                    hp -= (m.type === 'creeper' ? 2 : 0.5);
                 }
-                if(m.x < -100) { m.el.remove(); monsters.splice(mi, 1); }
             });
-
-            // Skud
-            bullets.forEach((b, bi) => {
-                b.x += b.vx;
-                b.el.style.left = b.x + 'px';
-                b.el.style.top = b.y + 'px';
-                monsters.forEach((m, mi) => {
-                    let mRealY = window.innerHeight - 60 - m.y - 60;
-                    if(b.x > m.x && b.x < m.x + 40 && b.el.offsetTop > mRealY && b.el.offsetTop < mRealY + 60) {
-                        m.hp -= pDmg;
-                        b.el.remove(); bullets.splice(bi, 1);
-                        if(m.hp <= 0) {
-                            m.el.remove(); monsters.splice(mi, 1);
-                            money += 150; mats += 5;
-                            if(money >= 5000) document.getElementById('victory').style.display = 'block';
-                        }
-                    }
-                });
-            });
-
-            updateUI();
-            if(hp <= 0) { alert("GAME OVER! CREEPEREN FIK DIG!"); location.reload(); }
         }
-        requestAnimationFrame(loop);
+        requestAnimationFrame(gameLoop);
     }
-    loop();
+
+    updateUI();
+    gameLoop();
 </script>
 </body>
 </html>
