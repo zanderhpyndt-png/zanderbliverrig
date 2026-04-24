@@ -3,114 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Super Combo Hunter</title>
+    <title>Zander: Omega Warrior</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --gold: #ffd700; --blue: #00f2ff; --super: #ff00ff; }
-        body { margin: 0; background: #1a1a1a; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; user-select: none; }
-
-        #game-container { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #222, #000); }
-
-        #menu-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 500;
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-pink: #ff00ff;
+            --neon-gold: #ffd700;
+            --bg-dark: #050505;
+            --panel-bg: rgba(20, 20, 25, 0.85);
         }
 
-        .hud {
+        body {
+            margin: 0; background: var(--bg-dark); color: white;
+            font-family: 'Rajdhani', sans-serif; overflow: hidden; user-select: none;
+        }
+
+        #game-container {
+            position: relative; width: 100vw; height: 100vh;
+            background-image: 
+                radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050505 100%),
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 50px 50px, 50px 50px;
+        }
+
+        /* HUD */
+        .hud-top {
             position: fixed; top: 0; width: 100%; padding: 20px;
-            display: flex; justify-content: space-around;
-            background: rgba(0,0,0,0.5); z-index: 100;
+            display: flex; justify-content: center; gap: 40px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            z-index: 100; font-family: 'Orbitron'; letter-spacing: 2px;
+        }
+        .stat-val { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); font-size: 1.5rem; }
+
+        /* Sidepanel Shop */
+        #shop-panel {
+            position: fixed; left: 20px; top: 100px; bottom: 20px;
+            width: 280px; background: var(--panel-bg);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            border-radius: 15px; padding: 20px; z-index: 100;
+            backdrop-filter: blur(10px); overflow-y: auto;
         }
 
-        #player { position: absolute; width: 60px; height: 60px; font-size: 50px; z-index: 60; text-align: center; }
+        .shop-category { margin-bottom: 25px; }
+        .shop-category h3 { 
+            font-family: 'Orbitron'; font-size: 0.8rem; color: var(--neon-pink);
+            border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 15px;
+        }
 
-        .monster { position: absolute; width: 80px; height: 80px; font-size: 60px; z-index: 40; }
+        .upgrade-item {
+            background: rgba(255,255,255,0.05); padding: 12px;
+            border-radius: 8px; margin-bottom: 10px; border: 1px solid transparent;
+            transition: 0.3s;
+        }
+        .upgrade-item:hover { border-color: var(--neon-blue); background: rgba(0, 242, 255, 0.05); }
+        
+        .upgrade-info { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; }
+        
+        .buy-btn {
+            width: 100%; padding: 8px; border: none; border-radius: 5px;
+            background: var(--neon-blue); color: black; font-weight: bold;
+            font-family: 'Rajdhani'; cursor: pointer; transition: 0.2s;
+        }
+        .buy-btn:disabled { background: #444; color: #888; cursor: default; }
 
-        /* Skud-effekter */
-        .p-bullet { position: absolute; width: 20px; height: 20px; background: var(--blue); border-radius: 50%; box-shadow: 0 0 15px var(--blue); z-index: 55; }
+        /* Entities */
+        #player {
+            position: absolute; width: 60px; height: 60px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 50px; z-index: 60; filter: drop-shadow(0 0 15px var(--neon-blue));
+        }
+
+        .monster {
+            position: absolute; width: 80px; height: 80px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 60px; z-index: 40; filter: drop-shadow(0 0 15px rgba(255,0,0,0.5));
+            transition: transform 0.2s;
+        }
+
+        /* Bullets */
+        .p-bullet { position: absolute; width: 15px; height: 15px; background: white; border-radius: 50%; box-shadow: 0 0 15px var(--neon-blue); z-index: 55; }
         .super-bullet { 
-            position: absolute; width: 50px; height: 50px; background: var(--gold); 
-            border-radius: 50%; box-shadow: 0 0 30px var(--gold); z-index: 56;
-            animation: pulse 0.3s infinite;
+            position: absolute; width: 60px; height: 60px; background: var(--neon-gold); 
+            border-radius: 50%; box-shadow: 0 0 40px var(--neon-gold); z-index: 56;
         }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        .particle { position: absolute; border-radius: 50%; pointer-events: none; z-index: 70; }
 
         /* Combo Bar */
-        #combo-meter {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            width: 200px; height: 20px; background: #333; border: 2px solid #fff;
+        #combo-container {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 400px; height: 10px; background: rgba(0,0,0,0.5); border: 1px solid #333;
+            border-radius: 5px;
         }
-        #combo-fill { height: 100%; width: 0%; background: var(--blue); transition: width 0.2s; }
-
-        .btn { background: var(--gold); border: none; padding: 15px 30px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; border-radius: 10px; margin: 10px; }
-        .hp-bar { width: 100%; height: 10px; background: #000; position: absolute; top: -20px; border-radius: 5px; overflow: hidden; }
-        .hp-fill { height: 100%; background: #2ecc71; width: 100%; }
+        #combo-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink)); transition: 0.2s; }
     </style>
 </head>
 <body>
 
-<div id="menu-overlay">
-    <h1 style="color: var(--gold);">ZANDER SHOP</h1>
-    <p>GULD: <b id="menu-money">0</b></p>
-    <div style="background: #333; padding: 20px; border-radius: 15px;">
-        <button class="btn" onclick="buy('dmg')">SKADE +50 (<span id="cost-dmg">100</span>)</button>
-        <button class="btn" onclick="buy('heal')">HEAL (50)</button><br>
-        <button class="btn" onclick="buyAvatar('ninja', 500, '🥷', 1.8)">NINJA (500)</button>
-        <button class="btn" onclick="buyAvatar('king', 2000, '👑', 1.2)">KING (2000)</button>
-    </div>
-    <button class="btn" style="background: #2ecc71; color: white; margin-top: 20px;" onclick="closeMenu()">NÆSTE BØLGE</button>
-</div>
-
-<div class="hud">
-    <div>Guld: <b id="money" style="color: var(--gold);">0</b></div>
-    <div>Sektor: <b id="lvl">0</b></div>
-    <div>Liv: <b id="p-hp" style="color: #2ecc71;">100</b></div>
-</div>
-
-<div id="combo-meter">
-    <div id="combo-fill"></div>
-    <small style="position:absolute; width:100%; text-align:center; top:-20px">SUPER SKUD COMBO</small>
-</div>
-
 <div id="game-container">
+    <div class="hud-top">
+        <div>GULD: <span id="money" class="stat-val">0</span></div>
+        <div>SEKTOR: <span id="lvl" class="stat-val">1</span></div>
+        <div>LIV: <span id="p-hp" class="stat-val" style="color: #ff4757;">100</span></div>
+    </div>
+
+    <div id="shop-panel">
+        <div class="shop-category">
+            <h3>VÅBEN SYSTEM</h3>
+            <div class="upgrade-item">
+                <div class="upgrade-info"><span>Skade</span><span id="val-dmg">50</span></div>
+                <button class="buy-btn" onclick="buy('dmg')" id="btn-dmg">OPGRADER: 100</button>
+            </div>
+            <div class="upgrade-item">
+                <div class="upgrade-info"><span>Multi-Shot</span><span id="val-multi">1</span></div>
+                <button class="buy-btn" onclick="buy('multi')" id="btn-multi">OPGRADER: 1000</button>
+            </div>
+            <div class="upgrade-item">
+                <div class="upgrade-info"><span>Kritisk Chance</span><span id="val-crit">5%</span></div>
+                <button class="buy-btn" onclick="buy('crit')" id="btn-crit">OPGRADER: 500</button>
+            </div>
+        </div>
+
+        <div class="shop-category">
+            <h3>OVERLEVELSE</h3>
+            <div class="upgrade-item">
+                <div class="upgrade-info"><span>Max Liv</span><span id="val-maxhp">100</span></div>
+                <button class="buy-btn" onclick="buy('maxhp')" id="btn-maxhp">OPGRADER: 300</button>
+            </div>
+            <div class="upgrade-item">
+                <button class="buy-btn" onclick="buy('heal')" style="background: #2ecc71;">REPARER ALT: 100</button>
+            </div>
+        </div>
+
+        <div class="shop-category">
+            <h3>AVATARS</h3>
+            <div class="upgrade-item">
+                <button class="buy-btn" onclick="buyAvatar('ninja', 800, '🥷', 1.6)" id="av-ninja">NINJA (800)</button>
+            </div>
+            <div class="upgrade-item">
+                <button class="buy-btn" onclick="buyAvatar('king', 5000, '👑', 1.2)" id="av-king">GALAXY KING (5000)</button>
+            </div>
+        </div>
+    </div>
+
     <div id="player">👨</div>
+
+    <div id="combo-container">
+        <div id="combo-fill"></div>
+        <div style="text-align:center; font-size: 0.7rem; margin-top: 5px; color: var(--neon-pink); font-family: 'Orbitron';">ULTIMATE CHARGE</div>
+    </div>
 </div>
 
 <script>
-    let money = 0, lvl = 0, pHP = 100, pDmg = 50, pSpeed = 8, gMult = 2, inMenu = true;
+    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 50, pSpeed = 8, gMult = 2;
+    let critChance = 0.05, multiShot = 1, comboCount = 0;
     let px = window.innerWidth/2, py = window.innerHeight/2;
-    let comboCount = 0;
-    let prices = { dmg: 100 };
+    let prices = { dmg: 100, multi: 1000, crit: 500, maxhp: 300 };
 
-    const keys = {}, monsters = [], pBullets = [];
+    const keys = {}, monsters = [], pBullets = [], particles = [];
     const container = document.getElementById('game-container');
 
     window.addEventListener('keydown', e => {
-        if(e.code === 'Enter' && !inMenu) fireAutoBullet();
+        if(e.code === 'Enter') fireWeapon();
         keys[e.code] = true;
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
 
-    function openMenu() { inMenu = true; document.getElementById('menu-overlay').style.display = 'flex'; document.getElementById('menu-money').innerText = money; }
-    function closeMenu() { inMenu = false; document.getElementById('menu-overlay').style.display = 'none'; if(monsters.length === 0) spawnWave(); }
-
-    function spawnWave() {
-        lvl++;
-        const count = 1 + Math.floor(lvl / 3);
-        for(let i=0; i<count; i++) {
-            const el = document.createElement('div');
-            el.className = 'monster';
-            el.innerHTML = `<div class="hp-bar"><div class="hp-fill" id="m-hp-${monsters.length}"></div></div>👹`;
-            container.appendChild(el);
-            monsters.push({ el, x: Math.random()*window.innerWidth, y: -100, hp: 100 * Math.pow(1.15, lvl), maxHp: 100 * Math.pow(1.15, lvl) });
-        }
-    }
-
-    function fireAutoBullet() {
+    function fireWeapon() {
         if(monsters.length === 0) return;
-
-        // Find det nærmeste monster
+        
         let target = monsters[0];
         let minDist = Infinity;
         monsters.forEach(m => {
@@ -118,34 +181,42 @@
             if(d < minDist) { minDist = d; target = m; }
         });
 
-        const b = document.createElement('div');
-        const isSuper = comboCount >= 5;
-        b.className = isSuper ? 'super-bullet' : 'p-bullet';
-        container.appendChild(b);
+        const isSuper = comboCount >= 10;
+        const count = isSuper ? 1 : multiShot;
+        const spread = 0.2;
 
-        const ang = Math.atan2(target.y - py, target.x - px);
-        pBullets.push({ 
-            el: b, 
-            x: px + 20, y: py + 20, 
-            vx: Math.cos(ang) * 15, vy: Math.sin(ang) * 15,
-            damage: isSuper ? pDmg * 3 : pDmg,
-            isSuper: isSuper
-        });
+        for(let i=0; i<count; i++) {
+            const bEl = document.createElement('div');
+            bEl.className = isSuper ? 'super-bullet' : 'p-bullet';
+            container.appendChild(bEl);
 
-        if(isSuper) {
-            comboCount = 0; // Reset efter super skud
-            document.body.style.boxShadow = "inset 0 0 50px gold";
-            setTimeout(() => document.body.style.boxShadow = "none", 200);
+            let ang = Math.atan2(target.y - py, target.x - px);
+            if(count > 1) ang += (i - (count-1)/2) * spread;
+
+            let dmg = pDmg;
+            if(Math.random() < critChance) dmg *= 2;
+            if(isSuper) dmg *= 5;
+
+            pBullets.push({
+                el: bEl, x: px+20, y: py+20,
+                vx: Math.cos(ang)*18, vy: Math.sin(ang)*18,
+                damage: dmg, isSuper: isSuper
+            });
         }
+
+        if(isSuper) { comboCount = 0; shakeScreen(20); }
     }
 
     function buy(type) {
-        if(type === 'dmg' && money >= prices.dmg) {
-            money -= prices.dmg; pDmg += 50; prices.dmg = Math.round(prices.dmg * 1.4);
-            document.getElementById('cost-dmg').innerText = prices.dmg;
+        if(money >= prices[type]) {
+            money -= prices[type];
+            if(type === 'dmg') { pDmg += 25; prices.dmg = Math.round(prices.dmg * 1.4); }
+            if(type === 'multi') { multiShot++; prices.multi = Math.round(prices.multi * 3); }
+            if(type === 'crit') { critChance += 0.05; prices.crit = Math.round(prices.crit * 2); }
+            if(type === 'maxhp') { pMaxHP += 50; pHP += 50; prices.maxhp = Math.round(prices.maxhp * 1.5); }
+            if(type === 'heal') { pHP = pMaxHP; }
+            updateUI();
         }
-        if(type === 'heal' && money >= 50) { money -= 50; pHP = 100; }
-        document.getElementById('menu-money').innerText = money;
     }
 
     function buyAvatar(id, cost, icon, speed) {
@@ -153,59 +224,94 @@
             money -= cost;
             document.getElementById('player').innerText = icon;
             pSpeed = 8 * speed;
-            if(id === 'king') gMult = 4;
-            document.getElementById('menu-money').innerText = money;
+            if(id === 'king') gMult = 6;
+            document.getElementById('av-' + id).disabled = true;
+            updateUI();
         }
     }
 
-    function loop() {
-        if(!inMenu) {
-            if(keys['ArrowUp']) py -= pSpeed;
-            if(keys['ArrowDown']) py += pSpeed;
-            if(keys['ArrowLeft']) px -= pSpeed;
-            if(keys['ArrowRight']) px += pSpeed;
+    function spawnMonster() {
+        const el = document.createElement('div');
+        el.className = 'monster';
+        el.innerText = ['👾', '👹', '🤖', '🕷️'][Math.floor(Math.random()*4)];
+        container.appendChild(el);
+        monsters.push({
+            el: el, x: Math.random()*window.innerWidth, y: -100,
+            hp: 100 * Math.pow(1.2, lvl), maxHp: 100 * Math.pow(1.2, lvl)
+        });
+    }
 
-            document.getElementById('player').style.left = px + 'px';
-            document.getElementById('player').style.top = py + 'px';
+    function shakeScreen(amt) {
+        container.style.transform = `translate(${Math.random()*amt-amt/2}px, ${Math.random()*amt-amt/2}px)`;
+        setTimeout(() => container.style.transform = "translate(0,0)", 50);
+    }
 
+    function updateUI() {
+        document.getElementById('money').innerText = Math.floor(money);
+        document.getElementById('lvl').innerText = lvl;
+        document.getElementById('p-hp').innerText = Math.floor(pHP);
+        
+        document.getElementById('val-dmg').innerText = pDmg;
+        document.getElementById('val-multi').innerText = multiShot;
+        document.getElementById('val-crit').innerText = Math.round(critChance*100) + "%";
+        document.getElementById('val-maxhp').innerText = pMaxHP;
+
+        document.getElementById('btn-dmg').innerText = "OPGRADER: " + prices.dmg;
+        document.getElementById('btn-multi').innerText = "OPGRADER: " + prices.multi;
+        document.getElementById('btn-crit').innerText = "OPGRADER: " + prices.crit;
+        document.getElementById('btn-maxhp').innerText = "OPGRADER: " + prices.maxhp;
+
+        document.getElementById('btn-dmg').disabled = money < prices.dmg;
+        document.getElementById('btn-multi').disabled = money < prices.multi || multiShot >= 5;
+        document.getElementById('btn-crit').disabled = money < prices.crit || critChance >= 0.5;
+        document.getElementById('btn-maxhp').disabled = money < prices.maxhp;
+    }
+
+    function loop(time) {
+        if(keys['ArrowUp']) py -= pSpeed;
+        if(keys['ArrowDown']) py += pSpeed;
+        if(keys['ArrowLeft']) px -= pSpeed;
+        if(keys['ArrowRight']) px += pSpeed;
+
+        document.getElementById('player').style.left = px + 'px';
+        document.getElementById('player').style.top = py + 'px';
+
+        if(monsters.length < 1 + Math.floor(lvl/5)) spawnMonster();
+
+        monsters.forEach((m, mi) => {
+            const dx = px - m.x, dy = py - m.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            m.x += (dx/dist) * (1.5 + lvl*0.1);
+            m.y += (dy/dist) * (1.5 + lvl*0.1);
+            m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
+            if(dist < 50) pHP -= 0.2;
+        });
+
+        pBullets.forEach((b, bi) => {
+            b.x += b.vx; b.y += b.vy;
+            b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+            
             monsters.forEach((m, mi) => {
-                const dx = px - m.x, dy = py - m.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                m.x += (dx/dist) * 1.5; m.y += (dy/dist) * 1.5;
-                m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
-                if(dist < 50) pHP -= 0.1;
-            });
-
-            pBullets.forEach((b, bi) => {
-                b.x += b.vx; b.y += b.vy;
-                b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
-                
-                monsters.forEach((m, mi) => {
-                    if(b.x > m.x && b.x < m.x+80 && b.y > m.y && b.y < m.y+80) {
-                        m.hp -= b.damage;
-                        if(!b.isSuper) comboCount = Math.min(5, comboCount + 1);
-                        
-                        b.el.remove(); pBullets.splice(bi, 1);
-                        m.el.querySelector('.hp-fill').style.width = (m.hp/m.maxHp*100) + "%";
-                        
-                        if(m.hp <= 0) {
-                            m.el.remove(); monsters.splice(mi, 1);
-                            money += 200 * gMult;
-                            if(monsters.length === 0) setTimeout(openMenu, 600);
-                        }
+                if(b.x > m.x && b.x < m.x+80 && b.y > m.y && b.y < m.y+80) {
+                    m.hp -= b.damage;
+                    if(!b.isSuper) comboCount = Math.min(10, comboCount + 1);
+                    b.el.remove(); pBullets.splice(bi, 1);
+                    
+                    if(m.hp <= 0) {
+                        m.el.remove(); monsters.splice(mi, 1);
+                        money += 250 * lvl * gMult;
+                        lvl++; updateUI();
                     }
-                });
+                }
             });
+        });
 
-            document.getElementById('combo-fill').style.width = (comboCount / 5 * 100) + "%";
-            document.getElementById('money').innerText = Math.floor(money);
-            document.getElementById('p-hp').innerText = Math.floor(pHP);
-            if(pHP <= 0) { alert("Game Over!"); location.reload(); }
-        }
+        document.getElementById('combo-fill').style.width = (comboCount / 10 * 100) + "%";
+        if(pHP <= 0) { alert("MISSION FAILED. Guld: " + money); location.reload(); }
         requestAnimationFrame(loop);
     }
 
-    openMenu();
+    updateUI();
     requestAnimationFrame(loop);
 </script>
 </body>
