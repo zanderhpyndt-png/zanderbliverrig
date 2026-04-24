@@ -3,258 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Tactical Survivor Pro</title>
+    <title>Zander: Dimension 3</title>
+    <script src="https://cloudflare.com"></script>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --blood: #ff4d4d; --gold: #ffd700; --laser: #00f2ff; --ui-bg: rgba(10, 10, 15, 0.95); }
-        body { margin: 0; background: #000; color: white; font-family: 'Share Tech Mono', monospace; overflow: hidden; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
+        canvas { display: block; }
 
-        /* Baner */
-        .map-forest { background: radial-gradient(circle, #0d1a0d 0%, #000 100%); }
-        .map-hell { background: radial-gradient(circle, #1a0d0d 0%, #000 100%); }
-        .map-space { background: radial-gradient(circle, #0d0d1a 0%, #000 100%); }
+        /* HUD */
+        #ui {
+            position: fixed; top: 20px; width: 100%;
+            display: flex; justify-content: space-around;
+            color: #00f2ff; pointer-events: none; z-index: 10;
+        }
+        .stat b { color: gold; font-size: 1.5rem; }
 
-        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        /* Shop / Menu */
+        #shop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; color: white;
+        }
+        .btn {
+            background: #00f2ff; color: black; border: none; padding: 15px 30px;
+            margin: 10px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold;
+            border-radius: 5px; width: 250px;
+        }
+        .btn:disabled { background: #333; color: #666; }
 
-        /* HUD & XP Bar */
-        .hud { position: fixed; top: 0; width: 100%; padding: 15px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.8); z-index: 300; border-bottom: 2px solid var(--laser); font-family: 'Orbitron'; }
-        #xp-container { position: fixed; top: 65px; left: 0; width: 100%; height: 5px; background: #222; z-index: 300; }
-        #xp-fill { height: 100%; width: 0%; background: var(--laser); transition: width 0.3s; box-shadow: 0 0 10px var(--laser); }
-
-        /* Start Menu & Upgrade Shop */
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--ui-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; text-align: center; }
-        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 600px; margin-top: 20px; }
-        .shop-item { background: #1a1a25; border: 1px solid #333; padding: 15px; border-radius: 8px; }
-
-        /* Entities */
-        #player { position: absolute; width: 40px; height: 40px; font-size: 35px; z-index: 100; transition: transform 0.1s; filter: drop-shadow(0 0 10px var(--laser)); }
-        .monster { position: absolute; width: 50px; height: 50px; z-index: 40; filter: drop-shadow(0 0 15px var(--blood)); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; transition: transform 0.2s; }
-        
-        .m-hp-bar { width: 30px; height: 3px; background: #000; border: 1px solid #444; margin-bottom: 2px; }
-        .m-hp-fill { height: 100%; background: var(--blood); }
-
-        /* VFX */
-        .bullet { position: absolute; border-radius: 50%; z-index: 55; box-shadow: 0 0 10px white; pointer-events: none; }
-        .particle { position: absolute; width: 4px; height: 4px; background: orange; border-radius: 50%; pointer-events: none; }
-
-        .btn { background: #111; color: white; border: 1px solid var(--laser); padding: 10px; cursor: pointer; font-family: 'Orbitron'; margin: 5px; border-radius: 4px; transition: 0.2s; font-size: 0.8rem; }
-        .btn:hover:not(:disabled) { background: var(--laser); color: black; }
-        .btn:disabled { opacity: 0.3; border-color: #555; }
+        #crosshair {
+            position: fixed; top: 50%; left: 50%;
+            width: 20px; height: 20px; border: 2px solid rgba(0, 242, 255, 0.5);
+            border-radius: 50%; transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
     </style>
 </head>
-<body class="map-forest">
+<body>
 
-<!-- Start Menu -->
-<div id="main-menu" class="overlay">
-    <h1 style="font-family: 'Orbitron'; font-size: 3.5rem; color: var(--laser); margin: 0; text-shadow: 0 0 20px var(--laser);">ZANDER: OMEGA</h1>
-    <p style="letter-spacing: 5px; color: #888;">TACTICAL SURVIVAL INTERFACE</p>
-    
-    <div style="margin: 20px;">
-        <button class="btn" onclick="setMap('forest', this)">FOREST</button>
-        <button class="btn" onclick="setMap('hell', this)">HELL</button>
-        <button class="btn" onclick="setMap('space', this)">VOID</button>
-    </div>
-
-    <div style="margin: 20px;">
-        <button class="btn" onclick="setDiff(1, this)">RECRUIT</button>
-        <button class="btn" onclick="setDiff(2, this)">VETERAN</button>
-        <button class="btn" onclick="setDiff(3, this)">ELITE</button>
-    </div>
-
-    <button class="btn" style="font-size: 1.5rem; padding: 15px 40px; margin-top: 30px;" onclick="startGame()">INITIALIZE MISSION</button>
+<div id="ui">
+    <div class="stat">GULD: <b id="money">0</b></div>
+    <div class="stat">SEKTOR: <b id="lvl">1</b></div>
+    <div class="stat">HP: <b id="hp" style="color: #ff4d4d;">100</b></div>
 </div>
 
-<!-- Upgrade Shop (ESC) -->
-<div id="upgrade-shop" class="overlay" style="display: none;">
-    <h2 style="font-family: 'Orbitron'; color: var(--gold);">FIELD UPGRADES</h2>
-    <div id="shop-money" style="color: var(--gold); font-size: 1.2rem;">GULD: 0</div>
-    
-    <div class="shop-grid">
-        <div class="shop-item">
-            <div>SKADE: <b id="stat-dmg">60</b></div>
-            <button class="btn" id="buy-dmg" onclick="buy('dmg')">OPGRADER (150)</button>
-        </div>
-        <div class="shop-item">
-            <div>SKUD-FART: <b id="stat-bspd">20</b></div>
-            <button class="btn" id="buy-bspd" onclick="buy('bspd')">OPGRADER (200)</button>
-        </div>
-        <div class="shop-item">
-            <div>MAX LIV: <b id="stat-mhp">100</b></div>
-            <button class="btn" id="buy-mhp" onclick="buy('mhp')">OPGRADER (300)</button>
-        </div>
-        <div class="shop-item">
-            <div>BEVÆGELSE: <b id="stat-pspd">7</b></div>
-            <button class="btn" id="buy-pspd" onclick="buy('pspd')">OPGRADER (250)</button>
-        </div>
-    </div>
-    <button class="btn" style="margin-top: 30px; width: 200px;" onclick="toggleShop()">RESUME</button>
-</div>
+<div id="crosshair"></div>
 
-<div class="hud">
-    <div>GULD: <b id="money-ui" style="color: var(--gold);">0</b></div>
-    <div>LEVEL: <b id="lvl-ui">1</b></div>
-    <div style="color: #4cd137;">LIV: <b id="hp-ui">100</b></div>
-</div>
-<div id="xp-container"><div id="xp-fill"></div></div>
-
-<div id="game-container">
-    <div id="player">👨</div>
+<div id="shop">
+    <h1 style="color: gold;">PAUSED - UPGRADES</h1>
+    <button class="btn" id="buy-dmg" onclick="buy('dmg')">SKADE: 200 KR</button>
+    <button class="btn" id="buy-hp" onclick="buy('hp')">MAX HP: 300 KR</button>
+    <button class="btn" style="background: white;" onclick="toggleShop()">FORTSÆT (ESC)</button>
 </div>
 
 <script>
-    let money = 0, sector = 1, hp = 100, maxHp = 100, dmgBase = 60, bSpeed = 20, pSpeed = 7, xp = 0;
-    let difficulty = 1, gameActive = false, shopOpen = false;
-    let px = window.innerWidth/2, py = window.innerHeight/2;
-    const keys = {}, monsters = [], pBullets = [], particles = [];
-    const container = document.getElementById('game-container');
+    let scene, camera, renderer, player, playerModel;
+    let money = 0, lvl = 1, hp = 100, dmg = 50, isPaused = false;
+    let monsters = [], bullets = [];
+    const keys = {};
 
-    function setMap(m, b) { document.body.className = 'map-'+m; }
-    function setDiff(d, b) { difficulty = d; }
+    init();
+    animate();
 
-    function startGame() {
-        document.getElementById('main-menu').style.display = 'none';
-        gameActive = true;
-        spawnHorde();
+    function init() {
+        // 1. Scene & Camera
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
+        scene.fog = new THREE.FogExp2(0x050505, 0.05);
+
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 10, 15);
+        camera.lookAt(0, 0, 0);
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Lights
+        const light = new THREE.PointLight(0x00f2ff, 2, 50);
+        light.position.set(0, 10, 0);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // 3. Floor
+        const grid = new THREE.GridHelper(200, 50, 0x00f2ff, 0x222222);
+        scene.add(grid);
+
+        // 4. Detaljeret Player Model (Agent Zander)
+        player = new THREE.Group();
+        
+        const bodyGeo = new THREE.BoxGeometry(1, 1.5, 0.5);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: 0x222222 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        player.add(body);
+
+        const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
+        const headMat = new THREE.MeshPhongMaterial({ color: 0xffdbac });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 1.1;
+        player.add(head);
+
+        const visorGeo = new THREE.BoxGeometry(0.65, 0.15, 0.4);
+        const visorMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
+        const visor = new THREE.Mesh(visorGeo, visorMat);
+        visor.position.set(0, 1.1, 0.15);
+        player.add(visor);
+
+        scene.add(player);
+
+        // Controls
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if(e.code === 'Escape') toggleShop();
+            if(e.code === 'Enter' && !isPaused) fire();
+        });
+        window.addEventListener('keyup', e => keys[e.code] = false);
     }
 
     function toggleShop() {
-        if(!gameActive) return;
-        shopOpen = !shopOpen;
-        document.getElementById('upgrade-shop').style.display = shopOpen ? 'flex' : 'none';
-        document.getElementById('shop-money').innerText = "GULD: " + Math.floor(money);
-        updateStatsUI();
+        isPaused = !isPaused;
+        document.getElementById('shop').style.display = isPaused ? 'flex' : 'none';
     }
 
-    window.addEventListener('keydown', e => {
-        if(e.code === 'Escape') toggleShop();
-        keys[e.code] = true;
-        if(e.code === 'Enter' && gameActive && !shopOpen) fireAutoShot();
-    });
-    window.addEventListener('keyup', e => keys[e.code] = false);
+    function spawnMonster() {
+        const geo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+        const mat = new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0x330000 });
+        const m = new THREE.Mesh(geo, mat);
+        
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 30 + Math.random() * 10;
+        m.position.set(Math.cos(angle) * dist, 0.75, Math.sin(angle) * dist);
+        
+        m.hp = 100 * lvl;
+        scene.add(m);
+        monsters.push(m);
+    }
 
-    function fireAutoShot() {
-        if(monsters.length === 0) return;
-        let closest = null, minDist = Infinity;
+    function fire() {
+        if (monsters.length === 0) return;
+        
+        const bGeo = new THREE.SphereGeometry(0.15, 8, 8);
+        const bMat = new THREE.MeshBasicMaterial({ color: 0x00f2ff });
+        const b = new THREE.Mesh(bGeo, bMat);
+        b.position.copy(player.position);
+        b.position.y = 1;
+
+        // Auto aim find tætteste
+        let target = monsters[0];
+        let minDist = player.position.distanceTo(target.position);
         monsters.forEach(m => {
-            let d = Math.sqrt((px-m.x)**2 + (py-m.y)**2);
-            if(d < minDist) { minDist = d; closest = m; }
+            let d = player.position.distanceTo(m.position);
+            if(d < minDist) { minDist = d; target = m; }
         });
-        if(closest) {
-            const ang = Math.atan2(closest.y - py, closest.x - px);
-            const b = document.createElement('div');
-            b.className = 'bullet';
-            b.style.width = '10px'; b.style.height = '10px'; b.style.background = 'var(--laser)';
-            container.appendChild(b);
-            pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*bSpeed, vy: Math.sin(ang)*bSpeed, d: dmgBase });
-        }
+
+        const dir = new THREE.Vector3().subVectors(target.position, player.position).normalize();
+        b.velocity = dir.multiplyScalar(0.8);
+        
+        // Roter spiller mod monster
+        player.lookAt(target.position.x, 0, target.position.z);
+
+        scene.add(b);
+        bullets.push(b);
     }
 
     function buy(type) {
-        let costs = { dmg: 150, bspd: 200, mhp: 300, pspd: 250 };
-        if(money >= costs[type]) {
-            money -= costs[type];
-            if(type === 'dmg') dmgBase += 20;
-            if(type === 'bspd') bSpeed += 5;
-            if(type === 'mhp') { maxHp += 50; hp += 50; }
-            if(type === 'pspd') pSpeed += 1;
-            updateStatsUI();
-        }
+        if(type === 'dmg' && money >= 200) { money -= 200; dmg += 50; }
+        if(type === 'hp' && money >= 300) { money -= 300; hp = 100; }
+        updateUI();
     }
 
-    function updateStatsUI() {
-        document.getElementById('money-ui').innerText = Math.floor(money);
-        document.getElementById('shop-money').innerText = "GULD: " + Math.floor(money);
-        document.getElementById('stat-dmg').innerText = dmgBase;
-        document.getElementById('stat-bspd').innerText = bSpeed;
-        document.getElementById('stat-mhp').innerText = maxHp;
-        document.getElementById('stat-pspd').innerText = pSpeed;
+    function updateUI() {
+        document.getElementById('money').innerText = money;
+        document.getElementById('lvl').innerText = lvl;
+        document.getElementById('hp').innerText = Math.floor(hp);
     }
 
-    function spawnHorde() {
-        const count = (3 + sector) * difficulty;
-        for(let i=0; i<count; i++) {
-            const el = document.createElement('div');
-            el.className = 'monster';
-            el.innerHTML = `<div class="m-hp-bar"><div class="m-hp-fill" style="width:100%"></div></div>💀`;
-            container.appendChild(el);
-            monsters.push({
-                el, x: Math.random() > 0.5 ? -100 : window.innerWidth+100,
-                y: Math.random()*window.innerHeight,
-                hp: 100 * Math.pow(1.2, sector), maxHp: 100 * Math.pow(1.2, sector),
-                speed: 1.5 + (difficulty * 0.4)
-            });
-        }
-    }
+    function animate() {
+        requestAnimationFrame(animate);
+        if (isPaused) return;
 
-    function createExplosion(x, y) {
-        for(let i=0; i<8; i++) {
-            const el = document.createElement('div');
-            el.className = 'particle';
-            container.appendChild(el);
-            particles.push({
-                el, x, y, 
-                vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10,
-                life: 1.0
-            });
-        }
-    }
+        // Player Move
+        const speed = 0.2;
+        if(keys['ArrowUp'] || keys['KeyW']) player.position.z -= speed;
+        if(keys['ArrowDown'] || keys['KeyS']) player.position.z += speed;
+        if(keys['ArrowLeft'] || keys['KeyA']) player.position.x -= speed;
+        if(keys['ArrowRight'] || keys['KeyD']) player.position.x += speed;
 
-    function loop() {
-        if(gameActive && !shopOpen) {
-            if(keys['ArrowUp'] || keys['KeyW']) py -= pSpeed;
-            if(keys['ArrowDown'] || keys['KeyS']) py += pSpeed;
-            if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
-            if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
+        camera.position.x = player.position.x;
+        camera.position.z = player.position.z + 15;
+        camera.lookAt(player.position);
 
-            px = Math.max(0, Math.min(window.innerWidth-40, px));
-            py = Math.max(0, Math.min(window.innerHeight-40, py));
-            document.getElementById('player').style.left = px + 'px';
-            document.getElementById('player').style.top = py + 'px';
+        // Monster Logic
+        if(monsters.length < 1 + (lvl/2)) spawnMonster();
 
-            monsters.forEach((m, mi) => {
-                const dx = px - m.x, dy = py - m.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                m.x += (dx/dist) * m.speed; m.y += (dy/dist) * m.speed;
-                m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
-                if(dist < 40) { hp -= 0.3; }
-            });
+        monsters.forEach((m, index) => {
+            const dir = new THREE.Vector3().subVectors(player.position, m.position).normalize();
+            m.position.add(dir.multiplyScalar(0.05 + (lvl * 0.005)));
+            
+            if(player.position.distanceTo(m.position) < 1.5) {
+                hp -= 0.2;
+                updateUI();
+                if(hp <= 0) location.reload();
+            }
+        });
 
-            pBullets.forEach((b, bi) => {
-                b.x += b.vx; b.y += b.vy;
-                b.el.style.left = b.x+'px'; b.el.style.top = b.y+'px';
-                monsters.forEach((m, mi) => {
-                    if(b.x > m.x && b.x < m.x+50 && b.y > m.y && b.y < m.y+50) {
-                        m.hp -= b.d;
-                        m.el.querySelector('.m-hp-fill').style.width = (m.hp/m.maxHp*100) + "%";
-                        createExplosion(b.x, b.y);
-                        b.el.remove(); pBullets.splice(bi, 1);
-                        if(m.hp <= 0) {
-                            m.el.remove(); monsters.splice(mi, 1);
-                            money += 50 * difficulty;
-                            xp += 20;
-                            if(xp >= 100) { xp = 0; sector++; spawnHorde(); }
-                            updateStatsUI();
-                        }
+        // Bullet Logic
+        bullets.forEach((b, bIdx) => {
+            b.position.add(b.velocity);
+            if(b.position.length() > 100) {
+                scene.remove(b);
+                bullets.splice(bIdx, 1);
+            }
+
+            monsters.forEach((m, mIdx) => {
+                if(b.position.distanceTo(m.position) < 1.5) {
+                    m.hp -= dmg;
+                    scene.remove(b);
+                    bullets.splice(bIdx, 1);
+                    if(m.hp <= 0) {
+                        money += 100;
+                        lvl++;
+                        scene.remove(m);
+                        monsters.splice(mIdx, 1);
+                        updateUI();
                     }
-                });
-                if(b.x < 0 || b.x > window.innerWidth || b.y < 0 || b.y > window.innerHeight) { b.el.remove(); pBullets.splice(bi, 1); }
+                }
             });
+        });
 
-            particles.forEach((p, i) => {
-                p.x += p.vx; p.y += p.vy; p.life -= 0.05;
-                p.el.style.left = p.x+'px'; p.el.style.top = p.y+'px'; p.el.style.opacity = p.life;
-                if(p.life <= 0) { p.el.remove(); particles.splice(i, 1); }
-            });
-
-            document.getElementById('xp-fill').style.width = xp + "%";
-            document.getElementById('hp-ui').innerText = Math.floor(hp);
-            document.getElementById('lvl-ui').innerText = sector;
-            if(hp <= 0) { alert("MISSION FAILED. Score: " + Math.floor(money)); location.reload(); }
-        }
-        requestAnimationFrame(loop);
+        renderer.render(scene, camera);
     }
-
-    requestAnimationFrame(loop);
 </script>
 </body>
 </html>
