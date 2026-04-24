@@ -3,100 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Super Sonic Invader</title>
+    <title>Zander: Fortnite Velocity</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --blue: #00a8ff; --gold: #fbc531; --bg: #0097e6; }
-        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Press Start 2P', cursive; color: white; }
+        :root { --fortnite-blue: #007bff; --gold: #ffd700; --fuel: #ff9f43; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Bangers', cursive; color: white; }
 
-        /* Sonic Parallax Baggrund */
-        #game-world { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: linear-gradient(#4facfe 0%, #00f2fe 100%); }
-        .cloud { position: absolute; background: white; border-radius: 50px; opacity: 0.8; z-index: 1; }
-        .hill { position: absolute; bottom: 0; background: #2ecc71; border-radius: 50% 50% 0 0; z-index: 2; border-top: 5px solid #27ae60; }
+        /* Sonic-style Scrolling Baggrund */
+        #game-container { 
+            position: relative; width: 100vw; height: 100vh; 
+            background: linear-gradient(#1e90ff, #70a1ff);
+            overflow: hidden;
+        }
+
+        #scrolling-bg {
+            position: absolute; width: 200%; height: 100%;
+            background-image: url('https://transparenttextures.com');
+            opacity: 0.1; animation: scrollBg 10s linear infinite;
+        }
+        @keyframes scrollBg { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        /* Jorden */
+        #ground { 
+            position: absolute; bottom: 0; width: 100%; height: 50px; 
+            background: #2ed573; border-top: 5px solid #26ae60; z-index: 10;
+        }
+
+        /* Zander med Jetpack */
+        #player {
+            position: absolute; width: 60px; height: 60px;
+            left: 100px; bottom: 50px; font-size: 45px;
+            z-index: 20; display: flex; align-items: center; justify-content: center;
+            transition: transform 0.1s;
+        }
+        .flame {
+            position: absolute; bottom: -10px; width: 10px; height: 20px;
+            background: orange; border-radius: 50%; opacity: 0;
+            filter: blur(2px); animation: flicker 0.1s infinite;
+        }
+        @keyframes flicker { 0% { height: 15px; } 100% { height: 25px; opacity: 1; } }
+
+        /* UI / Fortnite HUD */
+        #hud { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
+        .fortnite-card { background: rgba(0,0,0,0.7); border: 3px solid var(--fortnite-blue); padding: 10px 20px; border-radius: 10px; transform: skew(-10deg); }
         
-        /* Græsset (Jorden) */
-        #ground { position: absolute; bottom: 0; width: 100%; height: 60px; background: repeating-linear-gradient(90deg, #d35400, #d35400 40px, #e67e22 40px, #e67e22 80px); border-top: 10px solid #2ecc71; z-index: 10; }
+        #fuel-wrap { position: fixed; bottom: 80px; left: 100px; width: 60px; height: 10px; background: #333; border: 2px solid #fff; }
+        #fuel-fill { height: 100%; width: 100%; background: var(--fuel); transition: 0.1s; }
 
-        /* Spilleren */
-        #player { position: absolute; width: 50px; height: 50px; bottom: 60px; left: 100px; font-size: 40px; z-index: 20; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3)); }
-        .player-trail { position: absolute; width: 40px; height: 40px; background: rgba(0, 168, 255, 0.3); border-radius: 50%; pointer-events: none; }
-
-        /* UI */
-        #ui { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
-        .stat { background: rgba(0,0,0,0.5); padding: 10px; border: 4px solid var(--gold); border-radius: 5px; font-size: 12px; line-height: 1.5; }
-        
-        /* Menu / Shop */
+        /* Menu */
         #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        .shop-box { background: #2f3640; border: 6px solid var(--gold); padding: 30px; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; }
-        .btn { background: var(--gold); border: none; padding: 15px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 10px; color: black; transition: 0.1s; }
-        .btn:hover { transform: scale(1.1); background: white; }
-        .btn:disabled { background: #7f8c8d; opacity: 0.5; cursor: default; }
+        .shop-btn { background: var(--fortnite-blue); color: white; border: none; padding: 15px 40px; font-family: 'Bangers'; font-size: 1.5rem; cursor: pointer; margin: 10px; clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%); }
+        .shop-btn:hover { background: white; color: var(--fortnite-blue); }
 
-        /* Effekter */
-        .bullet { position: absolute; width: 15px; height: 15px; background: yellow; border-radius: 50%; box-shadow: 0 0 15px yellow; z-index: 15; }
-        .monster { position: absolute; font-size: 40px; z-index: 15; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5)); transition: transform 0.1s; }
-        .particle { position: absolute; background: white; border-radius: 50%; pointer-events: none; }
+        /* Combat VFX */
+        .hitmarker { position: absolute; color: red; font-weight: bold; font-size: 20px; pointer-events: none; animation: popOut 0.3s forwards; }
+        @keyframes popOut { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+        .bullet { position: absolute; width: 25px; height: 6px; background: #ffff00; border-radius: 3px; box-shadow: 0 0 10px #ffff00; }
+        .monster { position: absolute; font-size: 50px; z-index: 15; }
     </style>
 </head>
 <body>
 
-<div id="game-world">
-    <!-- Parallax lag genereres i JS -->
+<div id="game-container">
+    <div id="scrolling-bg"></div>
     <div id="ground"></div>
-    <div id="player">👨</div>
+    
+    <div id="player">
+        👨
+        <div class="flame" id="flame-l" style="left: 10px;"></div>
+        <div class="flame" id="flame-r" style="right: 10px;"></div>
+    </div>
 </div>
 
-<div id="ui">
-    <div class="stat">GULD: <span id="money-ui">0</span><br>RINGS: <span id="rings-ui">0</span></div>
-    <div class="stat" style="text-align: center;">SEKTOR: <span id="lvl-ui">1</span><br><small>HENT DIN SEJR</small></div>
-    <div class="stat">HP: <span id="hp-ui">100</span><br>DMG: <span id="dmg-ui">10</span></div>
+<div id="hud">
+    <div class="fortnite-card">GULD: <span id="money-ui" style="color:var(--gold)">0</span></div>
+    <div class="fortnite-card">SEKTOR: <span id="lvl-ui">1</span></div>
+    <div class="fortnite-card">HP: <span id="hp-ui" style="color: #2ed573;">100</span></div>
 </div>
+
+<div id="fuel-wrap"><div id="fuel-fill"></div></div>
 
 <div id="menu">
-    <h1 style="color: var(--gold); text-shadow: 5px 5px #000;">PAUSE / SHOP</h1>
-    <div class="shop-box">
-        <div>
-            <h3 style="color:var(--blue)">UPGRADES</h3>
-            <button class="btn" onclick="buy('dmg')">STÆRKERE SKUD (<span id="c-dmg">200</span>)</button><br><br>
-            <button class="btn" onclick="buy('speed')">SONIC FART (<span id="c-speed">500</span>)</button><br><br>
-            <button class="btn" onclick="buy('heal')">HEAL ALT (100)</button>
-        </div>
-        <div>
-            <h3 style="color:var(--blue)">AVATARS</h3>
-            <button class="btn" onclick="setSkin('🥷', 'NINJA', 1.5)">NINJA (800)</button><br><br>
-            <button class="btn" onclick="setSkin('👑', 'KING', 1.2, 5)">KING (5000)</button>
-        </div>
-    </div>
-    <p style="margin-top:40px; font-size:10px;">TRYK ESC FOR AT FORTSÆTTE</p>
+    <h1 style="font-size: 5rem; color: var(--fortnite-blue);">VAULT SHOP</h1>
+    <button class="shop-btn" onclick="buy('dmg')">MERE DAMAGE (300 GULD)</button>
+    <button class="shop-btn" onclick="buyAvatar('🤖', 1000)">CYBORG SKIN (1000)</button>
+    <button class="shop-btn" onclick="buyAvatar('👑', 5000)">GALAXY KING (5000)</button>
+    <p>TRYK ESC FOR AT FORTSÆTTE</p>
 </div>
 
 <script>
-    let money = 0, rings = 0, lvl = 1, hp = 100, pDmg = 30, pSpeed = 10, gMult = 1, pJump = 0, gravity = 1.2;
-    let px = 100, py = 0, isJumping = false, inMenu = false;
-    let monsters = [], pBullets = [], particles = [];
-    let dmgCost = 200, speedCost = 500;
+    let money = 0, lvl = 1, hp = 100, pDmg = 50, pSpeed = 8, fuel = 100;
+    let px = 100, py = 0, vy = 0;
+    let monsters = [], bullets = [];
+    let inMenu = false;
     const keys = {};
 
-    // 1. Setup Verden
-    const world = document.getElementById('game-world');
-    function createParallax() {
-        for(let i=0; i<15; i++) {
-            const cloud = document.createElement('div');
-            cloud.className = 'cloud';
-            cloud.style.width = (100 + Math.random()*200) + 'px';
-            cloud.style.height = '40px';
-            cloud.style.top = (50 + Math.random()*200) + 'px';
-            cloud.style.left = Math.random()*window.innerWidth + 'px';
-            cloud.dataset.speed = 0.5 + Math.random();
-            world.appendChild(cloud);
-        }
-    }
-
-    // 2. Kontrol
     window.addEventListener('keydown', e => {
         if(e.code === 'Escape') toggleMenu();
         if(e.code === 'Enter' && !inMenu) fire();
-        if(e.code === 'Space' && !isJumping && !inMenu) { pJump = 25; isJumping = true; }
         keys[e.code] = true;
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
@@ -104,143 +108,116 @@
     function toggleMenu() {
         inMenu = !inMenu;
         document.getElementById('menu').style.display = inMenu ? 'flex' : 'none';
-        updateUI();
     }
 
-    // 3. Mekanikker
     function fire() {
         const b = document.createElement('div');
         b.className = 'bullet';
-        world.appendChild(b);
-        pBullets.push({ el: b, x: px + 40, y: window.innerHeight - 100 - py, vx: 20 });
-        spawnParticles(px+50, window.innerHeight - 110 - py, 'yellow');
-    }
-
-    function spawnMonster() {
-        if(monsters.length > 5 + lvl) return;
-        const el = document.createElement('div');
-        el.className = 'monster';
-        el.innerText = ['👾', '🕷️', '🤖', '👻'][Math.floor(Math.random()*4)];
-        world.appendChild(el);
-        monsters.push({
-            el, x: window.innerWidth + 100, y: window.innerHeight - 110 - (Math.random()*300),
-            hp: 50 * lvl, speed: 3 + (lvl*0.5)
-        });
+        document.getElementById('game-container').appendChild(b);
+        bullets.push({ el: b, x: px + 60, y: window.innerHeight - 100 - py, vx: 25 });
     }
 
     function buy(type) {
-        if(type === 'dmg' && money >= dmgCost) { money -= dmgCost; pDmg += 20; dmgCost *= 2; }
-        if(type === 'speed' && money >= speedCost) { money -= speedCost; pSpeed += 3; speedCost *= 2; }
-        if(type === 'heal' && money >= 100) { money -= 100; hp = 100; }
-        updateUI();
+        if(money >= 300) { money -= 300; pDmg += 50; toggleMenu(); }
     }
 
-    function setSkin(icon, name, speedMod, goldMod = 1) {
-        if(money >= (speedMod > 1.3 ? 800 : 5000)) {
-            money -= (speedMod > 1.3 ? 800 : 5000);
-            document.getElementById('player').innerText = icon;
-            pSpeed *= speedMod; gMult = goldMod;
-            updateUI();
-        }
+    function buyAvatar(icon, cost) {
+        if(money >= cost) { money -= cost; document.getElementById('player').firstChild.textContent = icon; toggleMenu(); }
     }
 
-    function spawnParticles(x, y, color) {
-        for(let i=0; i<8; i++) {
-            const p = document.createElement('div');
-            p.className = 'particle';
-            p.style.width = '6px'; p.style.height = '6px';
-            p.style.background = color;
-            p.style.left = x+'px'; p.style.top = y+'px';
-            world.appendChild(p);
-            particles.push({ el: p, x, y, vx: Math.random()*10-5, vy: Math.random()*10-5, life: 1 });
-        }
+    function createHitmarker(x, y) {
+        const h = document.createElement('div');
+        h.className = 'hitmarker';
+        h.innerText = '✕';
+        h.style.left = x + 'px'; h.style.top = y + 'px';
+        document.getElementById('game-container').appendChild(h);
+        setTimeout(() => h.remove(), 300);
     }
 
-    function updateUI() {
-        document.getElementById('money-ui').innerText = Math.floor(money);
-        document.getElementById('rings-ui').innerText = rings;
-        document.getElementById('lvl-ui').innerText = lvl;
-        document.getElementById('hp-ui').innerText = Math.floor(hp);
-        document.getElementById('dmg-ui').innerText = pDmg;
-        document.getElementById('c-dmg').innerText = dmgCost;
-        document.getElementById('c-speed').innerText = speedCost;
+    function spawnMonster() {
+        if(monsters.length > 3 + lvl) return;
+        const el = document.createElement('div');
+        el.className = 'monster';
+        el.innerText = ['🧟', '👺', '👾'][Math.floor(Math.random()*3)];
+        document.getElementById('game-container').appendChild(el);
+        monsters.push({
+            el, x: window.innerWidth + 100, y: Math.random() * (window.innerHeight - 150),
+            hp: 100 * lvl, speed: 4 + (lvl * 0.5)
+        });
     }
 
-    // 4. Game Loop
     function loop() {
         if(!inMenu) {
-            // Player bevægelse & Gravity (Mario-style)
-            if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
-            if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
+            // Jetpack Flyvning (Fortnite inspiration)
+            let thrusting = false;
+            if(keys['ArrowUp'] && fuel > 0) {
+                vy = 8;
+                fuel -= 1.5;
+                thrusting = true;
+            } else if(keys['ArrowDown']) {
+                vy = -8;
+            } else {
+                vy *= 0.9; // Glidende stop
+            }
+
+            // Flamme-effekt
+            document.getElementById('flame-l').style.opacity = thrusting ? '1' : '0';
+            document.getElementById('flame-r').style.opacity = thrusting ? '1' : '0';
+
+            py += vy;
             
-            py += pJump;
-            pJump -= gravity;
-            if(py <= 0) { py = 0; isJumping = false; pJump = 0; }
+            // Grænser og Fuel-regen
+            if(py <= 0) { py = 0; fuel = Math.min(100, fuel + 1); }
+            if(py > window.innerHeight - 120) py = window.innerHeight - 120;
 
-            px = Math.max(0, Math.min(window.innerWidth-50, px));
             const pEl = document.getElementById('player');
-            pEl.style.left = px + 'px';
-            pEl.style.bottom = (60 + py) + 'px';
+            pEl.style.bottom = (50 + py) + 'px';
+            document.getElementById('fuel-fill').style.width = fuel + "%";
 
-            // Parallax cloud movement
-            document.querySelectorAll('.cloud').forEach(c => {
-                let left = parseFloat(c.style.left) - c.dataset.speed;
-                if(left < -200) left = window.innerWidth;
-                c.style.left = left + 'px';
-            });
-
-            // Monster Logic
+            // Monstre
             if(Math.random() < 0.02) spawnMonster();
             monsters.forEach((m, mi) => {
                 m.x -= m.speed;
                 m.el.style.left = m.x + 'px';
                 m.el.style.top = m.y + 'px';
                 
-                // Collision player
-                const dist = Math.sqrt((px-m.x)**2 + (py-(window.innerHeight-100-m.y))**2);
-                if(m.x < px + 40 && m.x > px - 40 && (window.innerHeight-110-m.y) < py + 50 && (window.innerHeight-110-m.y) > py - 50) {
-                    hp -= 1; updateUI();
-                    if(hp <= 0) { alert("GAME OVER! GULD: " + money); location.reload(); }
+                // Collision
+                if(m.x < px + 50 && m.x > px - 20 && (window.innerHeight - py - 100) < m.y + 50 && (window.innerHeight - py - 100) > m.y - 50) {
+                    hp -= 1;
+                    if(hp <= 0) location.reload();
                 }
                 if(m.x < -100) { m.el.remove(); monsters.splice(mi, 1); }
             });
 
-            // Bullets
-            pBullets.forEach((b, bi) => {
+            // Skud
+            bullets.forEach((b, bi) => {
                 b.x += b.vx;
                 b.el.style.left = b.x + 'px';
                 b.el.style.top = b.y + 'px';
                 monsters.forEach((m, mi) => {
-                    if(b.x > m.x && b.x < m.x+50 && b.y > m.y && b.y < m.y+50) {
+                    if(b.x > m.x && b.x < m.x + 80 && b.y > m.y && b.y < m.y + 80) {
                         m.hp -= pDmg;
-                        spawnParticles(b.x, b.y, 'orange');
-                        b.el.remove(); pBullets.splice(bi, 1);
+                        createHitmarker(b.x, b.y);
+                        b.el.remove(); bullets.splice(bi, 1);
                         if(m.hp <= 0) {
-                            spawnParticles(m.x+20, m.y+20, 'red');
                             m.el.remove(); monsters.splice(mi, 1);
-                            money += 100 * gMult; rings += 5;
-                            if(rings % 50 === 0) { lvl++; rings = 0; }
-                            updateUI();
+                            money += 200;
+                            if(money % 1000 === 0) lvl++;
                         }
                     }
                 });
-                if(b.x > window.innerWidth) { b.el.remove(); pBullets.splice(bi, 1); }
+                if(b.x > window.innerWidth) { b.el.remove(); bullets.splice(bi, 1); }
             });
 
-            // Particles
-            particles.forEach((p, pi) => {
-                p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-                p.el.style.left = p.x+'px'; p.el.style.top = p.y+'px';
-                p.el.style.opacity = p.life;
-                if(p.life <= 0) { p.el.remove(); particles.splice(pi, 1); }
-            });
+            // Opdater UI
+            document.getElementById('money-ui').innerText = money;
+            document.getElementById('lvl-ui').innerText = lvl;
+            document.getElementById('hp-ui').innerText = Math.floor(hp);
         }
         requestAnimationFrame(loop);
     }
 
-    createParallax();
     loop();
-    updateUI();
 </script>
 </body>
 </html>
