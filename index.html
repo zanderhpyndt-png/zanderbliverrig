@@ -2,241 +2,105 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZANDER: UNDEAD CORRIDOR - BLOODLUST</title>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <title>Simpelt CS:GO-agtigt Skydespil</title>
     <style>
-        :root {
-            --neon-blue: #00f2ff;
-            --blood: #af0000;
-            --gold: #ffd700;
-        }
-
         body {
-            margin: 0; background: #000; color: white;
-            font-family: 'Orbitron', sans-serif; overflow: hidden; user-select: none;
+            margin: 0;
+            background-color: #222;
+            color: white;
+            font-family: sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        /* 3D Tunnel */
-        #arena {
-            position: relative; width: 100vw; height: 100vh;
-            background: 
-                linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
-                repeating-linear-gradient(0deg, #111 0px, #111 2px, transparent 2px, transparent 40px),
-                repeating-linear-gradient(90deg, #111 0px, #111 2px, transparent 2px, transparent 40px);
-            perspective: 800px; overflow: hidden;
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            background: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+            background-size: cover;
+            border: 4px solid #555;
+            cursor: crosshair; /* Gør musen til et sigtekorn */
+            margin-top: 20px;
         }
 
-        #blood-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 150; }
-        .blood-stain { position: absolute; background: var(--blood); border-radius: 50%; filter: blur(10px); opacity: 0.6; animation: fadeOut 5s forwards; }
-
-        @keyframes fadeOut { to { opacity: 0; transform: scale(1.5); } }
-
-        /* HUD */
-        #hud {
-            position: fixed; top: 0; width: 100%; padding: 20px;
-            display: flex; justify-content: space-between; z-index: 200;
+        .target {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: red;
+            border-radius: 50%;
+            border: 3px solid white;
+            transition: transform 0.1s;
         }
 
-        .stat-box { background: rgba(0,0,0,0.8); border: 2px solid var(--neon-blue); padding: 10px 20px; border-radius: 5px; box-shadow: 0 0 15px var(--neon-blue); }
-        #combo-ui { color: var(--gold); font-size: 2rem; font-family: 'Creepster'; text-shadow: 0 0 10px var(--gold); }
-
-        /* Zombies */
-        .zombie {
-            position: absolute; left: 50%; top: 45%;
-            transform: translate(-50%, -50%) scale(0.05);
-            z-index: 10; transition: transform 0.05s linear;
-        }
-        .zombie-icon { font-size: 150px; filter: drop-shadow(0 0 20px red); }
-
-        /* Defense Area */
-        #gun-view {
-            position: fixed; bottom: 0; width: 100%; height: 150px;
-            background: linear-gradient(to top, #050505, #222);
-            border-top: 4px solid #444; z-index: 100;
-            display: flex; justify-content: center; align-items: center;
+        #ui {
+            margin-top: 10px;
+            font-size: 24px;
         }
 
-        #weapon { font-size: 100px; transform: translateY(-30px); filter: drop-shadow(0 0 15px var(--neon-blue)); }
-
-        /* Abilities */
-        #nuke-ui { position: fixed; bottom: 20px; right: 20px; z-index: 200; border: 2px solid var(--gold); padding: 10px; background: #000; }
-        .cooldown { height: 5px; background: var(--gold); width: 100%; transition: width 1s linear; }
-
-        /* Shop */
-        #shop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; backdrop-filter: blur(20px);
+        .score-board {
+            color: #00ff00;
         }
-
-        .btn {
-            background: #111; color: var(--neon-blue); border: 2px solid var(--neon-blue);
-            padding: 15px 40px; margin: 10px; cursor: pointer; font-family: 'Orbitron';
-            font-weight: 900; border-radius: 5px; width: 350px; transition: 0.2s;
-        }
-        .btn:hover:not(:disabled) { background: var(--neon-blue); color: #000; box-shadow: 0 0 30px var(--neon-blue); }
-
-        .shake { animation: shake 0.1s infinite; }
-        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-2px, -1px); } 100% { transform: translate(1px, -2px); } }
     </style>
 </head>
-<body id="main">
+<body>
 
-<div id="arena">
-    <div id="blood-layer"></div>
-    <div id="gun-view"><div id="weapon">🔫</div></div>
-</div>
+    <h1>Aim Trainer v1.0</h1>
+    <div id="ui">Points: <span id="score" class="score-board">0</span></div>
+    
+    <div id="game-container" onclick="playShootSound()">
+        </div>
 
-<div id="hud">
-    <div class="stat-box">GULD: <span id="money">0</span></div>
-    <div id="combo-ui">COMBO: x1</div>
-    <div class="stat-box" style="border-color: red;">HP: <span id="hp">100</span></div>
-</div>
+    <script>
+        const container = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        let score = 0;
 
-<div id="nuke-ui">
-    <small>SPACE: NUKE</small>
-    <div class="cooldown" id="nuke-bar"></div>
-</div>
+        // Funktion til at lave et mål (Target)
+        function createTarget() {
+            const target = document.createElement('div');
+            target.classList.add('target');
 
-<div id="shop">
-    <h1 style="font-family: 'Creepster'; font-size: 5rem; color: var(--blood); margin: 0;">ARSENAL</h1>
-    <p>DIN FORMUE: <span id="shop-money">0</span> KR</p>
-    <button class="btn" onclick="buy('dmg')">OPGRADER AMMUNITION (<span id="c-dmg">300</span>)</button>
-    <button class="btn" onclick="buy('repair')">REPARER BARRIKADE (150)</button>
-    <button class="btn" onclick="buy('shotgun')" id="btn-shotgun">KØB SHOTGUN (2000)</button>
-    <button class="btn" style="background: white; color: black;" onclick="toggleShop()">GENOPTAG [ESC]</button>
-</div>
+            // Find en tilfældig position indenfor containeren
+            const x = Math.random() * (container.offsetWidth - 50);
+            const y = Math.random() * (container.offsetHeight - 50);
 
-<script>
-    let money = 0, hp = 100, dmg = 50, sector = 1, combo = 1;
-    let isPaused = false, nukeReady = true, weaponType = 'pistol';
-    let monsters = [], lastHit = Date.now();
-    let prices = { dmg: 300, shotgun: 2000 };
+            target.style.left = x + 'px';
+            target.style.top = y + 'px';
 
-    // KONTROL
-    window.addEventListener('keydown', e => {
-        if(e.code === 'Escape') toggleShop();
-        if(e.code === 'Space' && nukeReady && !isPaused) useNuke();
-        if(e.code === 'Enter' && !isPaused) shoot();
-    });
+            // Når man klikker på målet
+            target.onclick = function(e) {
+                e.stopPropagation(); // Forhindrer at vi skyder "ved siden af"
+                score++;
+                scoreElement.innerText = score;
+                this.remove(); // Fjern målet
+                createTarget(); // Lav et nyt med det samme
+            };
 
-    function toggleShop() {
-        isPaused = !isPaused;
-        document.getElementById('shop').style.display = isPaused ? 'flex' : 'none';
-        document.getElementById('shop-money').innerText = money;
-    }
+            container.appendChild(target);
 
-    function shoot() {
-        if(monsters.length === 0) return;
-        
-        // Find tætteste zombie (højeste dist)
-        let target = monsters.reduce((prev, curr) => (prev.dist > curr.dist) ? prev : curr);
-        
-        target.hp -= dmg * combo;
-        spawnBlood(window.innerWidth/2, window.innerHeight*0.4, false);
-        
-        // Combo logik
-        let now = Date.now();
-        if(now - lastHit < 1000) combo = Math.min(combo + 0.5, 5);
-        else combo = 1;
-        lastHit = now;
-
-        if(target.hp <= 0) {
-            money += Math.round(200 * sector * combo);
-            killMonster(target);
-        }
-        updateUI();
-    }
-
-    function useNuke() {
-        if(monsters.length === 0) return;
-        nukeReady = false;
-        document.getElementById('nuke-bar').style.width = "0%";
-        document.getElementById('arena').style.background = "white";
-        setTimeout(() => document.getElementById('arena').style.background = "black", 100);
-        
-        // Dræb alle zombier på skærmen
-        [...monsters].forEach(m => killMonster(m));
-        money += 500;
-        
-        setTimeout(() => { nukeReady = true; document.getElementById('nuke-bar').style.width = "100%"; }, 30000);
-        updateUI();
-    }
-
-    function spawnMonster() {
-        const el = document.createElement('div');
-        el.className = 'zombie';
-        el.innerHTML = `<div class="zombie-icon">${['🧟', '🧟‍♂️', '🧛', '💀'][Math.floor(Math.random()*4)]}</div>`;
-        document.getElementById('arena').appendChild(el);
-        
-        monsters.push({
-            el: el,
-            dist: 0.05,
-            hp: 100 * Math.pow(1.2, sector),
-            speed: 0.002 + (Math.random() * 0.002) + (sector * 0.0002)
-        });
-    }
-
-    function killMonster(m) {
-        if(m.dist > 0.6) spawnBlood(window.innerWidth/2, window.innerHeight/2, true);
-        m.el.remove();
-        monsters.splice(monsters.indexOf(m), 1);
-        sector++;
-    }
-
-    function spawnBlood(x, y, big) {
-        for(let i=0; i < (big ? 10 : 3); i++) {
-            const b = document.createElement('div');
-            b.className = 'blood-stain';
-            let size = Math.random() * (big ? 100 : 30) + 20;
-            b.style.width = size + 'px'; b.style.height = size + 'px';
-            b.style.left = (x + Math.random()*200-100) + 'px';
-            b.style.top = (y + Math.random()*200-100) + 'px';
-            document.getElementById('blood-layer').appendChild(b);
-            setTimeout(() => b.remove(), 5000);
-        }
-    }
-
-    function buy(type) {
-        if(money >= prices[type] || (type === 'repair' && money >= 150)) {
-            if(type === 'dmg') { money -= prices.dmg; dmg += 40; prices.dmg = Math.round(prices.dmg * 1.7); }
-            if(type === 'repair') { money -= 150; hp = 100; }
-            if(type === 'shotgun') { money -= 2000; dmg *= 2.5; weaponType = 'shotgun'; document.getElementById('weapon').innerText = '🔫🔥'; document.getElementById('btn-shotgun').disabled = true; }
-            updateUI();
-        }
-    }
-
-    function updateUI() {
-        document.getElementById('money').innerText = money;
-        document.getElementById('hp').innerText = Math.floor(hp);
-        document.getElementById('combo-ui').innerText = "COMBO: x" + combo.toFixed(1);
-        document.getElementById('c-dmg').innerText = prices.dmg;
-    }
-
-    function gameLoop() {
-        if(!isPaused) {
-            // Spawn monstre oftere jo højere sector
-            if(Math.random() < 0.01 + (sector * 0.001) && monsters.length < 5) spawnMonster();
-
-            monsters.forEach(m => {
-                m.dist += m.speed;
-                m.el.style.transform = `translate(-50%, -50%) scale(${m.dist})`;
-                
-                if(m.dist >= 0.95) {
-                    hp -= 0.4;
-                    document.getElementById('main').classList.add('shake');
-                    setTimeout(() => document.getElementById('main').classList.remove('shake'), 50);
-                    if(hp <= 0) { alert("BARRIKADEN ER BRUDT! Sector: " + sector); location.reload(); }
+            // Målet forsvinder af sig selv efter 1.5 sekund, hvis man er for langsom
+            setTimeout(() => {
+                if (target.parentNode) {
+                    target.remove();
+                    createTarget();
                 }
-            });
+            }, 1500);
         }
-        requestAnimationFrame(gameLoop);
-    }
 
-    updateUI();
-    gameLoop();
-</script>
+        // Start spillet med 3 mål
+        for(let i = 0; i < 3; i++) {
+            createTarget();
+        }
+
+        // Simpel lydeffekt (hvis du har en fil)
+        function playShootSound() {
+            // Her kunne du indsætte en lydfil: new Audio('gunshot.mp3').play();
+            console.log("Skud affyret!");
+        }
+    </script>
 </body>
 </html>
