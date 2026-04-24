@@ -2,241 +2,181 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZANDER: UNDEAD CORRIDOR - BLOODLUST</title>
-    <link href="https://googleapis.com" rel="stylesheet">
+    <title>ZANDER FIFA 3D</title>
+    <script src="https://cloudflare.com"></script>
     <style>
-        :root {
-            --neon-blue: #00f2ff;
-            --blood: #af0000;
-            --gold: #ffd700;
-        }
-
-        body {
-            margin: 0; background: #000; color: white;
-            font-family: 'Orbitron', sans-serif; overflow: hidden; user-select: none;
-        }
-
-        /* 3D Tunnel */
-        #arena {
-            position: relative; width: 100vw; height: 100vh;
-            background: 
-                linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
-                repeating-linear-gradient(0deg, #111 0px, #111 2px, transparent 2px, transparent 40px),
-                repeating-linear-gradient(90deg, #111 0px, #111 2px, transparent 2px, transparent 40px);
-            perspective: 800px; overflow: hidden;
-        }
-
-        #blood-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 150; }
-        .blood-stain { position: absolute; background: var(--blood); border-radius: 50%; filter: blur(10px); opacity: 0.6; animation: fadeOut 5s forwards; }
-
-        @keyframes fadeOut { to { opacity: 0; transform: scale(1.5); } }
-
-        /* HUD */
-        #hud {
-            position: fixed; top: 0; width: 100%; padding: 20px;
-            display: flex; justify-content: space-between; z-index: 200;
-        }
-
-        .stat-box { background: rgba(0,0,0,0.8); border: 2px solid var(--neon-blue); padding: 10px 20px; border-radius: 5px; box-shadow: 0 0 15px var(--neon-blue); }
-        #combo-ui { color: var(--gold); font-size: 2rem; font-family: 'Creepster'; text-shadow: 0 0 10px var(--gold); }
-
-        /* Zombies */
-        .zombie {
-            position: absolute; left: 50%; top: 45%;
-            transform: translate(-50%, -50%) scale(0.05);
-            z-index: 10; transition: transform 0.05s linear;
-        }
-        .zombie-icon { font-size: 150px; filter: drop-shadow(0 0 20px red); }
-
-        /* Defense Area */
-        #gun-view {
-            position: fixed; bottom: 0; width: 100%; height: 150px;
-            background: linear-gradient(to top, #050505, #222);
-            border-top: 4px solid #444; z-index: 100;
-            display: flex; justify-content: center; align-items: center;
-        }
-
-        #weapon { font-size: 100px; transform: translateY(-30px); filter: drop-shadow(0 0 15px var(--neon-blue)); }
-
-        /* Abilities */
-        #nuke-ui { position: fixed; bottom: 20px; right: 20px; z-index: 200; border: 2px solid var(--gold); padding: 10px; background: #000; }
-        .cooldown { height: 5px; background: var(--gold); width: 100%; transition: width 1s linear; }
-
-        /* Shop */
-        #shop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; backdrop-filter: blur(20px);
-        }
-
-        .btn {
-            background: #111; color: var(--neon-blue); border: 2px solid var(--neon-blue);
-            padding: 15px 40px; margin: 10px; cursor: pointer; font-family: 'Orbitron';
-            font-weight: 900; border-radius: 5px; width: 350px; transition: 0.2s;
-        }
-        .btn:hover:not(:disabled) { background: var(--neon-blue); color: #000; box-shadow: 0 0 30px var(--neon-blue); }
-
-        .shake { animation: shake 0.1s infinite; }
-        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-2px, -1px); } 100% { transform: translate(1px, -2px); } }
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Arial', sans-serif; }
+        #ui { position: fixed; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; z-index: 10; }
+        .score { font-size: 3rem; font-weight: bold; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
+        #power-bar-container { position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%); width: 200px; height: 20px; background: rgba(0,0,0,0.5); border: 2px solid white; display: none; }
+        #power-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #2ecc71, #e74c3c); }
+        #msg { font-size: 5rem; color: gold; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
     </style>
 </head>
-<body id="main">
+<body>
 
-<div id="arena">
-    <div id="blood-layer"></div>
-    <div id="gun-view"><div id="weapon">🔫</div></div>
+<div id="ui">
+    <div class="score">MÅL: <span id="score">0</span></div>
+    <p>HOLD MUSEN FOR AT SKYDE - SLIP FOR AT RAMME</p>
 </div>
 
-<div id="hud">
-    <div class="stat-box">GULD: <span id="money">0</span></div>
-    <div id="combo-ui">COMBO: x1</div>
-    <div class="stat-box" style="border-color: red;">HP: <span id="hp">100</span></div>
-</div>
-
-<div id="nuke-ui">
-    <small>SPACE: NUKE</small>
-    <div class="cooldown" id="nuke-bar"></div>
-</div>
-
-<div id="shop">
-    <h1 style="font-family: 'Creepster'; font-size: 5rem; color: var(--blood); margin: 0;">ARSENAL</h1>
-    <p>DIN FORMUE: <span id="shop-money">0</span> KR</p>
-    <button class="btn" onclick="buy('dmg')">OPGRADER AMMUNITION (<span id="c-dmg">300</span>)</button>
-    <button class="btn" onclick="buy('repair')">REPARER BARRIKADE (150)</button>
-    <button class="btn" onclick="buy('shotgun')" id="btn-shotgun">KØB SHOTGUN (2000)</button>
-    <button class="btn" style="background: white; color: black;" onclick="toggleShop()">GENOPTAG [ESC]</button>
-</div>
+<div id="power-bar-container"><div id="power-bar"></div></div>
+<div id="msg">MÅÅÅÅL!</div>
 
 <script>
-    let money = 0, hp = 100, dmg = 50, sector = 1, combo = 1;
-    let isPaused = false, nukeReady = true, weaponType = 'pistol';
-    let monsters = [], lastHit = Date.now();
-    let prices = { dmg: 300, shotgun: 2000 };
+    let scene, camera, renderer, ball, goalie, goal;
+    let score = 0, power = 0, isCharging = false;
+    let ballVelocity = new THREE.Vector3();
+    let ballMoving = false;
+    let mouseX = 0;
 
-    // KONTROL
-    window.addEventListener('keydown', e => {
-        if(e.code === 'Escape') toggleShop();
-        if(e.code === 'Space' && nukeReady && !isPaused) useNuke();
-        if(e.code === 'Enter' && !isPaused) shoot();
-    });
+    init();
+    animate();
 
-    function toggleShop() {
-        isPaused = !isPaused;
-        document.getElementById('shop').style.display = isPaused ? 'flex' : 'none';
-        document.getElementById('shop-money').innerText = money;
-    }
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB); // Himmel
 
-    function shoot() {
-        if(monsters.length === 0) return;
-        
-        // Find tætteste zombie (højeste dist)
-        let target = monsters.reduce((prev, curr) => (prev.dist > curr.dist) ? prev : curr);
-        
-        target.hp -= dmg * combo;
-        spawnBlood(window.innerWidth/2, window.innerHeight*0.4, false);
-        
-        // Combo logik
-        let now = Date.now();
-        if(now - lastHit < 1000) combo = Math.min(combo + 0.5, 5);
-        else combo = 1;
-        lastHit = now;
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 10);
 
-        if(target.hp <= 0) {
-            money += Math.round(200 * sector * combo);
-            killMonster(target);
-        }
-        updateUI();
-    }
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    function useNuke() {
-        if(monsters.length === 0) return;
-        nukeReady = false;
-        document.getElementById('nuke-bar').style.width = "0%";
-        document.getElementById('arena').style.background = "white";
-        setTimeout(() => document.getElementById('arena').style.background = "black", 100);
-        
-        // Dræb alle zombier på skærmen
-        [...monsters].forEach(m => killMonster(m));
-        money += 500;
-        
-        setTimeout(() => { nukeReady = true; document.getElementById('nuke-bar').style.width = "100%"; }, 30000);
-        updateUI();
-    }
+        // Lys
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(5, 10, 7.5);
+        scene.add(sun);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
 
-    function spawnMonster() {
-        const el = document.createElement('div');
-        el.className = 'zombie';
-        el.innerHTML = `<div class="zombie-icon">${['🧟', '🧟‍♂️', '🧛', '💀'][Math.floor(Math.random()*4)]}</div>`;
-        document.getElementById('arena').appendChild(el);
-        
-        monsters.push({
-            el: el,
-            dist: 0.05,
-            hp: 100 * Math.pow(1.2, sector),
-            speed: 0.002 + (Math.random() * 0.002) + (sector * 0.0002)
+        // Græsbane
+        const grassGeo = new THREE.PlaneGeometry(100, 100);
+        const grassMat = new THREE.MeshPhongMaterial({ color: 0x2ecc71 });
+        const grass = new THREE.Mesh(grassGeo, grassMat);
+        grass.rotation.x = -Math.PI / 2;
+        scene.add(grass);
+
+        // Målet
+        goal = new THREE.Group();
+        const postMat = new THREE.MeshPhongMaterial({ color: 0xffffff });
+        const leftPost = new THREE.Mesh(new THREE.BoxGeometry(0.2, 5, 0.2), postMat);
+        leftPost.position.set(-5, 2.5, -20);
+        const rightPost = new THREE.Mesh(new THREE.BoxGeometry(0.2, 5, 0.2), postMat);
+        rightPost.position.set(5, 2.5, -20);
+        const crossbar = new THREE.Mesh(new THREE.BoxGeometry(10.2, 0.2, 0.2), postMat);
+        crossbar.position.set(0, 5, -20);
+        goal.add(leftPost, rightPost, crossbar);
+        scene.add(goal);
+
+        // Fodbolden
+        const ballGeo = new THREE.SphereGeometry(0.4, 32, 32);
+        const ballMat = new THREE.MeshPhongMaterial({ color: 0xffffff, wireframe: false });
+        ball = new THREE.Mesh(ballGeo, ballMat);
+        ball.position.set(0, 0.4, 5);
+        scene.add(ball);
+
+        // Målmanden
+        const goalieGeo = new THREE.BoxGeometry(1, 2, 0.5);
+        const goalieMat = new THREE.MeshPhongMaterial({ color: 0x3498db });
+        goalie = new THREE.Mesh(goalieGeo, goalieMat);
+        goalie.position.set(0, 1, -19);
+        scene.add(goalie);
+
+        // Events
+        window.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        });
+
+        window.addEventListener('mousedown', () => {
+            if (!ballMoving) {
+                isCharging = true;
+                document.getElementById('power-bar-container').style.display = 'block';
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isCharging) {
+                shoot();
+                isCharging = false;
+                document.getElementById('power-bar-container').style.display = 'none';
+            }
         });
     }
 
-    function killMonster(m) {
-        if(m.dist > 0.6) spawnBlood(window.innerWidth/2, window.innerHeight/2, true);
-        m.el.remove();
-        monsters.splice(monsters.indexOf(m), 1);
-        sector++;
+    function shoot() {
+        ballMoving = true;
+        const targetX = mouseX * 10;
+        const targetY = (power / 100) * 6;
+        
+        ballVelocity.set(
+            (targetX - ball.position.x) * 0.05,
+            targetY * 0.1,
+            -0.8
+        );
+        power = 0;
     }
 
-    function spawnBlood(x, y, big) {
-        for(let i=0; i < (big ? 10 : 3); i++) {
-            const b = document.createElement('div');
-            b.className = 'blood-stain';
-            let size = Math.random() * (big ? 100 : 30) + 20;
-            b.style.width = size + 'px'; b.style.height = size + 'px';
-            b.style.left = (x + Math.random()*200-100) + 'px';
-            b.style.top = (y + Math.random()*200-100) + 'px';
-            document.getElementById('blood-layer').appendChild(b);
-            setTimeout(() => b.remove(), 5000);
+    function resetBall() {
+        ballMoving = false;
+        ball.position.set(0, 0.4, 5);
+        ballVelocity.set(0, 0, 0);
+        goalie.position.x = 0;
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if (isCharging) {
+            power = Math.min(power + 1.5, 100);
+            document.getElementById('power-bar').style.width = power + "%";
         }
-    }
 
-    function buy(type) {
-        if(money >= prices[type] || (type === 'repair' && money >= 150)) {
-            if(type === 'dmg') { money -= prices.dmg; dmg += 40; prices.dmg = Math.round(prices.dmg * 1.7); }
-            if(type === 'repair') { money -= 150; hp = 100; }
-            if(type === 'shotgun') { money -= 2000; dmg *= 2.5; weaponType = 'shotgun'; document.getElementById('weapon').innerText = '🔫🔥'; document.getElementById('btn-shotgun').disabled = true; }
-            updateUI();
-        }
-    }
+        if (ballMoving) {
+            ball.position.add(ballVelocity);
+            ballVelocity.y -= 0.005; // Tyngdekraft
+            ball.rotation.x += 0.1;
 
-    function updateUI() {
-        document.getElementById('money').innerText = money;
-        document.getElementById('hp').innerText = Math.floor(hp);
-        document.getElementById('combo-ui').innerText = "COMBO: x" + combo.toFixed(1);
-        document.getElementById('c-dmg').innerText = prices.dmg;
-    }
+            // Målmand AI (følger bolden)
+            if (ball.position.z < -5) {
+                const moveSpeed = 0.08;
+                if (goalie.position.x < ball.position.x) goalie.position.x += moveSpeed;
+                if (goalie.position.x > ball.position.x) goalie.position.x -= moveSpeed;
+            }
 
-    function gameLoop() {
-        if(!isPaused) {
-            // Spawn monstre oftere jo højere sector
-            if(Math.random() < 0.01 + (sector * 0.001) && monsters.length < 5) spawnMonster();
-
-            monsters.forEach(m => {
-                m.dist += m.speed;
-                m.el.style.transform = `translate(-50%, -50%) scale(${m.dist})`;
-                
-                if(m.dist >= 0.95) {
-                    hp -= 0.4;
-                    document.getElementById('main').classList.add('shake');
-                    setTimeout(() => document.getElementById('main').classList.remove('shake'), 50);
-                    if(hp <= 0) { alert("BARRIKADEN ER BRUDT! Sector: " + sector); location.reload(); }
+            // Tjek for mål
+            if (ball.position.z <= -20) {
+                if (Math.abs(ball.position.x) < 5 && ball.position.y < 5 && ball.position.y > 0) {
+                    // MÅÅÅL
+                    if (Math.abs(ball.position.x - goalie.position.x) > 1.5) {
+                        score++;
+                        document.getElementById('score').innerText = score;
+                        showMsg("MÅÅÅÅL!");
+                    } else {
+                        showMsg("REDET!");
+                    }
+                } else {
+                    showMsg("VED SIDEN AF!");
                 }
-            });
+                resetBall();
+            }
+
+            // Rammer jorden
+            if (ball.position.y < 0.4) {
+                ball.position.y = 0.4;
+                ballVelocity.y *= -0.3; // Hop
+            }
         }
-        requestAnimationFrame(gameLoop);
+
+        renderer.render(scene, camera);
     }
 
-    updateUI();
-    gameLoop();
+    function showMsg(txt) {
+        const el = document.getElementById('msg');
+        el.innerText = txt;
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 1500);
+    }
 </script>
 </body>
 </html>
