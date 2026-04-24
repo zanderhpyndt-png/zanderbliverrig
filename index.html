@@ -3,188 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Fortnite Velocity</title>
+    <title>FortCraft Royale</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root { --fortnite-blue: #007bff; --gold: #ffd700; --fuel: #ff9f43; }
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Bangers', cursive; color: white; }
+        :root { --mc-green: #5aa136; --mc-dirt: #795548; --mc-sky: #78a7ff; --fortnite-purple: #8000ff; }
+        body { margin: 0; overflow: hidden; background: var(--mc-sky); font-family: 'VT323', monospace; image-rendering: pixelated; }
 
-        /* Sonic-style Scrolling Baggrund */
-        #game-container { 
-            position: relative; width: 100vw; height: 100vh; 
-            background: linear-gradient(#1e90ff, #70a1ff);
-            overflow: hidden;
-        }
+        /* Verden */
+        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        #ground { position: absolute; bottom: 0; width: 100%; height: 60px; background: var(--mc-dirt); border-top: 8px solid var(--mc-green); z-index: 10; }
 
-        #scrolling-bg {
-            position: absolute; width: 200%; height: 100%;
-            background-image: url('https://transparenttextures.com');
-            opacity: 0.1; animation: scrollBg 10s linear infinite;
-        }
-        @keyframes scrollBg { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-        /* Jorden */
-        #ground { 
-            position: absolute; bottom: 0; width: 100%; height: 50px; 
-            background: #2ed573; border-top: 5px solid #26ae60; z-index: 10;
-        }
-
-        /* Zander med Jetpack */
+        /* Spiller (Steve-style) */
         #player {
-            position: absolute; width: 60px; height: 60px;
-            left: 100px; bottom: 50px; font-size: 45px;
-            z-index: 20; display: flex; align-items: center; justify-content: center;
-            transition: transform 0.1s;
+            position: absolute; width: 40px; height: 60px; left: 100px; bottom: 60px;
+            background: #00ced1; border: 4px solid #333; z-index: 20;
+            display: flex; flex-direction: column; align-items: center;
         }
-        .flame {
-            position: absolute; bottom: -10px; width: 10px; height: 20px;
-            background: orange; border-radius: 50%; opacity: 0;
-            filter: blur(2px); animation: flicker 0.1s infinite;
-        }
-        @keyframes flicker { 0% { height: 15px; } 100% { height: 25px; opacity: 1; } }
+        #player::before { content: ''; width: 24px; height: 24px; background: #ffdbac; margin-top: -24px; border: 4px solid #333; }
 
-        /* UI / Fortnite HUD */
+        /* Bygninger (Walls) */
+        .wall { position: absolute; width: 40px; height: 40px; background: #8B4513; border: 4px solid #5D2906; z-index: 15; box-shadow: inset 4px 4px 0 #A0522D; }
+
+        /* HUD */
         #hud { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
-        .fortnite-card { background: rgba(0,0,0,0.7); border: 3px solid var(--fortnite-blue); padding: 10px 20px; border-radius: 10px; transform: skew(-10deg); }
-        
-        #fuel-wrap { position: fixed; bottom: 80px; left: 100px; width: 60px; height: 10px; background: #333; border: 2px solid #fff; }
-        #fuel-fill { height: 100%; width: 100%; background: var(--fuel); transition: 0.1s; }
+        .mc-card { background: rgba(0,0,0,0.7); border: 4px solid #fff; padding: 10px; color: white; font-size: 24px; min-width: 150px; }
+        .storm-warning { position: fixed; top: 100px; left: 50%; transform: translateX(-50%); color: var(--fortnite-purple); font-size: 40px; display: none; text-shadow: 2px 2px #000; }
 
         /* Menu */
-        #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        .shop-btn { background: var(--fortnite-blue); color: white; border: none; padding: 15px 40px; font-family: 'Bangers'; font-size: 1.5rem; cursor: pointer; margin: 10px; clip-path: polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%); }
-        .shop-btn:hover { background: white; color: var(--fortnite-blue); }
+        #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+        .mc-btn { background: #bcbcbc; border: 4px solid #000; padding: 10px 40px; font-family: 'VT323'; font-size: 30px; cursor: pointer; margin: 10px; box-shadow: inset -4px -4px 0 #555, inset 4px 4px 0 #fff; }
+        .mc-btn:hover { background: #888; }
 
-        /* Combat VFX */
-        .hitmarker { position: absolute; color: red; font-weight: bold; font-size: 20px; pointer-events: none; animation: popOut 0.3s forwards; }
-        @keyframes popOut { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
-        .bullet { position: absolute; width: 25px; height: 6px; background: #ffff00; border-radius: 3px; box-shadow: 0 0 10px #ffff00; }
-        .monster { position: absolute; font-size: 50px; z-index: 15; }
+        /* Entities */
+        .bullet { position: absolute; width: 10px; height: 10px; background: #fff; border: 2px solid #000; box-shadow: 0 0 10px #fff; }
+        .monster { position: absolute; width: 40px; height: 60px; z-index: 15; border: 4px solid #000; }
+        .creeper { background: #228B22; }
+        .zombie { background: #4B5320; }
+        
+        /* Victory Royale */
+        #victory { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,215,0,0.9); border: 8px solid #fff; padding: 40px; display: none; z-index: 2000; text-align: center; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="scrolling-bg"></div>
     <div id="ground"></div>
-    
-    <div id="player">
-        👨
-        <div class="flame" id="flame-l" style="left: 10px;"></div>
-        <div class="flame" id="flame-r" style="right: 10px;"></div>
-    </div>
+    <div id="player"></div>
+    <div id="storm-effect" style="position:absolute; width:100%; height:100%; pointer-events:none; opacity:0; background:var(--fortnite-purple); z-index:5;"></div>
 </div>
 
 <div id="hud">
-    <div class="fortnite-card">GULD: <span id="money-ui" style="color:var(--gold)">0</span></div>
-    <div class="fortnite-card">SEKTOR: <span id="lvl-ui">1</span></div>
-    <div class="fortnite-card">HP: <span id="hp-ui" style="color: #2ed573;">100</span></div>
+    <div class="mc-card">💰 GULD: <span id="money-ui">0</span><br>🪵 TRÆ: <span id="mats-ui">10</span></div>
+    <div class="mc-card" style="text-align: center;">BØLGE: <span id="lvl-ui">1</span><br><small id="timer-ui">STORM OM: 30</small></div>
+    <div class="mc-card">❤️ HP: <span id="hp-ui">100</span><br>🔫 DMG: <span id="dmg-ui">40</span></div>
 </div>
 
-<div id="fuel-wrap"><div id="fuel-fill"></div></div>
+<div class="storm-warning" id="storm-msg">STORMEN KOMMER!</div>
 
 <div id="menu">
-    <h1 style="font-size: 5rem; color: var(--fortnite-blue);">VAULT SHOP</h1>
-    <button class="shop-btn" onclick="buy('dmg')">MERE DAMAGE (300 GULD)</button>
-    <button class="shop-btn" onclick="buyAvatar('🤖', 1000)">CYBORG SKIN (1000)</button>
-    <button class="shop-btn" onclick="buyAvatar('👑', 5000)">GALAXY KING (5000)</button>
-    <p>TRYK ESC FOR AT FORTSÆTTE</p>
+    <h1 style="color: white; font-size: 60px;">FORTCRAFT SHOP</h1>
+    <button class="mc-btn" onclick="buy('dmg')">SKARPERE SVÆRD (500 GULD)</button>
+    <button class="mc-btn" onclick="buy('mats')">+20 TRÆ (200 GULD)</button>
+    <button class="mc-btn" onclick="buy('hp')">REPARER RUSTNING (100 GULD)</button>
+    <p style="color: #ccc; margin-top: 20px;">[SPACE] FOR AT BYGGE VÆG (KOSTER 5 TRÆ)</p>
+    <button class="mc-btn" style="background: #5aa136;" onclick="toggleMenu()">TILBAGE</button>
+</div>
+
+<div id="victory">
+    <h1 style="font-size: 70px; margin: 0;">VICTORY ROYALE!</h1>
+    <p style="font-size: 30px;">ZANDER ER DEN SIDSTE OVERLEVENDE</p>
+    <button class="mc-btn" onclick="location.reload()">SPIL IGEN</button>
 </div>
 
 <script>
-    let money = 0, lvl = 1, hp = 100, pDmg = 50, pSpeed = 8, fuel = 100;
-    let px = 100, py = 0, vy = 0;
-    let monsters = [], bullets = [];
-    let inMenu = false;
+    let money = 0, mats = 10, lvl = 1, hp = 100, pDmg = 40, pSpeed = 8, stormTime = 30;
+    let px = 100, py = 0, vy = 0, isPaused = false;
+    let monsters = [], bullets = [], walls = [];
     const keys = {};
 
     window.addEventListener('keydown', e => {
         if(e.code === 'Escape') toggleMenu();
-        if(e.code === 'Enter' && !inMenu) fire();
+        if(e.code === 'Enter' && !isPaused) fire();
+        if(e.code === 'Space' && !isPaused) buildWall();
         keys[e.code] = true;
     });
     window.addEventListener('keyup', e => keys[e.code] = false);
 
     function toggleMenu() {
-        inMenu = !inMenu;
-        document.getElementById('menu').style.display = inMenu ? 'flex' : 'none';
+        isPaused = !isPaused;
+        document.getElementById('menu').style.display = isPaused ? 'flex' : 'none';
+    }
+
+    function buildWall() {
+        if(mats >= 5) {
+            mats -= 5;
+            const w = document.createElement('div');
+            w.className = 'wall';
+            w.style.left = (px + 60) + 'px';
+            w.style.bottom = (60 + py) + 'px';
+            document.getElementById('game-container').appendChild(w);
+            walls.push({ el: w, x: px + 60, y: py, hp: 100 });
+        }
     }
 
     function fire() {
         const b = document.createElement('div');
         b.className = 'bullet';
         document.getElementById('game-container').appendChild(b);
-        bullets.push({ el: b, x: px + 60, y: window.innerHeight - 100 - py, vx: 25 });
+        bullets.push({ el: b, x: px + 45, y: window.innerHeight - 100 - py, vx: 20 });
     }
 
     function buy(type) {
-        if(money >= 300) { money -= 300; pDmg += 50; toggleMenu(); }
-    }
-
-    function buyAvatar(icon, cost) {
-        if(money >= cost) { money -= cost; document.getElementById('player').firstChild.textContent = icon; toggleMenu(); }
-    }
-
-    function createHitmarker(x, y) {
-        const h = document.createElement('div');
-        h.className = 'hitmarker';
-        h.innerText = '✕';
-        h.style.left = x + 'px'; h.style.top = y + 'px';
-        document.getElementById('game-container').appendChild(h);
-        setTimeout(() => h.remove(), 300);
+        if(type === 'dmg' && money >= 500) { money -= 500; pDmg += 30; }
+        if(type === 'mats' && money >= 200) { money -= 200; mats += 20; }
+        if(type === 'hp' && money >= 100) { money -= 100; hp = 100; }
+        updateUI();
     }
 
     function spawnMonster() {
-        if(monsters.length > 3 + lvl) return;
+        if(monsters.length > 5 + lvl) return;
         const el = document.createElement('div');
-        el.className = 'monster';
-        el.innerText = ['🧟', '👺', '👾'][Math.floor(Math.random()*3)];
+        const type = Math.random() > 0.5 ? 'creeper' : 'zombie';
+        el.className = 'monster ' + type;
         document.getElementById('game-container').appendChild(el);
         monsters.push({
-            el, x: window.innerWidth + 100, y: Math.random() * (window.innerHeight - 150),
-            hp: 100 * lvl, speed: 4 + (lvl * 0.5)
+            el, x: window.innerWidth + 100, y: 0,
+            hp: 80 * lvl, speed: type === 'creeper' ? 5 : 3, type
         });
     }
 
-    function loop() {
-        if(!inMenu) {
-            // Jetpack Flyvning (Fortnite inspiration)
-            let thrusting = false;
-            if(keys['ArrowUp'] && fuel > 0) {
-                vy = 8;
-                fuel -= 1.5;
-                thrusting = true;
-            } else if(keys['ArrowDown']) {
-                vy = -8;
-            } else {
-                vy *= 0.9; // Glidende stop
-            }
+    function updateUI() {
+        document.getElementById('money-ui').innerText = money;
+        document.getElementById('mats-ui').innerText = mats;
+        document.getElementById('lvl-ui').innerText = lvl;
+        document.getElementById('hp-ui').innerText = Math.floor(hp);
+        document.getElementById('dmg-ui').innerText = pDmg;
+    }
 
-            // Flamme-effekt
-            document.getElementById('flame-l').style.opacity = thrusting ? '1' : '0';
-            document.getElementById('flame-r').style.opacity = thrusting ? '1' : '0';
+    // Storm timer
+    setInterval(() => {
+        if(!isPaused) {
+            stormTime--;
+            if(stormTime <= 5) document.getElementById('storm-msg').style.display = 'block';
+            if(stormTime <= 0) {
+                hp -= 2;
+                document.getElementById('storm-effect').style.opacity = '0.3';
+            } else {
+                document.getElementById('storm-effect').style.opacity = '0';
+                document.getElementById('storm-msg').style.display = 'none';
+            }
+            document.getElementById('timer-ui').innerText = "STORM OM: " + Math.max(0, stormTime);
+        }
+    }, 1000);
+
+    function loop() {
+        if(!isPaused) {
+            // Flyv/Gå
+            if(keys['ArrowUp']) vy = 8;
+            else if(keys['ArrowDown']) vy = -8;
+            else vy *= 0.9;
+
+            if(keys['ArrowLeft']) px -= pSpeed;
+            if(keys['ArrowRight']) px += pSpeed;
 
             py += vy;
-            
-            // Grænser og Fuel-regen
-            if(py <= 0) { py = 0; fuel = Math.min(100, fuel + 1); }
-            if(py > window.innerHeight - 120) py = window.innerHeight - 120;
+            if(py <= 0) py = 0;
+            if(py > window.innerHeight - 150) py = window.innerHeight - 150;
+            px = Math.max(0, Math.min(window.innerWidth - 40, px));
 
             const pEl = document.getElementById('player');
-            pEl.style.bottom = (50 + py) + 'px';
-            document.getElementById('fuel-fill').style.width = fuel + "%";
+            pEl.style.left = px + 'px';
+            pEl.style.bottom = (60 + py) + 'px';
 
             // Monstre
             if(Math.random() < 0.02) spawnMonster();
             monsters.forEach((m, mi) => {
-                m.x -= m.speed;
+                let blocked = false;
+                walls.forEach(w => {
+                    if(m.x < w.x + 40 && m.x + 40 > w.x && m.y < w.y + 40 && m.y + 60 > w.y) {
+                        blocked = true;
+                        w.hp -= 1;
+                        if(w.hp <= 0) { w.el.remove(); walls = walls.filter(wa => wa !== w); }
+                    }
+                });
+
+                if(!blocked) m.x -= m.speed;
                 m.el.style.left = m.x + 'px';
-                m.el.style.top = m.y + 'px';
-                
-                // Collision
-                if(m.x < px + 50 && m.x > px - 20 && (window.innerHeight - py - 100) < m.y + 50 && (window.innerHeight - py - 100) > m.y - 50) {
-                    hp -= 1;
-                    if(hp <= 0) location.reload();
+                m.el.style.bottom = (60 + m.y) + 'px';
+
+                if(m.x < px + 40 && m.x + 40 > px && (py < m.y + 60 && py + 60 > m.y)) {
+                    hp -= (m.type === 'creeper' ? 2 : 0.5);
                 }
                 if(m.x < -100) { m.el.remove(); monsters.splice(mi, 1); }
             });
@@ -195,28 +203,24 @@
                 b.el.style.left = b.x + 'px';
                 b.el.style.top = b.y + 'px';
                 monsters.forEach((m, mi) => {
-                    if(b.x > m.x && b.x < m.x + 80 && b.y > m.y && b.y < m.y + 80) {
+                    let mRealY = window.innerHeight - 60 - m.y - 60;
+                    if(b.x > m.x && b.x < m.x + 40 && b.el.offsetTop > mRealY && b.el.offsetTop < mRealY + 60) {
                         m.hp -= pDmg;
-                        createHitmarker(b.x, b.y);
                         b.el.remove(); bullets.splice(bi, 1);
                         if(m.hp <= 0) {
                             m.el.remove(); monsters.splice(mi, 1);
-                            money += 200;
-                            if(money % 1000 === 0) lvl++;
+                            money += 150; mats += 5;
+                            if(money >= 5000) document.getElementById('victory').style.display = 'block';
                         }
                     }
                 });
-                if(b.x > window.innerWidth) { b.el.remove(); bullets.splice(bi, 1); }
             });
 
-            // Opdater UI
-            document.getElementById('money-ui').innerText = money;
-            document.getElementById('lvl-ui').innerText = lvl;
-            document.getElementById('hp-ui').innerText = Math.floor(hp);
+            updateUI();
+            if(hp <= 0) { alert("GAME OVER! CREEPEREN FIK DIG!"); location.reload(); }
         }
         requestAnimationFrame(loop);
     }
-
     loop();
 </script>
 </body>
