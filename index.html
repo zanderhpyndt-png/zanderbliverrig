@@ -3,174 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: 3D Zombie Hunt</title>
-    <script src="https://cloudflare.com"></script>
+    <title>Zander: Super Sonic Invader</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
-        canvas { display: block; }
-        
-        #ui { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; color: gold; z-index: 10; pointer-events: none; text-shadow: 2px 2px 5px black; }
-        .stat-val { color: #00f2ff; font-size: 1.5rem; }
+        :root { --blue: #00a8ff; --gold: #fbc531; --bg: #0097e6; }
+        body { margin: 0; overflow: hidden; background: var(--bg); font-family: 'Press Start 2P', cursive; color: white; }
 
-        #shop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: white; }
-        #shop h1 { font-family: 'Creepster'; font-size: 5rem; color: #4a0000; margin: 0; }
-        .btn { background: #111; color: gold; border: 2px solid gold; padding: 15px 40px; margin: 10px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; border-radius: 5px; width: 300px; transition: 0.2s; }
-        .btn:hover:not(:disabled) { background: gold; color: black; }
+        /* Sonic Parallax Baggrund */
+        #game-world { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: linear-gradient(#4facfe 0%, #00f2fe 100%); }
+        .cloud { position: absolute; background: white; border-radius: 50px; opacity: 0.8; z-index: 1; }
+        .hill { position: absolute; bottom: 0; background: #2ecc71; border-radius: 50% 50% 0 0; z-index: 2; border-top: 5px solid #27ae60; }
+        
+        /* Græsset (Jorden) */
+        #ground { position: absolute; bottom: 0; width: 100%; height: 60px; background: repeating-linear-gradient(90deg, #d35400, #d35400 40px, #e67e22 40px, #e67e22 80px); border-top: 10px solid #2ecc71; z-index: 10; }
+
+        /* Spilleren */
+        #player { position: absolute; width: 50px; height: 50px; bottom: 60px; left: 100px; font-size: 40px; z-index: 20; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.3)); }
+        .player-trail { position: absolute; width: 40px; height: 40px; background: rgba(0, 168, 255, 0.3); border-radius: 50%; pointer-events: none; }
+
+        /* UI */
+        #ui { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
+        .stat { background: rgba(0,0,0,0.5); padding: 10px; border: 4px solid var(--gold); border-radius: 5px; font-size: 12px; line-height: 1.5; }
+        
+        /* Menu / Shop */
+        #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+        .shop-box { background: #2f3640; border: 6px solid var(--gold); padding: 30px; border-radius: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 800px; }
+        .btn { background: var(--gold); border: none; padding: 15px; cursor: pointer; font-family: 'Press Start 2P'; font-size: 10px; color: black; transition: 0.1s; }
+        .btn:hover { transform: scale(1.1); background: white; }
+        .btn:disabled { background: #7f8c8d; opacity: 0.5; cursor: default; }
+
+        /* Effekter */
+        .bullet { position: absolute; width: 15px; height: 15px; background: yellow; border-radius: 50%; box-shadow: 0 0 15px yellow; z-index: 15; }
+        .monster { position: absolute; font-size: 40px; z-index: 15; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5)); transition: transform 0.1s; }
+        .particle { position: absolute; background: white; border-radius: 50%; pointer-events: none; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div>GULD: <span id="money-ui" class="stat-val">0</span></div>
-    <div>SEKTOR: <span id="lvl-ui" class="stat-val">1</span></div>
-    <div>LIV: <span id="hp-ui" class="stat-val" style="color: #ff4d4d;">100</span></div>
+<div id="game-world">
+    <!-- Parallax lag genereres i JS -->
+    <div id="ground"></div>
+    <div id="player"></div>🤑
 </div>
 
-<div id="shop">
-    <h1>UDSTYR</h1>
-    <p>DIN FORMUE: <span id="money-shop">0</span> KR</p>
-    <button class="btn" onclick="buy('dmg')">STÆRKERE SKUD (250 KR)</button>
-    <button class="btn" onclick="buy('hp')">MEDKIT (100 KR)</button>
-    <button class="btn" style="background: white; color: black; border: none;" onclick="toggleShop()">FORTSÆT (ESC)</button>
+<div id="ui">
+    <div class="stat">GULD: <span id="money-ui">0</span><br>RINGS: <span id="rings-ui">0</span></div>
+    <div class="stat" style="text-align: center;">SEKTOR: <span id="lvl-ui">1</span><br><small>HENT DIN SEJR</small></div>
+    <div class="stat">HP: <span id="hp-ui">100</span><br>DMG: <span id="dmg-ui">10</span></div>
+</div>
+
+<div id="menu">
+    <h1 style="color: var(--gold); text-shadow: 5px 5px #000;">PAUSE / SHOP</h1>
+    <div class="shop-box">
+        <div>
+            <h3 style="color:var(--blue)">UPGRADES</h3>
+            <button class="btn" onclick="buy('dmg')">STÆRKERE SKUD (<span id="c-dmg">200</span>)</button><br><br>
+            <button class="btn" onclick="buy('speed')">SONIC FART (<span id="c-speed">500</span>)</button><br><br>
+            <button class="btn" onclick="buy('heal')">HEAL ALT (100)</button>
+        </div>
+        <div>
+            <h3 style="color:var(--blue)">AVATARS</h3>
+            <button class="btn" onclick="setSkin('🥷', 'NINJA', 1.5)">NINJA (800)</button><br><br>
+            <button class="btn" onclick="setSkin('👑', 'KING', 1.2, 5)">KING (5000)</button>
+        </div>
+    </div>
+    <p style="margin-top:40px; font-size:10px;">TRYK ESC FOR AT FORTSÆTTE</p>
 </div>
 
 <script>
-    let scene, camera, renderer, player, isPaused = false;
-    let money = 0, sector = 1, hp = 100, dmg = 50;
-    let monsters = [], bullets = [];
+    let money = 0, rings = 0, lvl = 1, hp = 100, pDmg = 30, pSpeed = 10, gMult = 1, pJump = 0, gravity = 1.2;
+    let px = 100, py = 0, isJumping = false, inMenu = false;
+    let monsters = [], pBullets = [], particles = [];
+    let dmgCost = 200, speedCost = 500;
     const keys = {};
 
-    window.onload = init;
-
-    function init() {
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020202);
-        scene.fog = new THREE.Fog(0x020202, 5, 45);
-
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        // STÆRKT LYS (Fixer din sorte skærm)
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(5, 10, 7.5);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040, 0.5));
-
-        // GULV
-        const grid = new THREE.GridHelper(100, 25, 0x4a0000, 0x111111);
-        scene.add(grid);
-
-        // DETALJERET SPILLER (Menneske-lignende)
-        player = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.5), new THREE.MeshPhongMaterial({color: 0x111111}));
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshPhongMaterial({color: 0xffdbac}));
-        head.position.y = 0.9;
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), new THREE.MeshPhongMaterial({color: 0x111111}));
-        arm.position.set(0.5, 0.3, 0.3); // Holder en "pistol"
-        player.add(body, head, arm);
-        scene.add(player);
-
-        window.addEventListener('keydown', e => {
-            keys[e.code] = true;
-            if(e.code === 'Escape') toggleShop();
-            if(e.code === 'Enter' && !isPaused) shoot();
-        });
-        window.addEventListener('keyup', e => keys[e.code] = false);
-        
-        animate();
+    // 1. Setup Verden
+    const world = document.getElementById('game-world');
+    function createParallax() {
+        for(let i=0; i<15; i++) {
+            const cloud = document.createElement('div');
+            cloud.className = 'cloud';
+            cloud.style.width = (100 + Math.random()*200) + 'px';
+            cloud.style.height = '40px';
+            cloud.style.top = (50 + Math.random()*200) + 'px';
+            cloud.style.left = Math.random()*window.innerWidth + 'px';
+            cloud.dataset.speed = 0.5 + Math.random();
+            world.appendChild(cloud);
+        }
     }
 
-    function toggleShop() {
-        isPaused = !isPaused;
-        document.getElementById('shop').style.display = isPaused ? 'flex' : 'none';
-        document.getElementById('money-shop').innerText = money;
-    }
+    // 2. Kontrol
+    window.addEventListener('keydown', e => {
+        if(e.code === 'Escape') toggleMenu();
+        if(e.code === 'Enter' && !inMenu) fire();
+        if(e.code === 'Space' && !isJumping && !inMenu) { pJump = 25; isJumping = true; }
+        keys[e.code] = true;
+    });
+    window.addEventListener('keyup', e => keys[e.code] = false);
 
-    function buy(type) {
-        if(type === 'dmg' && money >= 250) { money -= 250; dmg += 40; }
-        if(type === 'hp' && money >= 100) { money -= 100; hp = 100; }
+    function toggleMenu() {
+        inMenu = !inMenu;
+        document.getElementById('menu').style.display = inMenu ? 'flex' : 'none';
         updateUI();
     }
 
-    function spawnMonster() {
-        const zombie = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.6, 0.6), new THREE.MeshPhongMaterial({color: 0x2e4d2e}));
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshPhongMaterial({color: 0x4d664d}));
-        head.position.y = 1.1;
-        zombie.add(body, head);
-        
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 30;
-        zombie.position.set(Math.cos(angle)*dist, 0.8, Math.sin(angle)*dist);
-        zombie.hp = 80 * sector;
-        
-        scene.add(zombie);
-        monsters.push(zombie);
+    // 3. Mekanikker
+    function fire() {
+        const b = document.createElement('div');
+        b.className = 'bullet';
+        world.appendChild(b);
+        pBullets.push({ el: b, x: px + 40, y: window.innerHeight - 100 - py, vx: 20 });
+        spawnParticles(px+50, window.innerHeight - 110 - py, 'yellow');
     }
 
-    function shoot() {
-        if(monsters.length === 0) return;
-        let target = monsters[0];
-        monsters.forEach(m => { if(player.position.distanceTo(m.position) < player.position.distanceTo(target.position)) target = m; });
+    function spawnMonster() {
+        if(monsters.length > 5 + lvl) return;
+        const el = document.createElement('div');
+        el.className = 'monster';
+        el.innerText = ['👾', '🕷️', '🤖', '👻'][Math.floor(Math.random()*4)];
+        world.appendChild(el);
+        monsters.push({
+            el, x: window.innerWidth + 100, y: window.innerHeight - 110 - (Math.random()*300),
+            hp: 50 * lvl, speed: 3 + (lvl*0.5)
+        });
+    }
 
-        const b = new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({color: 0xffff00}));
-        b.position.copy(player.position);
-        b.position.y = 1;
-        const dir = new THREE.Vector3().subVectors(target.position, player.position).normalize();
-        b.vel = dir.multiplyScalar(0.9);
-        player.lookAt(target.position.x, 0, target.position.z);
-        scene.add(b);
-        bullets.push(b);
+    function buy(type) {
+        if(type === 'dmg' && money >= dmgCost) { money -= dmgCost; pDmg += 20; dmgCost *= 2; }
+        if(type === 'speed' && money >= speedCost) { money -= speedCost; pSpeed += 3; speedCost *= 2; }
+        if(type === 'heal' && money >= 100) { money -= 100; hp = 100; }
+        updateUI();
+    }
+
+    function setSkin(icon, name, speedMod, goldMod = 1) {
+        if(money >= (speedMod > 1.3 ? 800 : 5000)) {
+            money -= (speedMod > 1.3 ? 800 : 5000);
+            document.getElementById('player').innerText = icon;
+            pSpeed *= speedMod; gMult = goldMod;
+            updateUI();
+        }
+    }
+
+    function spawnParticles(x, y, color) {
+        for(let i=0; i<8; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.width = '6px'; p.style.height = '6px';
+            p.style.background = color;
+            p.style.left = x+'px'; p.style.top = y+'px';
+            world.appendChild(p);
+            particles.push({ el: p, x, y, vx: Math.random()*10-5, vy: Math.random()*10-5, life: 1 });
+        }
     }
 
     function updateUI() {
-        document.getElementById('money-ui').innerText = money;
-        document.getElementById('lvl-ui').innerText = sector;
+        document.getElementById('money-ui').innerText = Math.floor(money);
+        document.getElementById('rings-ui').innerText = rings;
+        document.getElementById('lvl-ui').innerText = lvl;
         document.getElementById('hp-ui').innerText = Math.floor(hp);
+        document.getElementById('dmg-ui').innerText = pDmg;
+        document.getElementById('c-dmg').innerText = dmgCost;
+        document.getElementById('c-speed').innerText = speedCost;
     }
 
-    function animate() {
-        requestAnimationFrame(animate);
-        if(isPaused) return;
+    // 4. Game Loop
+    function loop() {
+        if(!inMenu) {
+            // Player bevægelse & Gravity (Mario-style)
+            if(keys['ArrowLeft'] || keys['KeyA']) px -= pSpeed;
+            if(keys['ArrowRight'] || keys['KeyD']) px += pSpeed;
+            
+            py += pJump;
+            pJump -= gravity;
+            if(py <= 0) { py = 0; isJumping = false; pJump = 0; }
 
-        // Bevægelse
-        if(keys['ArrowUp'] || keys['KeyW']) player.position.z -= 0.15;
-        if(keys['ArrowDown'] || keys['KeyS']) player.position.z += 0.15;
-        if(keys['ArrowLeft'] || keys['KeyA']) player.position.x -= 0.15;
-        if(keys['ArrowRight'] || keys['KeyD']) player.position.x += 0.15;
+            px = Math.max(0, Math.min(window.innerWidth-50, px));
+            const pEl = document.getElementById('player');
+            pEl.style.left = px + 'px';
+            pEl.style.bottom = (60 + py) + 'px';
 
-        camera.position.set(player.position.x, player.position.y + 12, player.position.z + 15);
-        camera.lookAt(player.position);
-
-        if(monsters.length < 1 + (sector/2)) spawnMonster();
-
-        monsters.forEach((m, mi) => {
-            const dir = new THREE.Vector3().subVectors(player.position, m.position).normalize();
-            m.position.add(dir.multiplyScalar(0.04 + sector*0.005));
-            m.lookAt(player.position);
-            if(player.position.distanceTo(m.position) < 1.5) {
-                hp -= 0.2; updateUI();
-                if(hp <= 0) location.reload();
-            }
-        });
-
-        bullets.forEach((b, bi) => {
-            b.position.add(b.vel);
-            monsters.forEach((m, mi) => {
-                if(b.position.distanceTo(m.position) < 1.5) {
-                    m.hp -= dmg; scene.remove(b); bullets.splice(bi, 1);
-                    if(m.hp <= 0) { scene.remove(m); monsters.splice(mi, 1); money += 150; sector++; updateUI(); }
-                }
+            // Parallax cloud movement
+            document.querySelectorAll('.cloud').forEach(c => {
+                let left = parseFloat(c.style.left) - c.dataset.speed;
+                if(left < -200) left = window.innerWidth;
+                c.style.left = left + 'px';
             });
-            if(b.position.distanceTo(player.position) > 50) { scene.remove(b); bullets.splice(bi, 1); }
-        });
 
-        renderer.render(scene, camera);
+            // Monster Logic
+            if(Math.random() < 0.02) spawnMonster();
+            monsters.forEach((m, mi) => {
+                m.x -= m.speed;
+                m.el.style.left = m.x + 'px';
+                m.el.style.top = m.y + 'px';
+                
+                // Collision player
+                const dist = Math.sqrt((px-m.x)**2 + (py-(window.innerHeight-100-m.y))**2);
+                if(m.x < px + 40 && m.x > px - 40 && (window.innerHeight-110-m.y) < py + 50 && (window.innerHeight-110-m.y) > py - 50) {
+                    hp -= 1; updateUI();
+                    if(hp <= 0) { alert("GAME OVER! GULD: " + money); location.reload(); }
+                }
+                if(m.x < -100) { m.el.remove(); monsters.splice(mi, 1); }
+            });
+
+            // Bullets
+            pBullets.forEach((b, bi) => {
+                b.x += b.vx;
+                b.el.style.left = b.x + 'px';
+                b.el.style.top = b.y + 'px';
+                monsters.forEach((m, mi) => {
+                    if(b.x > m.x && b.x < m.x+50 && b.y > m.y && b.y < m.y+50) {
+                        m.hp -= pDmg;
+                        spawnParticles(b.x, b.y, 'orange');
+                        b.el.remove(); pBullets.splice(bi, 1);
+                        if(m.hp <= 0) {
+                            spawnParticles(m.x+20, m.y+20, 'red');
+                            m.el.remove(); monsters.splice(mi, 1);
+                            money += 100 * gMult; rings += 5;
+                            if(rings % 50 === 0) { lvl++; rings = 0; }
+                            updateUI();
+                        }
+                    }
+                });
+                if(b.x > window.innerWidth) { b.el.remove(); pBullets.splice(bi, 1); }
+            });
+
+            // Particles
+            particles.forEach((p, pi) => {
+                p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+                p.el.style.left = p.x+'px'; p.el.style.top = p.y+'px';
+                p.el.style.opacity = p.life;
+                if(p.life <= 0) { p.el.remove(); particles.splice(pi, 1); }
+            });
+        }
+        requestAnimationFrame(loop);
     }
+
+    createParallax();
+    loop();
+    updateUI();
 </script>
 </body>
 </html>
