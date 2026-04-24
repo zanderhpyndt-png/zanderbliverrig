@@ -3,138 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander: Tactical Hub</title>
+    <title>Zander: Gun Runner</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root {
-            --neon-blue: #00f2ff;
-            --neon-pink: #ff00ff;
-            --neon-gold: #ffd700;
-            --bg-dark: #050505;
-        }
-
-        body {
-            margin: 0; background: var(--bg-dark); color: white;
-            font-family: 'Rajdhani', sans-serif; overflow: hidden; user-select: none;
-        }
-
-        #game-container {
-            position: relative; width: 100vw; height: 100vh;
-            background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050505 100%);
-        }
+        :root { --blue: #00f2ff; --pink: #ff00ff; --gold: #ffd700; --bg: #050505; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Rajdhani', sans-serif; overflow: hidden; user-select: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a1a2e, #000); }
 
         /* HUD */
-        .hud-top {
-            position: fixed; top: 0; width: 100%; padding: 20px;
-            display: flex; justify-content: space-around;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-            z-index: 100; font-family: 'Orbitron';
-        }
-        .stat-val { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
+        .hud { position: fixed; top: 0; width: 100%; padding: 20px; display: flex; justify-content: space-around; background: rgba(0,0,0,0.8); z-index: 100; font-family: 'Orbitron'; border-bottom: 1px solid #333; }
+        .stat b { color: var(--blue); text-shadow: 0 0 10px var(--blue); }
 
-        /* Pause Menu / Shop */
-        #menu-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            z-index: 500; backdrop-filter: blur(10px);
-        }
-
-        .shop-container {
-            background: rgba(20, 20, 30, 0.95);
-            border: 2px solid var(--neon-blue);
-            padding: 40px; border-radius: 20px;
-            display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
-            max-width: 800px; box-shadow: 0 0 60px rgba(0, 242, 255, 0.3);
-        }
-
-        .upgrade-card { 
-            background: rgba(255,255,255,0.05); padding: 20px; 
-            border-radius: 12px; border: 1px solid #333; text-align: center;
-        }
-        .upgrade-card h3 { color: var(--neon-pink); font-family: 'Orbitron'; margin-top: 0; font-size: 0.9rem; }
-        .upgrade-card p { font-size: 1.2rem; color: var(--neon-gold); margin: 10px 0; }
-        
-        .buy-btn {
-            width: 100%; padding: 12px; border: none; border-radius: 6px;
-            background: var(--neon-blue); color: black; font-weight: bold;
-            cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; transition: 0.2s;
-        }
-        .buy-btn:hover:not(:disabled) { transform: scale(1.05); background: white; }
-        .buy-btn:disabled { background: #444; color: #888; cursor: default; }
+        /* Menu */
+        #menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 500; backdrop-filter: blur(10px); }
+        .shop-grid { display: grid; grid-template-columns: repeat(3, 250px); gap: 20px; }
+        .shop-box { background: rgba(20,20,30,0.95); border: 1px solid var(--blue); padding: 15px; border-radius: 10px; text-align: center; }
+        .btn { width: 100%; padding: 10px; border: none; border-radius: 5px; background: var(--blue); color: black; font-weight: bold; cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; margin-top: 5px; }
+        .btn:disabled { background: #444; color: #888; }
 
         /* Entities */
-        #player { position: absolute; width: 60px; height: 60px; font-size: 50px; z-index: 60; }
-        .monster { position: absolute; width: 80px; height: 80px; font-size: 60px; z-index: 40; }
-        .p-bullet { position: absolute; width: 15px; height: 15px; background: white; border-radius: 50%; box-shadow: 0 0 15px var(--neon-blue); }
-
-        #esc-hint { 
-            position: fixed; bottom: 20px; width: 100%; text-align: center; 
-            color: #666; font-family: 'Orbitron'; font-size: 0.8rem; letter-spacing: 2px;
-        }
+        #player { position: absolute; width: 50px; height: 50px; font-size: 40px; z-index: 60; display: flex; align-items: center; justify-content: center; }
+        .monster { position: absolute; width: 80px; height: 80px; font-size: 60px; z-index: 40; filter: drop-shadow(0 0 15px red); }
+        .bullet { position: absolute; background: white; border-radius: 50%; box-shadow: 0 0 10px var(--blue); z-index: 55; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <!-- Top HUD -->
-    <div class="hud-top">
-        <div>KREDITS: <span id="money" class="stat-val">0</span></div>
-        <div>SEKTOR: <span id="lvl" class="stat-val">1</span></div>
-        <div>SUNDHED: <span id="p-hp" class="stat-val" style="color: #ff4757;">100</span></div>
+    <div class="hud">
+        <div class="stat">GULD: <b id="money">0</b></div>
+        <div class="stat">VÅBEN: <b id="gun-name">Ingen</b></div>
+        <div class="stat">LIV: <b id="p-hp" style="color: #ff4757;">100</b></div>
     </div>
 
     <div id="player">👨</div>
 
-    <!-- Pause Menu / Hub -->
     <div id="menu-overlay">
-        <h1 style="font-family: 'Orbitron'; color: var(--neon-gold); font-size: 3rem; margin-bottom: 5px;">PAUSED</h1>
-        <p style="color: #888; margin-bottom: 30px;">ZANDER TACTICAL INTERFACE</p>
-        
-        <div class="shop-container">
-            <div class="upgrade-card">
-                <h3>ANGREBSSTYRKE</h3>
-                <p id="val-dmg">50</p>
-                <button class="buy-btn" onclick="buy('dmg')" id="btn-dmg">OPGRADER: 100</button>
+        <h1 style="font-family: 'Orbitron'; color: var(--gold); font-size: 2.5rem;">VÅBEN ARSENAL</h1>
+        <div class="shop-grid">
+            <!-- Våben -->
+            <div class="shop-box">
+                <h3 style="color:var(--pink)">VÅBEN</h3>
+                <button class="btn" id="buy-pistol" onclick="buy('gun_pistol', 200)">PISTOL (200)</button>
+                <button class="btn" id="buy-shotgun" onclick="buy('gun_shotgun', 1000)">SHOTGUN (1000)</button>
+                <button class="btn" id="buy-mini" onclick="buy('gun_mini', 3000)">MINIGUN (3000)</button>
             </div>
-            <div class="upgrade-card">
-                <h3>MULTI-PROJECTIL</h3>
-                <p id="val-multi">1</p>
-                <button class="buy-btn" onclick="buy('multi')" id="btn-multi">OPGRADER: 1000</button>
+            <!-- Upgrades -->
+            <div class="shop-box">
+                <h3 style="color:var(--pink)">UPGRADES</h3>
+                <button class="btn" id="buy-dmg" onclick="buy('dmg', 150)">MERE SKADE (<span id="cost-dmg">150</span>)</button>
+                <button class="btn" id="buy-speed" onclick="buy('speed', 400)">KUGLE FART (400)</button>
+                <button class="btn" onclick="buy('heal', 100)">REPARER (100)</button>
             </div>
-            <div class="upgrade-card">
-                <h3>REPARATION</h3>
-                <p>NANO-BOTS</p>
-                <button class="buy-btn" onclick="buy('heal')" style="background: #2ecc71;">FIX LIV: 50</button>
-            </div>
-            <div class="upgrade-card">
-                <h3>AVATARS</h3>
-                <button class="buy-btn" id="btn-ninja" onclick="buyAvatar('ninja', 500, '🥷', 1.6)">NINJA (500)</button>
-                <button class="buy-btn" id="btn-king" onclick="buyAvatar('king', 3000, '👑', 1.2)" style="margin-top: 10px;">KING (3000)</button>
+            <!-- Avatars -->
+            <div class="shop-box">
+                <h3 style="color:var(--pink)">AVATARS</h3>
+                <button class="btn" id="btn-ninja" onclick="buyAvatar('ninja', 500, '🥷', 1.8)">NINJA (500)</button>
+                <button class="btn" id="btn-king" onclick="buyAvatar('king', 5000, '👑', 1.3)">KING (5000)</button>
             </div>
         </div>
-        <p style="margin-top: 30px; color: var(--neon-blue); letter-spacing: 2px; font-size: 0.8rem;">TRYK ESC FOR AT GENOPTAGE MISSIONEN</p>
+        <p style="margin-top:20px; color: var(--blue);">TRYK ESC FOR AT FORTSÆTTE | ENTER FOR AT SKYDE</p>
     </div>
-
-    <div id="esc-hint">TRYK [ESC] FOR AT PAUSE & OPGRADERE</div>
 </div>
 
 <script>
-    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 50, pSpeed = 8, gMult = 2.5;
-    let multiShot = 1, isPaused = false;
+    let money = 0, lvl = 1, pHP = 100, pMaxHP = 100, pDmg = 20, pSpeed = 7, gMult = 2;
+    let bSpeed = 15, gunType = "none", isPaused = false, enterPressed = false;
     let px = window.innerWidth/2, py = window.innerHeight/2;
-    let prices = { dmg: 100, multi: 1000 };
+    let prices = { dmg: 150 };
 
     const keys = {}, monsters = [], pBullets = [];
     const container = document.getElementById('game-container');
 
-    // Kontrol: ESC pauser og Enter skyder
     window.addEventListener('keydown', e => {
         if(e.code === 'Escape') toggleMenu();
-        if(!isPaused && e.code === 'Enter') fireWeapon();
+        // ANTI-HOLD: Tjekker om Enter allerede er nede
+        if(!isPaused && e.code === 'Enter' && !enterPressed) {
+            fireGun();
+            enterPressed = true;
+        }
         keys[e.code] = true;
     });
-    window.addEventListener('keyup', e => keys[e.code] = false);
+    window.addEventListener('keyup', e => {
+        if(e.code === 'Enter') enterPressed = false;
+        keys[e.code] = false;
+    });
 
     function toggleMenu() {
         isPaused = !isPaused;
@@ -142,82 +95,74 @@
         updateUI();
     }
 
-    function fireWeapon() {
-        if(monsters.length === 0) return;
+    function fireGun() {
+        if(gunType === "none" || monsters.length === 0) return;
         
-        // Find nærmeste monster
-        let target = monsters[0];
-        let minDist = Infinity;
-        monsters.forEach(m => {
-            let d = Math.sqrt((m.x-px)**2 + (m.y-py)**2);
-            if(d < minDist) { minDist = d; target = m; }
-        });
+        let target = monsters[0]; // Sigt efter det første monster
+        let ang = Math.atan2(target.y - py, target.x - px);
+        
+        let shots = 1;
+        let spread = 0;
+        if(gunType === "shotgun") { shots = 5; spread = 0.4; }
+        if(gunType === "minigun") { shots = 1; } // Minigun er hurtig men skyder stadig kun pr tryk her
 
-        const baseAng = Math.atan2(target.y - py, target.x - px);
-        
-        for(let i=0; i<multiShot; i++) {
+        for(let i=0; i<shots; i++) {
             const bEl = document.createElement('div');
-            bEl.className = 'p-bullet';
+            bEl.className = 'bullet';
+            bEl.style.width = '10px'; bEl.style.height = '10px';
             container.appendChild(bEl);
+            let sAng = ang + (Math.random() * spread - spread/2);
             pBullets.push({
                 el: bEl, x: px+20, y: py+20,
-                vx: Math.cos(baseAng + (i*0.15 - (multiShot-1)*0.07))*18, 
-                vy: Math.sin(baseAng + (i*0.15 - (multiShot-1)*0.07))*18,
+                vx: Math.cos(sAng) * bSpeed, vy: Math.sin(sAng) * bSpeed,
                 damage: pDmg
             });
         }
     }
 
-    function buy(type) {
-        if(type === 'dmg' && money >= prices[type]) {
-            money -= prices[type]; pDmg += 50; prices.dmg = Math.round(prices.dmg * 1.5);
-        } else if(type === 'multi' && money >= prices[type]) {
-            money -= prices[type]; multiShot++; prices.multi = Math.round(prices.multi * 4);
-        } else if(type === 'heal' && money >= 50) {
-            money -= 50; pHP = pMaxHP;
+    function buy(type, cost) {
+        let currentCost = (type === 'dmg') ? prices.dmg : cost;
+        if(money >= currentCost) {
+            money -= currentCost;
+            if(type === 'gun_pistol') { gunType = "pistol"; document.getElementById('buy-pistol').disabled = true; }
+            if(type === 'gun_shotgun') { gunType = "shotgun"; document.getElementById('buy-shotgun').disabled = true; }
+            if(type === 'gun_mini') { gunType = "minigun"; document.getElementById('buy-mini').disabled = true; }
+            if(type === 'dmg') { pDmg += 30; prices.dmg = Math.round(prices.dmg * 1.5); }
+            if(type === 'speed') { bSpeed += 5; }
+            if(type === 'heal') { pHP = pMaxHP; }
+            updateUI();
         }
-        updateUI();
     }
 
     function buyAvatar(id, cost, icon, speed) {
         if(money >= cost) {
             money -= cost;
             document.getElementById('player').innerText = icon;
-            pSpeed = 8 * speed;
-            if(id === 'king') gMult = 10; // King giver vildt mange penge
+            pSpeed = 7 * speed;
+            if(id === 'king') gMult = 15; // Mega rig mode
             document.getElementById('btn-' + id).disabled = true;
             updateUI();
         }
     }
 
-    function updateUI() {
-        document.getElementById('money').innerText = Math.floor(money);
-        document.getElementById('lvl').innerText = lvl;
-        document.getElementById('p-hp').innerText = Math.floor(pHP);
-        document.getElementById('val-dmg').innerText = pDmg;
-        document.getElementById('val-multi').innerText = multiShot;
-        
-        document.getElementById('btn-dmg').innerText = "OPGRADER: " + prices.dmg;
-        document.getElementById('btn-multi').innerText = "OPGRADER: " + prices.multi;
-        
-        document.getElementById('btn-dmg').disabled = money < prices.dmg;
-        document.getElementById('btn-multi').disabled = money < prices.multi || multiShot >= 5;
-    }
-
     function spawnMonster() {
         const el = document.createElement('div');
         el.className = 'monster';
-        el.innerText = '👾';
+        el.innerText = '👹';
         container.appendChild(el);
-        monsters.push({
-            el: el, x: Math.random()*window.innerWidth, y: -100,
-            hp: 100 * Math.pow(1.2, lvl)
-        });
+        monsters.push({ el, x: Math.random()*window.innerWidth, y: -100, hp: 100 * Math.pow(1.3, lvl) });
+    }
+
+    function updateUI() {
+        document.getElementById('money').innerText = Math.floor(money);
+        document.getElementById('p-hp').innerText = Math.floor(pHP);
+        document.getElementById('gun-name').innerText = gunType.toUpperCase();
+        document.getElementById('cost-dmg').innerText = prices.dmg;
+        document.getElementById('buy-dmg').disabled = money < prices.dmg;
     }
 
     function loop() {
         if(!isPaused) {
-            // Bevægelse med piletaster
             if(keys['ArrowUp']) py -= pSpeed;
             if(keys['ArrowDown']) py += pSpeed;
             if(keys['ArrowLeft']) px -= pSpeed;
@@ -229,45 +174,32 @@
             if(monsters.length < 1) spawnMonster();
 
             monsters.forEach((m, mi) => {
-                const dx = px - m.x, dy = py - m.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                m.x += (dx/dist) * (1.5 + lvl*0.1);
-                m.y += (dy/dist) * (1.5 + lvl*0.1);
+                let dx = px - m.x, dy = py - m.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                m.x += (dx/dist) * (2 + lvl*0.2);
+                m.y += (dy/dist) * (2 + lvl*0.2);
                 m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
-                
-                // Berøring skader spilleren
-                if(dist < 50) {
-                    pHP -= 0.2;
-                    updateUI();
-                }
+                if(dist < 50) pHP -= 0.5;
             });
 
             pBullets.forEach((b, bi) => {
                 b.x += b.vx; b.y += b.vy;
                 b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
-                
                 monsters.forEach((m, mi) => {
                     if(b.x > m.x && b.x < m.x+80 && b.y > m.y && b.y < m.y+80) {
                         m.hp -= b.damage;
                         b.el.remove(); pBullets.splice(bi, 1);
                         if(m.hp <= 0) {
                             m.el.remove(); monsters.splice(mi, 1);
-                            money += 200 * lvl * gMult; 
-                            lvl++; 
-                            updateUI();
+                            money += 500 * lvl * gMult; lvl++; updateUI();
                         }
                     }
                 });
-                
-                // Fjern skud ude for skærmen
-                if(b.y < -50 || b.y > window.innerHeight + 50) { b.el.remove(); pBullets.splice(bi, 1); }
             });
-            
-            if(pHP <= 0) { alert("MISSION FAILED!"); location.reload(); }
+            if(pHP <= 0) location.reload();
         }
         requestAnimationFrame(loop);
     }
-
     updateUI();
     requestAnimationFrame(loop);
 </script>
