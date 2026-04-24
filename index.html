@@ -3,301 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZANDER: UNDEAD CORRIDOR 4K</title>
+    <title>Zander: Shadow Striker</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
-        :root {
-            --neon-blue: #00f2ff;
-            --blood-red: #8b0000;
-            --gold: #ffd700;
-            --panel-bg: rgba(10, 10, 15, 0.9);
+        :root { --gold: #ffd700; --blood: #8e0000; --cyan: #00f2ff; }
+        body { margin: 0; background: #000; color: white; font-family: 'Arial', sans-serif; overflow: hidden; user-select: none; }
+
+        /* Lommelygte effekt */
+        #flashlight {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle 200px at var(--x) var(--y), transparent 0%, rgba(0,0,0,0.98) 100%);
+            z-index: 100; pointer-events: none; transition: background 0.1s;
         }
 
-        body {
-            margin: 0; background: #000; color: white;
-            font-family: 'Rajdhani', sans-serif; overflow: hidden; user-select: none;
+        #menu-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 500;
         }
 
-        /* 3D Korridor Effekt */
-        #game-view {
-            position: relative; width: 100vw; height: 100vh;
-            background: 
-                linear-gradient(45deg, #050505 25%, transparent 25%) -50px 0,
-                linear-gradient(-45deg, #050505 25%, transparent 25%) -50px 0,
-                linear-gradient(45deg, transparent 75%, #050505 75%),
-                linear-gradient(-45deg, transparent 75%, #050505 75%);
-            background-size: 100px 100px;
-            background-color: #0a0a0a;
-            perspective: 1000px;
-            overflow: hidden;
+        .hud {
+            position: fixed; top: 0; width: 100%; padding: 20px;
+            display: flex; justify-content: space-around;
+            background: linear-gradient(to bottom, rgba(0,0,0,1), transparent); z-index: 150;
+            font-family: 'Orbitron';
         }
 
-        /* Dybde i korridoren */
-        #game-view::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at 50% 40%, transparent 20%, #000 80%);
-            z-index: 5; pointer-events: none;
-        }
+        #game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #050505; cursor: crosshair; }
 
-        /* HUD */
-        #hud {
-            position: fixed; top: 0; width: 100%; padding: 30px;
-            display: flex; justify-content: space-between; align-items: flex-start;
-            z-index: 100; pointer-events: none;
-        }
+        #player { position: absolute; width: 50px; height: 60px; font-size: 40px; z-index: 60; text-align: center; }
 
-        .stat-group {
-            background: var(--panel-bg); border-left: 4px solid var(--neon-blue);
-            padding: 15px 25px; backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .stat-label { font-family: 'Orbitron'; font-size: 0.7rem; color: #888; letter-spacing: 2px; }
-        .stat-value { font-family: 'Orbitron'; font-size: 1.8rem; color: var(--gold); display: block; }
-
-        /* entities */
-        .zombie {
-            position: absolute; left: 50%; top: 40%;
-            transform: translate(-50%, -50%) scale(0.1);
-            transition: transform 0.05s linear;
-            z-index: 10; filter: drop-shadow(0 0 20px rgba(255,0,0,0.5));
-            text-align: center;
-        }
-
-        .zombie-icon { font-size: 150px; } /* Stor basisstørrelse der skaleres */
-
-        .barricade {
-            position: fixed; bottom: 0; width: 100%; height: 120px;
-            background: linear-gradient(to top, #1a1a1a, #333);
-            border-top: 5px solid #444; z-index: 50;
-            box-shadow: 0 -20px 50px rgba(0,0,0,0.8);
+        .monster {
+            position: absolute; width: 80px; height: 80px;
             display: flex; justify-content: center; align-items: center;
+            z-index: 40; filter: drop-shadow(0 0 10px var(--blood));
+            font-size: 60px;
         }
 
-        #player-gun {
-            font-size: 80px; transform: translateY(-20px);
-            filter: drop-shadow(0 0 20px var(--neon-blue));
+        .btn {
+            background: #111; color: #fff; border: 1px solid var(--gold);
+            padding: 12px; cursor: pointer; font-family: 'Orbitron';
+            margin: 5px; width: 250px; border-radius: 5px;
         }
 
-        /* Menu / Shop (ESC) */
-        #shop-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; backdrop-filter: blur(15px);
-        }
-
-        .shop-grid {
-            display: grid; grid-template-columns: repeat(3, 280px); gap: 20px; margin-top: 30px;
-        }
-
-        .upgrade-card {
-            background: rgba(255,255,255,0.03); border: 1px solid #333;
-            padding: 20px; border-radius: 15px; text-align: center;
-            transition: 0.3s;
-        }
-        .upgrade-card:hover { border-color: var(--neon-blue); background: rgba(0, 242, 255, 0.05); }
-
-        .buy-btn {
-            width: 100%; background: var(--neon-blue); color: #000;
-            border: none; padding: 12px; font-family: 'Orbitron';
-            font-weight: 900; cursor: pointer; margin-top: 15px; border-radius: 5px;
-        }
-        .buy-btn:disabled { background: #444; color: #888; cursor: default; }
-
-        /* Effekter */
-        #flash {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; opacity: 0; pointer-events: none; z-index: 200;
-        }
-
-        .hitmarker {
-            position: absolute; color: red; font-family: 'Orbitron';
-            font-weight: 900; font-size: 2rem; pointer-events: none;
-            animation: hit 0.4s ease-out forwards; z-index: 100;
-        }
-        @keyframes hit { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2) translateY(-50px); opacity: 0; } }
+        /* Skud & Partikler */
+        .p-bullet { position: absolute; width: 8px; height: 8px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 15px var(--cyan); z-index: 55; }
+        .m-bullet { position: absolute; width: 10px; height: 10px; background: red; border-radius: 50%; z-index: 55; }
     </style>
 </head>
 <body>
 
-<div id="flash"></div>
+<div id="flashlight"></div>
 
-<div id="hud">
-    <div class="stat-group">
-        <span class="stat-label">VAULT CREDITS</span>
-        <span id="money-ui" class="stat-value">0</span>
-    </div>
-    <div class="stat-group" style="text-align: center; border-left-color: var(--blood-red);">
-        <span class="stat-label">CORRIDOR DEPTH</span>
-        <span id="sector-ui" class="stat-value">1</span>
-    </div>
-    <div class="stat-group" style="border-left-color: #2ecc71;">
-        <span class="stat-label">BARRICADE INTEGRITY</span>
-        <span id="hp-ui" class="stat-value">100</span>
-    </div>
+<div id="menu-overlay">
+    <h1 style="color: var(--blood); font-family: 'Creepster'; font-size: 5rem; margin: 0;">KLAR TIL KAMP?</h1>
+    <p style="font-family: 'Orbitron';">GULD: <b id="menu-money">0</b></p>
+    <button class="btn" onclick="buy('dmg')">OPGRADER SKADE (Pris: <span id="p-dmg-cost">200</span>)</button>
+    <button class="btn" onclick="buy('heal')">KØB LIV (150 KR)</button>
+    <button class="btn" style="background: var(--blood); margin-top: 20px;" onclick="closeMenu()">START NÆSTE BØLGE</button>
 </div>
 
-<div id="game-view">
-    <!-- Monstre spawner her -->
-    <div class="barricade">
-        <div id="player-gun">🔫</div>
-    </div>
+<div class="hud">
+    <div>GULD: <b id="money" style="color: var(--gold);">0</b></div>
+    <div>SEKTOR: <b id="lvl">0</b></div>
+    <div style="color: #4cd137;">LIV: <b id="p-hp">100</b></div>
 </div>
 
-<div id="shop-overlay">
-    <h1 style="font-family: 'Orbitron'; font-size: 3rem; color: var(--gold); margin: 0;">ARSENAL & UPGRADES</h1>
-    <p style="color: #666; letter-spacing: 5px;">PAUSED SYSTEM INTERFACE</p>
-    
-    <div class="shop-grid">
-        <div class="upgrade-card">
-            <h3 style="color: var(--neon-blue);">FIREPOWER</h3>
-            <p>Skade: <b id="val-dmg">50</b></p>
-            <button class="buy-btn" id="btn-dmg" onclick="buy('dmg')">OPGRADER: 200</button>
-        </div>
-        <div class="upgrade-card">
-            <h3 style="color: var(--neon-blue);">WEAPONRY</h3>
-            <button class="buy-btn" id="btn-shotgun" onclick="buy('shotgun')">SHOTGUN (1500)</button>
-            <button class="buy-btn" id="btn-sniper" onclick="buy('sniper')" style="margin-top:10px">RAILGUN (5000)</button>
-        </div>
-        <div class="upgrade-card">
-            <h3 style="color: var(--neon-blue);">REINFORCE</h3>
-            <button class="buy-btn" onclick="buy('heal')" style="background: #2ecc71;">REPARER ALT: 150</button>
-            <button class="buy-btn" id="btn-king" onclick="buy('king')" style="margin-top:10px; background: var(--gold);">KING AVATAR (10000)</button>
-        </div>
-    </div>
-    <button class="buy-btn" style="width: 300px; margin-top: 50px; background: white;" onclick="toggleMenu()">RESUME MISSION [ESC]</button>
+<div id="game-container">
+    <div id="player">👨</div>
 </div>
 
 <script>
-    let money = 0, sector = 1, hp = 100, dmg = 50, goldMult = 1;
-    let isPaused = false, monsterAlive = false, enterPressed = false;
-    let currentWeapon = 'pistol', weaponModel = '🔫';
-    let prices = { dmg: 200, shotgun: 1500, sniper: 5000, king: 10000 };
-    
-    const view = document.getElementById('game-view');
-    const flash = document.getElementById('flash');
-    const zombies = [];
+    let money = 0, lvl = 0, pHP = 100, pDmg = 25, pSpeed = 6, inMenu = true;
+    let px = window.innerWidth/2, py = window.innerHeight/2;
+    let mouseX = 0, mouseY = 0;
+    let dmgPrice = 200;
 
-    // KONTROL
+    const keys = {}, monsters = [], mBullets = [], pBullets = [];
+    const container = document.getElementById('game-container');
+
+    // Mus og skydning
+    window.addEventListener('mousemove', e => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        document.documentElement.style.setProperty('--x', mouseX + 'px');
+        document.documentElement.style.setProperty('--y', mouseY + 'px');
+    });
+
+    window.addEventListener('mousedown', () => {
+        if(!inMenu) fireBullet();
+    });
+
     window.addEventListener('keydown', e => {
-        if(e.code === 'Escape') toggleMenu();
-        if(e.code === 'Enter' && !isPaused && !enterPressed) {
-            shoot();
-            enterPressed = true;
-        }
+        if(e.code === 'Escape') openMenu();
+        keys[e.code] = true;
     });
-    window.addEventListener('keyup', e => {
-        if(e.code === 'Enter') enterPressed = false;
-    });
+    window.addEventListener('keyup', e => keys[e.code] = false);
 
-    function toggleMenu() {
-        isPaused = !isPaused;
-        document.getElementById('shop-overlay').style.display = isPaused ? 'flex' : 'none';
-        updateUI();
-    }
+    function openMenu() { inMenu = true; document.getElementById('menu-overlay').style.display = 'flex'; }
+    function closeMenu() { inMenu = false; document.getElementById('menu-overlay').style.display = 'none'; if(monsters.length === 0) spawnWave(); }
 
-    function shoot() {
-        if (zombies.length === 0) return;
-
-        // Vfx
-        flash.style.opacity = "0.3";
-        setTimeout(() => flash.style.opacity = "0", 50);
-        view.style.transform = `translateY(${Math.random()*10-5}px)`;
-        setTimeout(() => view.style.transform = `translateY(0)`, 50);
-
-        // Ram tætteste monster
-        let target = zombies[0]; 
-        target.hp -= dmg;
-        
-        // Hitmarker
-        const hm = document.createElement('div');
-        hm.className = 'hitmarker';
-        hm.innerText = `-${dmg}`;
-        hm.style.left = "50%"; hm.style.top = "40%";
-        view.appendChild(hm);
-        setTimeout(() => hm.remove(), 400);
-
-        if(target.hp <= 0) {
-            money += Math.round(150 * sector * goldMult);
-            killZombie(target);
+    function spawnWave() {
+        lvl++;
+        const count = Math.ceil(lvl / 2);
+        for(let i=0; i < count; i++) {
+            const el = document.createElement('div');
+            el.className = 'monster';
+            el.innerText = '👹';
+            container.appendChild(el);
+            monsters.push({ el, x: Math.random() * window.innerWidth, y: -100, hp: 50 * lvl });
         }
     }
 
-    function spawnZombie() {
-        const el = document.createElement('div');
-        el.className = 'zombie';
-        el.innerHTML = `<div class="zombie-icon">${['🧟', '💀', '🤡', '👹'][Math.floor(Math.random()*4)]}</div>`;
-        view.appendChild(el);
-        
-        const zObj = {
-            el: el,
-            dist: 0.1, // Fra 0.1 (langt væk) til 1.0 (helt tæt på)
-            hp: 100 * Math.pow(1.2, sector),
-            speed: 0.002 + (sector * 0.0005)
-        };
-        zombies.push(zObj);
-    }
-
-    function killZombie(z) {
-        z.el.style.filter = "brightness(5) saturate(0)";
+    function fireBullet() {
+        // Muzzle flash effekt
+        document.getElementById('flashlight').style.background = "radial-gradient(circle 300px at var(--x) var(--y), rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.98) 100%)";
         setTimeout(() => {
-            z.el.remove();
-            zombies.splice(zombies.indexOf(z), 1);
-            if(zombies.length === 0) {
-                sector++;
-                updateUI();
-                setTimeout(spawnZombie, 1000);
-            }
-        }, 100);
+            document.getElementById('flashlight').style.background = "radial-gradient(circle 200px at var(--x) var(--y), transparent 0%, rgba(0,0,0,0.98) 100%)";
+        }, 50);
+
+        const b = document.createElement('div');
+        b.className = 'p-bullet';
+        container.appendChild(b);
+        const ang = Math.atan2(mouseY - py, mouseX - px);
+        pBullets.push({ el: b, x: px+20, y: py+20, vx: Math.cos(ang)*15, vy: Math.sin(ang)*15 });
     }
 
     function buy(type) {
-        if(money >= prices[type]) {
-            money -= prices[type];
-            if(type === 'dmg') { dmg += 50; prices.dmg = Math.round(prices.dmg * 1.8); }
-            if(type === 'shotgun') { currentWeapon = 'shotgun'; dmg += 150; document.getElementById('player-gun').innerText = '🔫🔥'; prices.shotgun = 999999; }
-            if(type === 'sniper') { currentWeapon = 'sniper'; dmg += 1000; document.getElementById('player-gun').innerText = '🔱'; prices.sniper = 999999; }
-            if(type === 'heal') { hp = 100; }
-            if(type === 'king') { goldMult = 5; document.getElementById('player-gun').innerText = '👑⚡'; }
-            updateUI();
+        if(type === 'dmg' && money >= dmgPrice) {
+            money -= dmgPrice; pDmg += 20; dmgPrice = Math.round(dmgPrice * 1.5);
+            document.getElementById('p-dmg-cost').innerText = dmgPrice;
         }
+        if(type === 'heal' && money >= 150) { money -= 150; pHP = 100; }
+        document.getElementById('menu-money').innerText = money;
     }
 
-    function updateUI() {
-        document.getElementById('money-ui').innerText = money;
-        document.getElementById('sector-ui').innerText = sector;
-        document.getElementById('hp-ui').innerText = Math.floor(hp);
-        document.getElementById('val-dmg').innerText = dmg;
-        document.getElementById('btn-dmg').innerText = `OPGRADER: ${prices.dmg}`;
-    }
+    function loop() {
+        if(!inMenu) {
+            // Bevægelse
+            if(keys['KeyW']) py -= pSpeed;
+            if(keys['KeyS']) py += pSpeed;
+            if(keys['KeyA']) px -= pSpeed;
+            if(keys['KeyD']) px += pSpeed;
+            
+            document.getElementById('player').style.left = px + 'px';
+            document.getElementById('player').style.top = py + 'px';
 
-    function gameLoop() {
-        if(!isPaused) {
-            if(zombies.length === 0) spawnZombie();
-
-            zombies.forEach(z => {
-                z.dist += z.speed;
-                z.el.style.transform = `translate(-50%, -50%) scale(${z.dist})`;
-                z.el.style.opacity = z.dist + 0.2;
-
-                // Hvis zombien rammer barrikaden
-                if(z.dist >= 0.9) {
-                    hp -= 0.5;
-                    view.style.backgroundColor = "rgba(255,0,0,0.1)";
-                    setTimeout(() => view.style.backgroundColor = "transparent", 50);
-                    if(hp <= 0) {
-                        alert("FORSVARET ER FALDET! Du nåede Sektor " + sector);
-                        location.reload();
-                    }
-                }
+            // Monstre jager dig
+            monsters.forEach((m, mi) => {
+                const dx = px - m.x, dy = py - m.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                m.x += (dx/dist) * (2 + lvl*0.1);
+                m.y += (dy/dist) * (2 + lvl*0.1);
+                m.el.style.left = m.x + 'px'; m.el.style.top = m.y + 'px';
+                if(dist < 50) pHP -= 0.2;
             });
+
+            // Opdater spillerens skud
+            pBullets.forEach((b, bi) => {
+                b.x += b.vx; b.y += b.vy;
+                b.el.style.left = b.x + 'px'; b.el.style.top = b.y + 'px';
+                
+                monsters.forEach((m, mi) => {
+                    if(b.x > m.x && b.x < m.x+80 && b.y > m.y && b.y < m.y+80) {
+                        m.hp -= pDmg;
+                        b.el.remove(); pBullets.splice(bi, 1);
+                        if(m.hp <= 0) {
+                            m.el.remove(); monsters.splice(mi, 1);
+                            money += 100 * lvl;
+                            if(monsters.length === 0) setTimeout(openMenu, 1000);
+                        }
+                    }
+                });
+            });
+
+            document.getElementById('money').innerText = Math.floor(money);
+            document.getElementById('lvl').innerText = lvl;
+            document.getElementById('p-hp').innerText = Math.floor(pHP);
+            if(pHP <= 0) { alert("Mørket tog dig..."); location.reload(); }
         }
-        requestAnimationFrame(gameLoop);
+        requestAnimationFrame(loop);
     }
 
-    updateUI();
-    gameLoop();
+    openMenu();
+    requestAnimationFrame(loop);
 </script>
 </body>
 </html>
