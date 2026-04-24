@@ -2,105 +2,142 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <title>Simpelt CS:GO-agtigt Skydespil</title>
+    <title>CS:GO Arcade</title>
     <style>
         body {
-            margin: 0;
-            background-color: #222;
-            color: white;
-            font-family: sans-serif;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin: 0; background: #1a1a1a; color: white;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column; align-items: center;
+            user-select: none; overflow: hidden;
         }
 
-        #game-container {
-            position: relative;
-            width: 800px;
-            height: 500px;
-            background: url('https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
-            background-size: cover;
-            border: 4px solid #555;
-            cursor: crosshair; /* Gør musen til et sigtekorn */
-            margin-top: 20px;
+        #game-viewport {
+            position: relative; width: 900px; height: 600px;
+            background: url('https://e0.pxfuel.com/wallpapers/152/491/desktop-wallpaper-counter-strike-global-offensive-dust-2-background-cs-go-dust-2.jpg');
+            background-size: cover; border: 5px solid #333;
+            cursor: crosshair; overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
         }
 
-        .target {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background-color: red;
-            border-radius: 50%;
-            border: 3px solid white;
-            transition: transform 0.1s;
+        /* Rekyl-effekt */
+        .recoil { animation: shake 0.1s; }
+        @keyframes shake {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+            100% { transform: translateY(0); }
         }
 
-        #ui {
-            margin-top: 10px;
-            font-size: 24px;
+        .terrorist {
+            position: absolute; width: 70px; height: 100px;
+            background: url('https://www.pngarts.com/files/3/Counter-Strike-PNG-Image-Transparent-Background.png');
+            background-size: contain; background-repeat: no-repeat;
+            transition: top 0.5s, left 0.5s;
         }
 
-        .score-board {
-            color: #00ff00;
+        .blood {
+            position: absolute; width: 40px; height: 40px;
+            background: radial-gradient(circle, rgba(255,0,0,1) 0%, rgba(139,0,0,0) 70%);
+            pointer-events: none; animation: fadeOut 0.5s forwards;
+        }
+
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: scale(2); } }
+
+        #hud {
+            display: flex; justify-content: space-between;
+            width: 900px; padding: 10px; font-size: 30px;
+            text-shadow: 2px 2px black;
         }
     </style>
 </head>
-<body>
+<body onclick="shoot(event)">
 
-    <h1>Aim Trainer v1.0</h1>
-    <div id="ui">Points: <span id="score" class="score-board">0</span></div>
+    <h1>DUST 2 - REFLEX TRAINER</h1>
     
-    <div id="game-container" onclick="playShootSound()">
+    <div id="hud">
+        <div>KILLS: <span id="score">0</span></div>
+        <div style="color: #ff4500;">TIME: <span id="timer">30</span>s</div>
+    </div>
+
+    <div id="game-viewport" id="viewport">
         </div>
 
     <script>
-        const container = document.getElementById('game-container');
-        const scoreElement = document.getElementById('score');
+        const viewport = document.getElementById('game-viewport');
+        const scoreDoc = document.getElementById('score');
+        const timerDoc = document.getElementById('timer');
+        
         let score = 0;
+        let timeLeft = 30;
+        let gameActive = true;
 
-        // Funktion til at lave et mål (Target)
-        function createTarget() {
-            const target = document.createElement('div');
-            target.classList.add('target');
+        // Nedtælling
+        const countdown = setInterval(() => {
+            timeLeft--;
+            timerDoc.innerText = timeLeft;
+            if(timeLeft <= 0) {
+                gameActive = false;
+                clearInterval(countdown);
+                alert("GAME OVER! Din score: " + score);
+                location.reload();
+            }
+        }, 1000);
 
-            // Find en tilfældig position indenfor containeren
-            const x = Math.random() * (container.offsetWidth - 50);
-            const y = Math.random() * (container.offsetHeight - 50);
+        function spawnEnemy() {
+            if(!gameActive) return;
 
-            target.style.left = x + 'px';
-            target.style.top = y + 'px';
+            const enemy = document.createElement('div');
+            enemy.classList.add('terrorist');
+            
+            // Tilfældig startposition
+            enemy.style.left = Math.random() * 800 + "px";
+            enemy.style.top = Math.random() * 450 + "px";
 
-            // Når man klikker på målet
-            target.onclick = function(e) {
-                e.stopPropagation(); // Forhindrer at vi skyder "ved siden af"
+            // Gør dem "levende" - de flytter sig hvert sekund
+            const movement = setInterval(() => {
+                enemy.style.left = Math.random() * 800 + "px";
+                enemy.style.top = Math.random() * 450 + "px";
+            }, 1000);
+
+            enemy.onclick = (e) => {
+                e.stopPropagation();
                 score++;
-                scoreElement.innerText = score;
-                this.remove(); // Fjern målet
-                createTarget(); // Lav et nyt med det samme
+                scoreDoc.innerText = score;
+                
+                // Blod-effekt
+                spawnBlood(e.pageX, e.pageY);
+                
+                clearInterval(movement);
+                enemy.remove();
+                spawnEnemy(); // Spawn en ny med det samme
             };
 
-            container.appendChild(target);
-
-            // Målet forsvinder af sig selv efter 1.5 sekund, hvis man er for langsom
-            setTimeout(() => {
-                if (target.parentNode) {
-                    target.remove();
-                    createTarget();
-                }
-            }, 1500);
+            viewport.appendChild(enemy);
         }
 
-        // Start spillet med 3 mål
-        for(let i = 0; i < 3; i++) {
-            createTarget();
+        function spawnBlood(x, y) {
+            const blood = document.createElement('div');
+            blood.classList.add('blood');
+            blood.style.left = (x - viewport.offsetLeft - 20) + 'px';
+            blood.style.top = (y - viewport.offsetTop - 20) + 'px';
+            viewport.appendChild(blood);
+            setTimeout(() => blood.remove(), 500);
         }
 
-        // Simpel lydeffekt (hvis du har en fil)
-        function playShootSound() {
-            // Her kunne du indsætte en lydfil: new Audio('gunshot.mp3').play();
-            console.log("Skud affyret!");
+        function shoot(e) {
+            if(!gameActive) return;
+            
+            // Rekyl-animation på hele banen
+            viewport.classList.remove('recoil');
+            void viewport.offsetWidth; // Trigger reflow
+            viewport.classList.add('recoil');
+
+            // Her kan du tilføje en lyd hvis du vil:
+            // new Audio('https://www.soundjay.com/mechanical/gun-shot-01.mp3').play();
         }
+
+        // Start med 4 fjender
+        for(let i = 0; i < 4; i++) spawnEnemy();
+
     </script>
 </body>
 </html>
