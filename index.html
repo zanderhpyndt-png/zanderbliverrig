@@ -3,53 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zander og Theo: slayquenn </title>
-    <!-- Vi henter Three.js fra en stabil kilde -->
-    <script src="https://jsdelivr.net"></script>
+    <title>Zander: 3D Zombie Hunt</title>
+    <script src="https://cloudflare.com"></script>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
         canvas { display: block; }
-        #ui { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; color: #00f2ff; pointer-events: none; z-index: 10; text-shadow: 0 0 5px #000; }
-        .stat b { color: gold; font-size: 1.5rem; }
-        #shop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: white; pointer-events: all; }
-        .btn { background: #00f2ff; color: black; border: none; padding: 15px 30px; margin: 10px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; border-radius: 5px; width: 280px; }
-        #crosshair { position: fixed; top: 50%; left: 50%; width: 20px; height: 20px; border: 2px solid rgba(0, 242, 255, 0.5); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        
+        #ui { position: fixed; top: 20px; width: 100%; display: flex; justify-content: space-around; color: gold; z-index: 10; pointer-events: none; text-shadow: 2px 2px 5px black; }
+        .stat-val { color: #00f2ff; font-size: 1.5rem; }
+
+        #shop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: white; }
+        #shop h1 { font-family: 'Creepster'; font-size: 5rem; color: #4a0000; margin: 0; }
+        .btn { background: #111; color: gold; border: 2px solid gold; padding: 15px 40px; margin: 10px; cursor: pointer; font-family: 'Orbitron'; font-weight: bold; border-radius: 5px; width: 300px; transition: 0.2s; }
+        .btn:hover:not(:disabled) { background: gold; color: black; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div class="stat">GULD: <b id="money-ui">0</b></div>
-    <div class="stat">SEKTOR: <b id="lvl-ui">1</b></div>
-    <div class="stat">HP: <b id="hp-ui" style="color: #ff4d4d;">100</b></div>
+    <div>GULD: <span id="money-ui" class="stat-val">0</span></div>
+    <div>SEKTOR: <span id="lvl-ui" class="stat-val">1</span></div>
+    <div>LIV: <span id="hp-ui" class="stat-val" style="color: #ff4d4d;">100</span></div>
 </div>
 
-<div id="crosshair"></div>
-
 <div id="shop">
-    <h1 style="color: gold;">SYSTEM PAUSED</h1>
-    <button class="btn" onclick="buyUpgrade('dmg')">OPGRADER SKADE (200 KR)</button>
-    <button class="btn" onclick="buyUpgrade('hp')">REPARER HP (100 KR)</button>
-    <button class="btn" style="background: white;" onclick="toggleShop()">FORTSÆT (ESC)</button>
+    <h1>UDSTYR</h1>
+    <p>DIN FORMUE: <span id="money-shop">0</span> KR</p>
+    <button class="btn" onclick="buy('dmg')">STÆRKERE SKUD (250 KR)</button>
+    <button class="btn" onclick="buy('hp')">MEDKIT (100 KR)</button>
+    <button class="btn" style="background: white; color: black; border: none;" onclick="toggleShop()">FORTSÆT (ESC)</button>
 </div>
 
 <script>
-    let scene, camera, renderer, player;
-    let money = 0, lvl = 1, hp = 100, dmg = 50, isPaused = false;
+    let scene, camera, renderer, player, isPaused = false;
+    let money = 0, sector = 1, hp = 100, dmg = 50;
     let monsters = [], bullets = [];
     const keys = {};
 
-    // Sørg for at Three.js er klar
-    window.onload = () => {
-        init();
-        animate();
-    };
+    window.onload = init;
 
     function init() {
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x020202);
-        scene.fog = new THREE.FogExp2(0x020202, 0.05);
+        scene.fog = new THREE.Fog(0x020202, 5, 45);
 
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         
@@ -57,177 +54,119 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Lys
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-        scene.add(ambientLight);
-        const pointLight = new THREE.PointLight(0x00f2ff, 2, 50);
-        pointLight.position.set(0, 10, 0);
-        scene.add(pointLight);
+        // STÆRKT LYS (Fixer din sorte skærm)
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 10, 7.5);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040, 0.5));
 
-        // Gulv
-        const grid = new THREE.GridHelper(200, 40, 0x00f2ff, 0x222222);
+        // GULV
+        const grid = new THREE.GridHelper(100, 25, 0x4a0000, 0x111111);
         scene.add(grid);
 
-        // Player Model
+        // DETALJERET SPILLER (Menneske-lignende)
         player = new THREE.Group();
-        
-        // Krop
-        const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 0.6), new THREE.MeshPhongMaterial({ color: 0x111111 }));
-        player.add(body);
-
-        // Hoved
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), new THREE.MeshPhongMaterial({ color: 0xffdbac }));
-        head.position.y = 1.1;
-        player.add(head);
-
-        // Pistol
-        const gun = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 1), new THREE.MeshPhongMaterial({ color: 0x333333 }));
-        gun.position.set(0.6, 0.3, 0.5);
-        player.add(gun);
-
+        const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.4, 0.5), new THREE.MeshPhongMaterial({color: 0x111111}));
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshPhongMaterial({color: 0xffdbac}));
+        head.position.y = 0.9;
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.8, 0.2), new THREE.MeshPhongMaterial({color: 0x111111}));
+        arm.position.set(0.5, 0.3, 0.3); // Holder en "pistol"
+        player.add(body, head, arm);
         scene.add(player);
 
-        // Event listeners
         window.addEventListener('keydown', e => {
             keys[e.code] = true;
             if(e.code === 'Escape') toggleShop();
-            if(e.code === 'Enter' && !isPaused) fire();
+            if(e.code === 'Enter' && !isPaused) shoot();
         });
         window.addEventListener('keyup', e => keys[e.code] = false);
-        window.addEventListener('resize', onWindowResize);
+        
+        animate();
     }
 
     function toggleShop() {
         isPaused = !isPaused;
         document.getElementById('shop').style.display = isPaused ? 'flex' : 'none';
+        document.getElementById('money-shop').innerText = money;
     }
 
-    function buyUpgrade(type) {
-        if(type === 'dmg' && money >= 200) { money -= 200; dmg += 50; }
+    function buy(type) {
+        if(type === 'dmg' && money >= 250) { money -= 250; dmg += 40; }
         if(type === 'hp' && money >= 100) { money -= 100; hp = 100; }
         updateUI();
     }
 
-    function updateUI() {
-        document.getElementById('money-ui').innerText = money;
-        document.getElementById('lvl-ui').innerText = lvl;
-        document.getElementById('hp-ui').innerText = Math.floor(hp);
+    function spawnMonster() {
+        const zombie = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1, 1.6, 0.6), new THREE.MeshPhongMaterial({color: 0x2e4d2e}));
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), new THREE.MeshPhongMaterial({color: 0x4d664d}));
+        head.position.y = 1.1;
+        zombie.add(body, head);
+        
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 30;
+        zombie.position.set(Math.cos(angle)*dist, 0.8, Math.sin(angle)*dist);
+        zombie.hp = 80 * sector;
+        
+        scene.add(zombie);
+        monsters.push(zombie);
     }
 
-    function fire() {
-        if (monsters.length === 0) return;
+    function shoot() {
+        if(monsters.length === 0) return;
+        let target = monsters[0];
+        monsters.forEach(m => { if(player.position.distanceTo(m.position) < player.position.distanceTo(target.position)) target = m; });
 
-        // Find tætteste fjende korrekt
-        let closestMonster = monsters[0];
-        let minDist = player.position.distanceTo(closestMonster.position);
-        
-        for (let m of monsters) {
-            let d = player.position.distanceTo(m.position);
-            if (d < minDist) {
-                minDist = d;
-                closestMonster = m;
-            }
-        }
-
-        // Skab kugle
-        const b = new THREE.Mesh(
-            new THREE.SphereGeometry(0.2, 8, 8),
-            new THREE.MeshBasicMaterial({ color: 0x00f2ff })
-        );
+        const b = new THREE.Mesh(new THREE.SphereGeometry(0.2), new THREE.MeshBasicMaterial({color: 0xffff00}));
         b.position.copy(player.position);
-        b.position.y = 0.5;
-
-        // Beregn retning
-        const direction = new THREE.Vector3().subVectors(closestMonster.position, player.position).normalize();
-        b.userData.velocity = direction.multiplyScalar(0.7);
-        
-        // Drej spiller mod fjende
-        player.lookAt(closestMonster.position.x, 0, closestMonster.position.z);
-
+        b.position.y = 1;
+        const dir = new THREE.Vector3().subVectors(target.position, player.position).normalize();
+        b.vel = dir.multiplyScalar(0.9);
+        player.lookAt(target.position.x, 0, target.position.z);
         scene.add(b);
         bullets.push(b);
     }
 
-    function spawnMonster() {
-        const monster = new THREE.Mesh(
-            new THREE.BoxGeometry(1.8, 1.8, 1.8),
-            new THREE.MeshPhongMaterial({ color: 0xff0000, emissive: 0x550000 })
-        );
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 35;
-        monster.position.set(Math.cos(angle) * dist, 0.9, Math.sin(angle) * dist);
-        monster.userData.hp = 100 * lvl;
-        
-        scene.add(monster);
-        monsters.push(monster);
-    }
-
-    function onWindowResize() {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+    function updateUI() {
+        document.getElementById('money-ui').innerText = money;
+        document.getElementById('lvl-ui').innerText = sector;
+        document.getElementById('hp-ui').innerText = Math.floor(hp);
     }
 
     function animate() {
         requestAnimationFrame(animate);
-        if (isPaused) return;
+        if(isPaused) return;
 
         // Bevægelse
-        const pSpeed = 0.15;
-        if (keys['ArrowUp'] || keys['KeyW']) player.position.z -= pSpeed;
-        if (keys['ArrowDown'] || keys['KeyS']) player.position.z += pSpeed;
-        if (keys['ArrowLeft'] || keys['KeyA']) player.position.x -= pSpeed;
-        if (keys['ArrowRight'] || keys['KeyD']) player.position.x += pSpeed;
+        if(keys['ArrowUp'] || keys['KeyW']) player.position.z -= 0.15;
+        if(keys['ArrowDown'] || keys['KeyS']) player.position.z += 0.15;
+        if(keys['ArrowLeft'] || keys['KeyA']) player.position.x -= 0.15;
+        if(keys['ArrowRight'] || keys['KeyD']) player.position.x += 0.15;
 
-        // Kamera følger spiller
-        camera.position.x = player.position.x;
-        camera.position.y = player.position.y + 10;
-        camera.position.z = player.position.z + 14;
+        camera.position.set(player.position.x, player.position.y + 12, player.position.z + 15);
         camera.lookAt(player.position);
 
-        // Spawn monstre
-        if (monsters.length < 1 + (lvl/3)) spawnMonster();
+        if(monsters.length < 1 + (sector/2)) spawnMonster();
 
-        // Monster AI
-        monsters.forEach((m, mIdx) => {
+        monsters.forEach((m, mi) => {
             const dir = new THREE.Vector3().subVectors(player.position, m.position).normalize();
-            m.position.add(dir.multiplyScalar(0.04 + (lvl * 0.005)));
+            m.position.add(dir.multiplyScalar(0.04 + sector*0.005));
             m.lookAt(player.position);
-
-            if (player.position.distanceTo(m.position) < 1.8) {
-                hp -= 0.15;
-                updateUI();
-                if (hp <= 0) { alert("Game Over! Score: " + money); location.reload(); }
+            if(player.position.distanceTo(m.position) < 1.5) {
+                hp -= 0.2; updateUI();
+                if(hp <= 0) location.reload();
             }
         });
 
-        // Kugle logik
-        bullets.forEach((b, bIdx) => {
-            b.position.add(b.userData.velocity);
-            
-            // Fjern hvis langt væk
-            if (b.position.distanceTo(player.position) > 60) {
-                scene.remove(b);
-                bullets.splice(bIdx, 1);
-                return;
-            }
-
-            // Hit detection
-            monsters.forEach((m, mIdx) => {
-                if (b.position.distanceTo(m.position) < 1.5) {
-                    m.userData.hp -= dmg;
-                    scene.remove(b);
-                    bullets.splice(bIdx, 1);
-                    
-                    if (m.userData.hp <= 0) {
-                        money += 100;
-                        lvl++;
-                        scene.remove(m);
-                        monsters.splice(mIdx, 1);
-                        updateUI();
-                    }
+        bullets.forEach((b, bi) => {
+            b.position.add(b.vel);
+            monsters.forEach((m, mi) => {
+                if(b.position.distanceTo(m.position) < 1.5) {
+                    m.hp -= dmg; scene.remove(b); bullets.splice(bi, 1);
+                    if(m.hp <= 0) { scene.remove(m); monsters.splice(mi, 1); money += 150; sector++; updateUI(); }
                 }
             });
+            if(b.position.distanceTo(player.position) > 50) { scene.remove(b); bullets.splice(bi, 1); }
         });
 
         renderer.render(scene, camera);
