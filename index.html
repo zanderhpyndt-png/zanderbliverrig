@@ -2,244 +2,201 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <title>JS:GO - Tactical Edition</title>
+    <title>JS:GO Elite - Next Gen</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial Black', sans-serif; }
-        
-        /* UI OVERLAY */
-        #ui-layer {
-            position: absolute; width: 100%; height: 100%;
-            pointer-events: none; z-index: 10;
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
+        #ui {
+            position: absolute; bottom: 20px; width: 100%;
+            display: flex; justify-content: space-around;
+            color: #00ff00; font-size: 24px; pointer-events: none;
+            text-shadow: 0 0 10px rgba(0,255,0,0.5);
         }
-
         #crosshair {
             position: absolute; top: 50%; left: 50%;
-            width: 20px; height: 20px; transform: translate(-50%, -50%);
+            width: 4px; height: 4px; background: #00ff00;
+            border-radius: 50%; transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px #00ff00;
         }
-        #crosshair:before { content: ''; position: absolute; top: 9px; left: 0; width: 20px; height: 2px; background: #0f0; }
-        #crosshair:after { content: ''; position: absolute; left: 9px; top: 0; width: 2px; height: 20px; background: #0f0; }
-
-        #hud {
-            position: absolute; bottom: 40px; width: 100%;
-            display: flex; justify-content: space-around;
-            color: #fff; font-size: 32px; text-shadow: 3px 3px 0px #000;
-        }
-
-        /* START MENU */
-        #menu {
+        #overlay {
             position: absolute; width: 100%; height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
-                        url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070');
-            background-size: cover;
+            background: rgba(0,0,0,0.85); color: white;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 100; cursor: default;
+            z-index: 100; cursor: pointer;
         }
-
-        #start-btn {
-            padding: 20px 60px; font-size: 30px; background: #ff9900;
-            color: white; border: none; cursor: pointer; border-radius: 5px;
-            transition: 0.2s; box-shadow: 0 5px 0 #cc7a00;
-        }
-        #start-btn:hover { background: #ffad33; transform: translateY(-2px); }
-        #start-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #cc7a00; }
-
-        .label { font-size: 14px; color: #aaa; display: block; }
     </style>
 </head>
 <body>
 
-    <div id="menu">
-        <h1 style="color: white; font-size: 60px; margin-bottom: 10px;">JS:GO</h1>
-        <p style="color: #ccc; margin-bottom: 40px;">BETA ACCESS v2.0</p>
-        <button id="start-btn">START GAME</button>
-        <p style="color: white; margin-top: 20px;">[W,A,S,D] Move | [MOUSE] Aim | [CLICK] Shoot</p>
-    </div>
+<div id="overlay">
+    <h1 style="color: #00ff00; letter-spacing: 5px;">TACTICAL ELITE</h1>
+    <p>KLIK FOR AT DEPLOYE</p>
+</div>
 
-    <div id="ui-layer">
-        <div id="crosshair"></div>
-        <div id="hud">
-            <div><span class="label">HEALTH</span><span id="hp">100</span></div>
-            <div><span class="label">KILLS</span><span id="kills">0</span></div>
-            <div><span class="label">AMMO</span><span id="ammo">30</span><span style="color:#666">/90</span></div>
-        </div>
-    </div>
+<div id="crosshair"></div>
+<div id="ui">
+    <div>HEALTH: 100</div>
+    <div>KILLS: <span id="kills">0</span></div>
+    <div>AMMO: <span id="ammo">30</span>/90</div>
+</div>
 
-    <script type="importmap">
-        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
-    </script>
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+<script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // 1. SCENE SETUP
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x222228);
-        scene.fog = new THREE.Fog(0x222228, 10, 50);
+    // --- SETUP ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050508);
+    scene.fog = new THREE.Fog(0x050508, 5, 45);
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        document.body.appendChild(renderer.domElement);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
 
-        // 2. LIGHTS
-        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-        scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(5, 10, 7);
-        sun.castShadow = true;
-        scene.add(sun);
+    // --- LYS (Kritisk for detaljer) ---
+    const ambient = new THREE.AmbientLight(0x4040ff, 0.2); // Blåligt nattelys
+    scene.add(ambient);
 
-        // 3. WORLD BUILDER
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(100, 100),
-            new THREE.MeshStandardMaterial({ color: 0x333333 })
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+    sun.position.set(10, 20, 10);
+    sun.castShadow = true;
+    scene.add(sun);
+
+    const muzzleFlash = new THREE.PointLight(0xffaa00, 0, 10);
+    scene.add(muzzleFlash);
+
+    // --- BANE-DETALJER ---
+    const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.5 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Rustne vægge
+    function createWall(x, z, w, h, d) {
+        const wall = new THREE.Mesh(
+            new THREE.BoxGeometry(w, h, d),
+            new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 })
         );
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
-        scene.add(floor);
+        wall.position.set(x, h/2, z);
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        scene.add(wall);
+    }
+    createWall(0, -10, 20, 5, 1);
+    createWall(10, 0, 1, 5, 20);
 
-        // Banen (Walls & Boxes)
-        function createObstacle(x, z, w, h, d, color = 0x555555) {
-            const mesh = new THREE.Mesh(
-                new THREE.BoxGeometry(w, h, d),
-                new THREE.MeshStandardMaterial({ color })
+    // --- VÅBEN (Guld Skin) ---
+    const gunGroup = new THREE.Group();
+    const gunGeo = new THREE.BoxGeometry(0.1, 0.2, 0.8);
+    const gunMat = new THREE.MeshStandardMaterial({ 
+        color: 0xffd700, // GULD
+        metalness: 1, 
+        roughness: 0.2 
+    });
+    const gun = new THREE.Mesh(gunGeo, gunMat);
+    gunGroup.add(gun);
+    scene.add(gunGroup);
+
+    // --- FJENDER OG PARTIKLER ---
+    const enemies = [];
+    const particles = [];
+
+    function createBlood(pos) {
+        for(let i=0; i<10; i++) {
+            const p = new THREE.Mesh(
+                new THREE.SphereGeometry(0.05),
+                new THREE.MeshBasicMaterial({ color: 0xff0000 })
             );
-            mesh.position.set(x, h/2, z);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            scene.add(mesh);
-            return mesh;
+            p.position.copy(pos);
+            p.userData.velocity = new THREE.Vector3(
+                (Math.random()-0.5)*0.2, (Math.random())*0.2, (Math.random()-0.5)*0.2
+            );
+            scene.add(p);
+            particles.push(p);
+            setTimeout(() => { scene.remove(p); particles.shift(); }, 1000);
         }
+    }
 
-        createObstacle(0, -15, 20, 4, 1); // Bagvæg
-        createObstacle(-10, -5, 4, 3, 4, 0x8b4513); // Kasse 1
-        createObstacle(8, -8, 2, 2, 2, 0x444444); // Kasse 2
-
-        // 4. PLAYER & WEAPON
-        const gunPivot = new THREE.Group();
-        const gun = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.15, 0.6),
-            new THREE.MeshStandardMaterial({ color: 0x111111 })
+    function spawnBot() {
+        const bot = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 1.8, 0.8),
+            new THREE.MeshStandardMaterial({ color: 0x440000 })
         );
-        gun.position.set(0.25, -0.3, -0.5); // Placer i bunden af skærmen
-        gunPivot.add(gun);
-        scene.add(gunPivot);
+        bot.position.set(Math.random()*16-8, 0.9, -Math.random()*15-2);
+        bot.castShadow = true;
+        scene.add(bot);
+        enemies.push(bot);
+    }
+    for(let i=0; i<5; i++) spawnBot();
 
-        // 5. ENEMIES (Bots)
-        const enemies = [];
-        function spawnEnemy() {
-            const enemy = new THREE.Mesh(
-                new THREE.CapsuleGeometry(0.4, 1, 4, 8),
-                new THREE.MeshStandardMaterial({ color: 0xff4444 })
-            );
-            enemy.position.set(Math.random() * 20 - 10, 0.9, Math.random() * -20 - 5);
-            scene.add(enemy);
-            enemies.push(enemy);
+    // --- KONTROL ---
+    const controls = new PointerLockControls(camera, document.body);
+    document.getElementById('overlay').onclick = () => controls.lock();
+    controls.onLock = () => document.getElementById('overlay').style.display = 'none';
+
+    let kills = 0, ammo = 30;
+    const raycaster = new THREE.Raycaster();
+
+    window.addEventListener('mousedown', () => {
+        if(!controls.isLocked || ammo <= 0) return;
+        ammo--;
+        document.getElementById('ammo').innerText = ammo;
+
+        // Muzzle Flash
+        muzzleFlash.position.copy(camera.position);
+        muzzleFlash.intensity = 50;
+        setTimeout(() => muzzleFlash.intensity = 0, 50);
+
+        // Skud-animation
+        gun.position.z += 0.2;
+        setTimeout(() => gun.position.z -= 0.2, 50);
+
+        // Hit Detection
+        raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+        const hits = raycaster.intersectObjects(enemies);
+        
+        if(hits.length > 0) {
+            const target = hits[0].object;
+            createBlood(hits[0].point);
+            target.position.y = -10; // "Dør"
+            kills++;
+            document.getElementById('kills').innerText = kills;
+            setTimeout(() => target.position.y = 0.9, 2000);
         }
-        for(let i = 0; i < 6; i++) spawnEnemy();
+    });
 
-        // 6. CONTROLS & LOGIC
-        const controls = new PointerLockControls(camera, document.body);
-        const startBtn = document.getElementById('start-btn');
-        const menu = document.getElementById('menu');
+    // --- ANIMATION LOOP ---
+    const clock = new THREE.Clock();
+    function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
 
-        let kills = 0, ammo = 30;
+        if(controls.isLocked) {
+            // Opdater våben position (Viewmodel)
+            gunGroup.position.copy(camera.position);
+            gunGroup.rotation.copy(camera.rotation);
+            gunGroup.updateMatrix();
+            gunGroup.translateZ(-0.6);
+            gunGroup.translateX(0.3);
+            gunGroup.translateY(-0.3);
 
-        startBtn.addEventListener('click', () => {
-            controls.lock();
-        });
-
-        controls.addEventListener('lock', () => menu.style.display = 'none');
-        controls.addEventListener('unlock', () => menu.style.display = 'flex');
-
-        // SHOOTING
-        const raycaster = new THREE.Raycaster();
-        window.addEventListener('mousedown', () => {
-            if (!controls.isLocked || ammo <= 0) return;
-            
-            ammo--;
-            document.getElementById('ammo').innerText = ammo;
-
-            // Recoil animation
-            gun.position.z += 0.1;
-            setTimeout(() => gun.position.z -= 0.1, 50);
-
-            // Hit Detection
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const hits = raycaster.intersectObjects(enemies);
-
-            if (hits.length > 0) {
-                const target = hits[0].object;
-                target.material.color.set(0xffffff); // Flash white
-                setTimeout(() => {
-                    target.position.set(Math.random() * 20 - 10, 0.9, Math.random() * -20 - 5);
-                    target.material.color.set(0xff4444);
-                }, 100);
-                kills++;
-                document.getElementById('kills').innerText = kills;
-            }
-        });
-
-        // 7. GAME LOOP
-        const velocity = new THREE.Vector3();
-        const direction = new THREE.Vector3();
-        let moveF = false, moveB = false, moveL = false, moveR = false;
-
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyW') moveF = true;
-            if (e.code === 'KeyS') moveB = true;
-            if (e.code === 'KeyA') moveL = true;
-            if (e.code === 'KeyD') moveR = true;
-            if (e.code === 'KeyR') { ammo = 30; document.getElementById('ammo').innerText = ammo; }
-        });
-        document.addEventListener('keyup', (e) => {
-            if (e.code === 'KeyW') moveF = false;
-            if (e.code === 'KeyS') moveB = false;
-            if (e.code === 'KeyA') moveL = false;
-            if (e.code === 'KeyD') moveR = false;
-        });
-
-        const clock = new THREE.Clock();
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-
-            if (controls.isLocked) {
-                // Movement
-                velocity.x -= velocity.x * 10.0 * delta;
-                velocity.z -= velocity.z * 10.0 * delta;
-
-                direction.z = Number(moveF) - Number(moveB);
-                direction.x = Number(moveR) - Number(moveL);
-                direction.normalize();
-
-                if (moveF || moveB) velocity.z -= direction.z * 100.0 * delta;
-                if (moveL || moveR) velocity.x -= direction.x * 100.0 * delta;
-
-                controls.moveRight(-velocity.x * delta);
-                controls.moveForward(-velocity.z * delta);
-
-                // Gun follow camera
-                gunPivot.position.copy(camera.position);
-                gunPivot.rotation.copy(camera.rotation);
-
-                // Head Bobbing
-                if (moveF || moveB || moveL || moveR) {
-                    const timer = performance.now() * 0.01;
-                    camera.position.y = 1.6 + Math.sin(timer) * 0.03;
-                }
-            }
-            renderer.render(scene, camera);
+            // Flyt partikler (blod)
+            particles.forEach(p => {
+                p.position.add(p.userData.velocity);
+                p.userData.velocity.y -= 0.01; // Tyngdekraft
+            });
         }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+        renderer.render(scene, camera);
+    }
+    animate();
+</script>
 </body>
 </html>
