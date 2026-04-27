@@ -2,142 +2,173 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <title>CS:GO Arcade</title>
+    <title>Web-Strike: HTML Edition</title>
     <style>
-        body {
-            margin: 0; background: #1a1a1a; color: white;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex; flex-direction: column; align-items: center;
-            user-select: none; overflow: hidden;
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 15px; height: 15px;
+            border: 2px solid #0f0; border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none;
         }
-
-        #game-viewport {
-            position: relative; width: 900px; height: 600px;
-            background: url('https://e0.pxfuel.com/wallpapers/152/491/desktop-wallpaper-counter-strike-global-offensive-dust-2-background-cs-go-dust-2.jpg');
-            background-size: cover; border: 5px solid #333;
-            cursor: crosshair; overflow: hidden;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        #ui {
+            position: absolute; bottom: 30px; left: 30px;
+            color: #0f0; font-size: 28px; text-shadow: 2px 2px #000;
         }
-
-        /* Rekyl-effekt */
-        .recoil { animation: shake 0.1s; }
-        @keyframes shake {
-            0% { transform: translateY(0); }
-            50% { transform: translateY(-10px) rotate(1deg); }
-            100% { transform: translateY(0); }
-        }
-
-        .terrorist {
-            position: absolute; width: 70px; height: 100px;
-            background: url('https://www.pngarts.com/files/3/Counter-Strike-PNG-Image-Transparent-Background.png');
-            background-size: contain; background-repeat: no-repeat;
-            transition: top 0.5s, left 0.5s;
-        }
-
-        .blood {
-            position: absolute; width: 40px; height: 40px;
-            background: radial-gradient(circle, rgba(255,0,0,1) 0%, rgba(139,0,0,0) 70%);
-            pointer-events: none; animation: fadeOut 0.5s forwards;
-        }
-
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: scale(2); } }
-
-        #hud {
-            display: flex; justify-content: space-between;
-            width: 900px; padding: 10px; font-size: 30px;
-            text-shadow: 2px 2px black;
+        #overlay {
+            position: absolute; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); color: white;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 10;
         }
     </style>
 </head>
-<body onclick="shoot(event)">
+<body>
 
-    <h1>DUST 2 - REFLEX TRAINER</h1>
-    
-    <div id="hud">
-        <div>KILLS: <span id="score">0</span></div>
-        <div style="color: #ff4500;">TIME: <span id="timer">30</span>s</div>
+    <div id="overlay">
+        <h1>WEB-STRIKE 1.6</h1>
+        <p>KLIK FOR AT STARTE</p>
+        <p style="font-size: 14px;">(WASD = GÅ | MUS = SIGT | KLIK = SKYD)</p>
     </div>
 
-    <div id="game-viewport" id="viewport">
-        </div>
+    <div id="crosshair"></div>
+    <div id="ui">HP: 100 | AMMO: 30/90</div>
 
-    <script>
-        const viewport = document.getElementById('game-viewport');
-        const scoreDoc = document.getElementById('score');
-        const timerDoc = document.getElementById('timer');
-        
-        let score = 0;
-        let timeLeft = 30;
-        let gameActive = true;
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
 
-        // Nedtælling
-        const countdown = setInterval(() => {
-            timeLeft--;
-            timerDoc.innerText = timeLeft;
-            if(timeLeft <= 0) {
-                gameActive = false;
-                clearInterval(countdown);
-                alert("GAME OVER! Din score: " + score);
-                location.reload();
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+        // --- SCENE & KAMERA ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x333333);
+        scene.fog = new THREE.Fog(0x333333, 0, 50);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- BELYSNING ---
+        const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffccaa, 1);
+        sun.position.set(5, 10, 5);
+        scene.add(sun);
+
+        // --- BANEN (GULV & VÆGGE) ---
+        const loader = new THREE.TextureLoader();
+        const floorGeo = new THREE.PlaneGeometry(100, 100);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
+
+        function createBox(x, y, z, w, h, d) {
+            const box = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                new THREE.MeshStandardMaterial({ color: 0x554433 })
+            );
+            box.position.set(x, y, z);
+            scene.add(box);
+        }
+        // "Dust 2" kasser
+        createBox(5, 1, -5, 2, 2, 2);
+        createBox(-7, 1.5, -10, 3, 3, 3);
+        createBox(0, 5, -20, 20, 10, 1); // En væg
+
+        // --- VÅBEN (Pistol model) ---
+        const gunGroup = new THREE.Group();
+        const gunBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.2, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0x111111 })
+        );
+        gunGroup.add(gunBody);
+        scene.add(gunGroup);
+
+        // --- CONTROLS ---
+        const controls = new PointerLockControls(camera, document.body);
+        const overlay = document.getElementById('overlay');
+
+        overlay.addEventListener('click', () => controls.lock());
+        controls.addEventListener('lock', () => overlay.style.display = 'none');
+        controls.addEventListener('unlock', () => overlay.style.display = 'flex');
+
+        let moveF = false, moveB = false, moveL = false, moveR = false;
+        document.addEventListener('keydown', (e) => {
+            if(e.code === 'KeyW') moveF = true;
+            if(e.code === 'KeyS') moveB = true;
+            if(e.code === 'KeyA') moveL = true;
+            if(e.code === 'KeyD') moveR = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if(e.code === 'KeyW') moveF = false;
+            if(e.code === 'KeyS') moveB = false;
+            if(e.code === 'KeyA') moveL = false;
+            if(e.code === 'KeyD') moveR = false;
+        });
+
+        // --- SKYDE LOGIK ---
+        let isShooting = false;
+        window.addEventListener('mousedown', () => {
+            if(!controls.isLocked) return;
+            isShooting = true;
+            
+            // Rekyl animation
+            gunGroup.position.z += 0.1;
+            camera.rotation.x += 0.02;
+            
+            setTimeout(() => {
+                gunGroup.position.z -= 0.1;
+                isShooting = false;
+            }, 50);
+        });
+
+        // --- GAME LOOP ---
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+
+            if (controls.isLocked) {
+                // Bevægelse
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveF) - Number(moveB);
+                direction.x = Number(moveR) - Number(moveL);
+                direction.normalize();
+
+                if (moveF || moveB) velocity.z -= direction.z * 100.0 * delta;
+                if (moveL || moveR) velocity.x -= direction.x * 100.0 * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                // Våben følger kameraet
+                gunGroup.position.copy(camera.position);
+                gunGroup.rotation.copy(camera.rotation);
+                gunGroup.updateMatrix();
+                gunGroup.translateZ(-0.6);
+                gunGroup.translateX(0.3);
+                gunGroup.translateY(-0.3);
+
+                // View bobbing (kameraet ryster let når man går)
+                if(moveF || moveB || moveL || moveR) {
+                    camera.position.y = 1.6 + Math.sin(performance.now() * 0.01) * 0.02;
+                }
             }
-        }, 1000);
 
-        function spawnEnemy() {
-            if(!gameActive) return;
-
-            const enemy = document.createElement('div');
-            enemy.classList.add('terrorist');
-            
-            // Tilfældig startposition
-            enemy.style.left = Math.random() * 800 + "px";
-            enemy.style.top = Math.random() * 450 + "px";
-
-            // Gør dem "levende" - de flytter sig hvert sekund
-            const movement = setInterval(() => {
-                enemy.style.left = Math.random() * 800 + "px";
-                enemy.style.top = Math.random() * 450 + "px";
-            }, 1000);
-
-            enemy.onclick = (e) => {
-                e.stopPropagation();
-                score++;
-                scoreDoc.innerText = score;
-                
-                // Blod-effekt
-                spawnBlood(e.pageX, e.pageY);
-                
-                clearInterval(movement);
-                enemy.remove();
-                spawnEnemy(); // Spawn en ny med det samme
-            };
-
-            viewport.appendChild(enemy);
+            renderer.render(scene, camera);
         }
 
-        function spawnBlood(x, y) {
-            const blood = document.createElement('div');
-            blood.classList.add('blood');
-            blood.style.left = (x - viewport.offsetLeft - 20) + 'px';
-            blood.style.top = (y - viewport.offsetTop - 20) + 'px';
-            viewport.appendChild(blood);
-            setTimeout(() => blood.remove(), 500);
-        }
-
-        function shoot(e) {
-            if(!gameActive) return;
-            
-            // Rekyl-animation på hele banen
-            viewport.classList.remove('recoil');
-            void viewport.offsetWidth; // Trigger reflow
-            viewport.classList.add('recoil');
-
-            // Her kan du tilføje en lyd hvis du vil:
-            // new Audio('https://www.soundjay.com/mechanical/gun-shot-01.mp3').play();
-        }
-
-        // Start med 4 fjender
-        for(let i = 0; i < 4; i++) spawnEnemy();
-
+        animate();
     </script>
 </body>
 </html>
