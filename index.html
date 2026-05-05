@@ -3,154 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JS:GO Ultimate - GitHub</title>
+    <title>Espresso House | Holstebro</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
-        #loading-screen {
-            position: absolute; width: 100%; height: 100%;
-            background: #000; color: #ff9900;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 1000; text-align: center;
+        /* Grundlæggende styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f9f7f2;
         }
-        #play-button {
-            padding: 20px 50px; font-size: 24px; background: #ff9900;
-            color: black; border: none; cursor: pointer; border-radius: 8px;
-            font-weight: bold; display: none; /* Vises kun når spillet er klar */
+
+        header {
+            background-color: #3d2b1f; /* Mørkebrun Espresso farve */
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
         }
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
-            transform: translate(-50%, -50%); pointer-events: none;
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
         }
-        #crosshair:before { content: ''; position: absolute; top: 6px; width: 14px; height: 2px; background: #0f0; }
-        #crosshair:after { content: ''; position: absolute; left: 6px; height: 14px; width: 2px; background: #0f0; }
-        #hud {
-            position: absolute; bottom: 20px; width: 100%; display: flex;
-            justify-content: space-around; color: white; font-size: 24px;
-            text-shadow: 2px 2px black; pointer-events: none;
+
+        .hero {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
         }
-        #error-log { color: red; font-size: 12px; margin-top: 20px; }
+
+        h1, h2 {
+            margin-top: 0;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 600px) {
+            .info-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .menu-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .menu-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .rating {
+            color: #f39c12;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background-color: #3d2b1f;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 1rem;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background-color: #5d4331;
+        }
+
+        .review {
+            font-style: italic;
+            border-left: 4px solid #3d2b1f;
+            padding-left: 1rem;
+            margin: 1rem 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.9rem;
+            color: #777;
+        }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">
-        <h1 id="status">INDLÆSER SPIL...</h1>
-        <button id="play-button">KLIK FOR AT DEPLOYE</button>
-        <div id="error-log"></div>
+<header>
+    <h1>Espresso House Holstebro</h1>
+    <p>Nørregade 12, 7500 Holstebro</p>
+</header>
+
+<div class="container">
+    
+    <section class="hero">
+        <h2>Velkommen indenfor</h2>
+        <p>Oplev byens hyggeligste atmosfære. Perfekt til studiebrug, morgenmad eller en hurtig kaffepause midt i gågaden.</p>
+        <div class="rating">★ 4,2 (193 anmeldelser)</div>
+        <a href="https://wolt.com" class="btn">Bestil via Wolt</a>
+    </section>
+
+    <div class="info-grid">
+        <section class="card">
+            <h3>Åbningstider & Info</h3>
+            <p><strong>Status:</strong> Åben (Lukker kl. 18.00)</p>
+            <p><strong>Prisniveau:</strong> 100 - 200 kr.</p>
+            <p><strong>Telefon:</strong> 51 63 69 72</p>
+            <p><strong>Service:</strong> Spisning på stedet</p>
+        </section>
+
+        <section class="card">
+            <h3>Populært på menuen</h3>
+            <ul class="menu-list">
+                <li><span>Latte Karamel</span> ☕</li>
+                <li><span>Caffé Latte</span> ☕</li>
+                <li><span>Pumpkin Latte</span> 🎃</li>
+            </ul>
+        </section>
     </div>
 
-    <div id="crosshair"></div>
-    <div id="hud">
-        <div>HP: 100</div>
-        <div>KILLS: <span id="kills">0</span></div>
-        <div>AMMO: <span id="ammo">30</span></div>
-    </div>
+    <section class="card">
+        <h3>Det siger gæsterne</h3>
+        <div class="review">
+            "Servicen var perfekt; jeg modtog både min kaffe og min mad inden for fem minutter... varm og god stemning."
+            <br><strong>- amahcaaH XII</strong>
+        </div>
+        <div class="review">
+            "Altid god kaffe og mættende mad. Godt sted at studere efter morgenmad på hverdage."
+            <br><strong>- Melissa, Local Guide</strong>
+        </div>
+    </section>
 
-    <script type="module">
-        import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-        import { PointerLockControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+</div>
 
-        const status = document.getElementById('status');
-        const playBtn = document.getElementById('play-button');
-        const errorLog = document.getElementById('error-log');
+<footer>
+    <p>&copy; 2024 Espresso House Holstebro | <a href="https://espressohouse.com">Officiel hjemmeside</a></p>
+</footer>
 
-        try {
-            // --- ENGINE ---
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050505);
-            scene.fog = new THREE.Fog(0x050505, 1, 50);
-
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            document.body.appendChild(renderer.domElement);
-
-            // --- LYS ---
-            const light = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(light);
-
-            // --- BANEN ---
-            const floor = new THREE.Mesh(
-                new THREE.PlaneGeometry(100, 100),
-                new THREE.MeshStandardMaterial({ color: 0x222222 })
-            );
-            floor.rotation.x = -Math.PI / 2;
-            scene.add(floor);
-
-            // --- VÅBEN ---
-            const gun = new THREE.Mesh(
-                new THREE.BoxGeometry(0.1, 0.2, 0.6),
-                new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 })
-            );
-            scene.add(gun);
-
-            // --- FJENDER ---
-            const enemies = [];
-            for(let i=0; i<5; i++) {
-                const e = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshStandardMaterial({color: 0xff0000}));
-                e.position.set(Math.random()*20-10, 1, -Math.random()*20-5);
-                scene.add(e);
-                enemies.push(e);
-            }
-
-            // --- KONTROL ---
-            const controls = new PointerLockControls(camera, document.body);
-            playBtn.addEventListener('click', () => controls.lock());
-            controls.addEventListener('lock', () => document.getElementById('loading-screen').style.display = 'none');
-            controls.addEventListener('unlock', () => document.getElementById('loading-screen').style.display = 'flex');
-
-            // Skyd
-            let kills = 0, ammo = 30;
-            const raycaster = new THREE.Raycaster();
-            window.addEventListener('mousedown', () => {
-                if(!controls.isLocked || ammo <= 0) return;
-                ammo--;
-                document.getElementById('ammo').innerText = ammo;
-                
-                raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-                const hits = raycaster.intersectObjects(enemies);
-                if(hits.length > 0) {
-                    hits[0].object.position.y = -10;
-                    kills++;
-                    document.getElementById('kills').innerText = kills;
-                    setTimeout(() => hits[0].object.position.y = 1, 2000);
-                }
-            });
-
-            // Bevægelse
-            let keys = {};
-            document.addEventListener('keydown', e => keys[e.code] = true);
-            document.addEventListener('keyup', e => keys[e.code] = false);
-
-            const velocity = new THREE.Vector3();
-            function animate() {
-                requestAnimationFrame(animate);
-                if(controls.isLocked) {
-                    velocity.z = (Number(keys['KeyW']) - Number(keys['KeyS'])) * 0.15;
-                    velocity.x = (Number(keys['KeyD']) - Number(keys['KeyA'])) * 0.15;
-                    controls.moveForward(velocity.z);
-                    controls.moveRight(velocity.x);
-
-                    // Gun follow
-                    gun.position.copy(camera.position);
-                    gun.rotation.copy(camera.rotation);
-                    gun.updateMatrix();
-                    gun.translateZ(-0.5); gun.translateX(0.2); gun.translateY(-0.2);
-                }
-                renderer.render(scene, camera);
-            }
-
-            // KLAR TIL START
-            status.innerText = "KLAR TIL KAMP!";
-            playBtn.style.display = "block";
-            animate();
-
-        } catch (err) {
-            status.innerText = "FEJL VED INDLÆSNING!";
-            errorLog.innerText = err.message;
-            console.error(err);
-        }
-    </script>
 </body>
 </html>
