@@ -2,90 +2,185 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <title>Horror Survival: Night Shift</title>
+    <title>Nightwatch Horror</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
-        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
         
-        /* Kontoret */
-        #office { width: 80%; height: 70%; border: 5px solid #333; background: #111; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #office-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.3; }
-        
-        /* Skærm-overlay (Statisk støj) */
-        #static { position: absolute; inset: 0; background: url('https://giphy.com'); opacity: 0.05; pointer-events: none; }
+        /* Kontoret panorerer når man bevæger musen */
+        #game-view { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        #office { 
+            position: absolute; width: 150vw; height: 100vh; left: -25vw;
+            background: linear-gradient(90deg, #050505 0%, #1a1a1a 50%, #050505 100%);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.1s ease-out;
+        }
 
-        /* Kamera-system */
-        #camera-monitor { position: absolute; inset: 0; background: #000; display: none; flex-wrap: wrap; padding: 20px; z-index: 20; }
-        .cam-view { width: 45%; height: 45%; border: 2px solid #0f0; margin: 5px; position: relative; background: #050505; color: #0f0; font-size: 12px; }
-        .cam-label { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7); }
+        /* Døre */
+        .door { position: absolute; width: 15vw; height: 80vh; background: #222; bottom: 0; border: 4px solid #111; transition: 0.3s; z-index: 5; }
+        #door-left { left: 10vw; }
+        #door-right { right: 10vw; }
+        .door.closed { transform: translateY(0); background: #333; box-shadow: 0 0 20px #f00; }
+        .door.open { transform: translateY(-100%); }
 
-        /* HUD */
-        #hud { position: absolute; bottom: 20px; width: 80%; display: flex; justify-content: space-between; font-size: 20px; z-index: 30; }
-        .btn { padding: 15px 30px; background: #222; border: 2px solid #0f0; color: #0f0; cursor: pointer; text-transform: uppercase; }
-        .btn:hover { background: #0f0; color: #000; }
+        /* Lys knapper */
+        .light-btn { position: absolute; bottom: 20%; width: 50px; height: 50px; background: #444; border-radius: 50%; cursor: pointer; z-index: 10; border: 3px solid #666; }
+        #light-l { left: 5vw; }
+        #light-r { right: 5vw; }
+        .light-on { background: #ff0 !important; box-shadow: 0 0 50px #ff0; }
+
+        /* Overvågning (Monitor) */
+        #monitor { 
+            position: absolute; bottom: 0; left: 25%; width: 50%; height: 50px; 
+            background: #222; border: 3px solid #444; text-align: center; line-height: 50px;
+            cursor: pointer; z-index: 50; border-radius: 20px 20px 0 0;
+        }
+        #camera-screen { 
+            position: absolute; inset: 0; background: #000; display: none; 
+            z-index: 100; border: 10px solid #333;
+        }
+        #static { position: absolute; inset: 0; background: url('https://giphy.com'); opacity: 0.1; pointer-events: none; }
+
+        /* UI */
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 200; background: rgba(0,0,0,0.5); padding: 10px; }
+        #jumpscare { 
+            position: absolute; inset: 0; background: red; display: none; 
+            z-index: 1000; justify-content: center; align-items: center; font-size: 100px; color: black;
+        }
     </style>
 </head>
 <body>
 
-<div id="game-container">
+<div id="ui">
+    TID: <span id="time">12</span> AM<br>
+    STRØM: <span id="power">100</span>%
+</div>
+
+<div id="game-view">
     <div id="office">
-        <div id="static"></div>
-        <div id="office-content" style="font-size: 40px;">DU ER PÅ KONTORET</div>
+        <div id="door-left" class="door open"></div>
+        <div id="light-l" class="light-btn" onmousedown="toggleLight('L')" onmouseup="toggleLight('L')"></div>
         
-        <!-- Kamera skærm -->
-        <div id="camera-monitor">
-            <div class="cam-view"><span class="cam-label">CAM 01: INDGANG</span><div id="enemy-01"></div></div>
-            <div class="cam-view"><span class="cam-label">CAM 02: KØKKEN</span></div>
-            <div class="cam-view"><span class="cam-label">CAM 03: GANG</span></div>
-            <div class="cam-view"><span class="cam-label">CAM 04: LAGER</span></div>
+        <div style="text-align: center;">
+            <h2 style="color: #333;">HOVEDKONTOR</h2>
+            <p style="color: #222;">PAS PÅ DØRENE</p>
         </div>
+
+        <div id="door-right" class="door open"></div>
+        <div id="light-r" class="light-btn" onmousedown="toggleLight('R')" onmouseup="toggleLight('R')"></div>
     </div>
 
-    <div id="hud">
-        <div>STRØM: <span id="power">100</span>%</div>
-        <button class="btn" onclick="toggleCams()">Overvågning</button>
-        <div>KLOKKEN: <span id="time">12</span> AM</div>
-    </div>
+    <div id="monitor" onclick="toggleCams()">OVERVÅGNING</div>
 </div>
+
+<div id="camera-screen">
+    <div id="static"></div>
+    <div style="padding: 20px;">
+        <h1 id="cam-label">CAM 1: HOVEDGANG</h1>
+        <button onclick="changeCam(1)">CAM 1</button>
+        <button onclick="changeCam(2)">CAM 2</button>
+        <div id="enemy-view" style="margin-top: 50px; font-size: 30px; color: red;"></div>
+    </div>
+    <div id="close-monitor" onclick="toggleCams()" style="position:absolute; bottom:20px; left:45%; background:#444; padding:10px; cursor:pointer;">LUK MONITOR</div>
+</div>
+
+<div id="jumpscare">DU BLEV FANGET!</div>
 
 <script>
     let power = 100;
-    let hour = 12;
+    let time = 12;
     let camOpen = false;
+    let leftDoor = false;
+    let rightDoor = false;
+    let leftLight = false;
+    let rightLight = false;
+    let enemyPos = 1; // 1 = Langt væk, 3 = Ved døren
 
-    // Dræn strøm
-    setInterval(() => {
-        if (power > 0) {
-            power -= camOpen ? 0.5 : 0.1;
-            document.getElementById('power').innerText = Math.floor(power);
-        } else {
-            document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%;'>STRØMMEN GIK... DU TABTE!</h1>";
+    // Mus-panorering (Kig dig omkring i kontoret)
+    document.addEventListener('mousemove', (e) => {
+        if (!camOpen) {
+            const x = (e.clientX / window.innerWidth) - 0.5;
+            document.getElementById('office').style.transform = `translateX(${-x * 50}vw)`;
         }
-    }, 1000);
+    });
 
-    // Tid skifter
-    setInterval(() => {
-        hour = (hour === 12) ? 1 : hour + 1;
-        document.getElementById('time').innerText = hour;
-        if (hour === 6) alert("Du overlevede natten!");
-    }, 60000); // 1 minut realtid = 1 time i spillet
-
+    // Spil-logik
     function toggleCams() {
-        const monitor = document.getElementById('camera-monitor');
         camOpen = !camOpen;
-        monitor.style.display = camOpen ? 'flex' : 'none';
+        document.getElementById('camera-screen').style.display = camOpen ? 'block' : 'none';
     }
 
-    // Tilfældig fjende-optræden på CAM 01
-    setInterval(() => {
-        const enemy = document.getElementById('enemy-01');
-        if (Math.random() > 0.7) {
-            enemy.innerHTML = "<h2 style='color:red; text-align:center;'>NOGEN ER HER!</h2>";
+    function toggleLight(side) {
+        if (side === 'L') {
+            leftLight = !leftLight;
+            document.getElementById('light-l').classList.toggle('light-on');
+            if (leftLight && enemyPos === 3) alert("Noget står i venstre dør!");
         } else {
-            enemy.innerHTML = "";
+            rightLight = !rightLight;
+            document.getElementById('light-r').classList.toggle('light-on');
         }
-    }, 3000);
-</script>
+    }
 
+    // Luk døre (Brug tastatur: A for venstre, D for højre)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'a' || e.key === 'A') {
+            leftDoor = !leftDoor;
+            document.getElementById('door-left').className = leftDoor ? 'door closed' : 'door open';
+        }
+        if (e.key === 'd' || e.key === 'D') {
+            rightDoor = !rightDoor;
+            document.getElementById('door-right').className = rightDoor ? 'door closed' : 'door open';
+        }
+    });
+
+    // Fjende-AI
+    setInterval(() => {
+        if (Math.random() > 0.6) {
+            enemyPos++;
+            if (enemyPos > 4) {
+                if (!leftDoor) {
+                    doJumpscare();
+                } else {
+                    enemyPos = 1; // Han går tilbage hvis døren er lukket
+                    power -= 5; // Han banker på døren og bruger strøm
+                }
+            }
+        }
+        updateCamView();
+    }, 4000);
+
+    function updateCamView() {
+        const view = document.getElementById('enemy-view');
+        if (enemyPos === 1) view.innerText = "Gangen er tom...";
+        if (enemyPos === 2) view.innerText = "Noget bevæger sig i mørket...";
+        if (enemyPos === 3) view.innerText = "HAN ER LIGE UDENFOR!";
+    }
+
+    function doJumpscare() {
+        document.getElementById('jumpscare').style.display = 'flex';
+        setTimeout(() => location.reload(), 3000);
+    }
+
+    // Strøm-forbrug
+    setInterval(() => {
+        let usage = 0.1;
+        if (leftDoor) usage += 0.4;
+        if (rightDoor) usage += 0.4;
+        if (camOpen) usage += 0.3;
+        if (leftLight || rightLight) usage += 0.2;
+        
+        power -= usage;
+        document.getElementById('power').innerText = Math.max(0, Math.floor(power));
+        
+        if (power <= 0) doJumpscare();
+    }, 1000);
+
+    // Tid
+    setInterval(() => {
+        time = (time === 12) ? 1 : time + 1;
+        document.getElementById('time').innerText = time;
+        if (time === 6) alert("KLOKKEN ER 6 AM! DU VANDT!");
+    }, 45000);
+
+</script>
 </body>
 </html>
