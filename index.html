@@ -2,160 +2,90 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <title>karl er dum</title>
+    <title>Horror Survival: Night Shift</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-        #ui {
-            position: absolute; top: 20px; left: 20px; color: #00ff00;
-            font-size: 24px; font-weight: bold; pointer-events: none;
-        }
-        #crosshair {
-            position: absolute; top: 50%; left: 50%;
-            width: 20px; height: 20px; border: 2px solid #ff0000;
-            border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;
-        }
-        #intro {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.9);
-            color: white; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 100; text-align: center;
-        }
-        button {
-            padding: 15px 30px; font-size: 20px; background: #00ff00;
-            border: none; cursor: pointer; border-radius: 5px; font-weight: bold;
-        }
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
+        #game-container { position: relative; width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        
+        /* Kontoret */
+        #office { width: 80%; height: 70%; border: 5px solid #333; background: #111; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #office-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.3; }
+        
+        /* Skærm-overlay (Statisk støj) */
+        #static { position: absolute; inset: 0; background: url('https://giphy.com'); opacity: 0.05; pointer-events: none; }
+
+        /* Kamera-system */
+        #camera-monitor { position: absolute; inset: 0; background: #000; display: none; flex-wrap: wrap; padding: 20px; z-index: 20; }
+        .cam-view { width: 45%; height: 45%; border: 2px solid #0f0; margin: 5px; position: relative; background: #050505; color: #0f0; font-size: 12px; }
+        .cam-label { position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7); }
+
+        /* HUD */
+        #hud { position: absolute; bottom: 20px; width: 80%; display: flex; justify-content: space-between; font-size: 20px; z-index: 30; }
+        .btn { padding: 15px 30px; background: #222; border: 2px solid #0f0; color: #0f0; cursor: pointer; text-transform: uppercase; }
+        .btn:hover { background: #0f0; color: #000; }
     </style>
 </head>
 <body>
 
-    <div id="ui">SCORE: <span id="score">0</span></div>
-    <div id="crosshair"></div>
-    
-    <div id="intro">
-        <h1>3D SPACE DEFENDER</h1>
-        <p>Brug MUSEN til at sigte og venstreklik for at SKYDE.<br>Ram de hvide kuber!</p>
-        <button id="startBtn">START SPIL</button>
+<div id="game-container">
+    <div id="office">
+        <div id="static"></div>
+        <div id="office-content" style="font-size: 40px;">DU ER PÅ KONTORET</div>
+        
+        <!-- Kamera skærm -->
+        <div id="camera-monitor">
+            <div class="cam-view"><span class="cam-label">CAM 01: INDGANG</span><div id="enemy-01"></div></div>
+            <div class="cam-view"><span class="cam-label">CAM 02: KØKKEN</span></div>
+            <div class="cam-view"><span class="cam-label">CAM 03: GANG</span></div>
+            <div class="cam-view"><span class="cam-label">CAM 04: LAGER</span></div>
+        </div>
     </div>
 
-    <!-- Vi bruger et stabilt link til Three.js biblioteket -->
-    <script src="https://cloudflare.com"></script>
+    <div id="hud">
+        <div>STRØM: <span id="power">100</span>%</div>
+        <button class="btn" onclick="toggleCams()">Overvågning</button>
+        <div>KLOKKEN: <span id="time">12</span> AM</div>
+    </div>
+</div>
 
-    <script>
-        let score = 0;
-        let gameActive = false;
-        const enemies = [];
+<script>
+    let power = 100;
+    let hour = 12;
+    let camOpen = false;
 
-        // 1. Setup Scenen
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050510);
-        scene.fog = new THREE.Fog(0x050510, 10, 50);
-
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
-
-        // Lys
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(1, 1, 2);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040));
-
-        // En bund (stjernestøv)
-        const grid = new THREE.GridHelper(100, 40, 0x4444ff, 0x111133);
-        grid.position.y = -2;
-        scene.add(grid);
-
-        // 2. Funktion til at lave fjender
-        function spawnEnemy() {
-            const geo = new THREE.BoxGeometry(1, 1, 1);
-            const mat = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x222222 });
-            const cube = new THREE.Mesh(geo, mat);
-            
-            // Tilfældig position foran spilleren
-            cube.position.x = (Math.random() - 0.5) * 20;
-            cube.position.y = Math.random() * 5;
-            cube.position.z = -20 - (Math.random() * 20);
-            
-            scene.add(cube);
-            enemies.push(cube);
+    // Dræn strøm
+    setInterval(() => {
+        if (power > 0) {
+            power -= camOpen ? 0.5 : 0.1;
+            document.getElementById('power').innerText = Math.floor(power);
+        } else {
+            document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%;'>STRØMMEN GIK... DU TABTE!</h1>";
         }
+    }, 1000);
 
-        // 3. Skyde-logik
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2(0, 0); // Centrum af skærmen
+    // Tid skifter
+    setInterval(() => {
+        hour = (hour === 12) ? 1 : hour + 1;
+        document.getElementById('time').innerText = hour;
+        if (hour === 6) alert("Du overlevede natten!");
+    }, 60000); // 1 minut realtid = 1 time i spillet
 
-        function shoot() {
-            if (!gameActive) return;
+    function toggleCams() {
+        const monitor = document.getElementById('camera-monitor');
+        camOpen = !camOpen;
+        monitor.style.display = camOpen ? 'flex' : 'none';
+    }
 
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(enemies);
-
-            if (intersects.length > 0) {
-                const target = intersects[0].object;
-                scene.remove(target);
-                enemies.splice(enemies.indexOf(target), 1);
-                score += 10;
-                document.getElementById('score').innerText = score;
-                spawnEnemy(); // Lav en ny når en dør
-            }
+    // Tilfældig fjende-optræden på CAM 01
+    setInterval(() => {
+        const enemy = document.getElementById('enemy-01');
+        if (Math.random() > 0.7) {
+            enemy.innerHTML = "<h2 style='color:red; text-align:center;'>NOGEN ER HER!</h2>";
+        } else {
+            enemy.innerHTML = "";
         }
+    }, 3000);
+</script>
 
-        // 4. Controls
-        document.getElementById('startBtn').addEventListener('click', () => {
-            document.body.requestPointerLock();
-        });
-
-        document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement === document.body) {
-                gameActive = true;
-                document.getElementById('intro').style.display = 'none';
-            } else {
-                gameActive = false;
-                document.getElementById('intro').style.display = 'flex';
-            }
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (gameActive) {
-                camera.rotation.y -= e.movementX * 0.002;
-                camera.rotation.x -= e.movementY * 0.002;
-                camera.rotation.x = Math.max(-1, Math.min(1, camera.rotation.x));
-            }
-        });
-
-        document.addEventListener('mousedown', shoot);
-
-        // 5. Game Loop
-        function animate() {
-            requestAnimationFrame(animate);
-
-            if (gameActive) {
-                enemies.forEach((enemy, index) => {
-                    enemy.position.z += 0.05; // Fjender kommer mod dig
-                    enemy.rotation.x += 0.01;
-                    enemy.rotation.y += 0.01;
-
-                    // Hvis de flyver bag dig, nulstil dem
-                    if (enemy.position.z > 5) {
-                        enemy.position.z = -40;
-                    }
-                });
-            }
-
-            renderer.render(scene, camera);
-        }
-
-        // Start med 10 fjender
-        for(let i=0; i<10; i++) spawnEnemy();
-        camera.rotation.order = 'YXZ';
-        animate();
-
-        // Tilpas vindue
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
 </body>
 </html>
