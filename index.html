@@ -2,138 +2,160 @@
 <html lang="da">
 <head>
     <meta charset="UTF-8">
-    <title>3D Alien Shooter Pro</title>
+    <title>karl er dum</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
-        #hud { position: absolute; top: 20px; left: 20px; color: #0f0; font-size: 24px; z-index: 10; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border: 2px solid #0f0; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; }
-        #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; cursor: pointer; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        #ui {
+            position: absolute; top: 20px; left: 20px; color: #00ff00;
+            font-size: 24px; font-weight: bold; pointer-events: none;
+        }
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 20px; border: 2px solid #ff0000;
+            border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;
+        }
+        #intro {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.9);
+            color: white; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100; text-align: center;
+        }
+        button {
+            padding: 15px 30px; font-size: 20px; background: #00ff00;
+            border: none; cursor: pointer; border-radius: 5px; font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <div id="hud">SCORE: <span id="score">0</span></div>
+
+    <div id="ui">SCORE: <span id="score">0</span></div>
     <div id="crosshair"></div>
-    <div id="overlay"><h1>KLIK FOR AT STARTE</h1><p>WASD = Gå | MUS = Sigt & Skyd</p></div>
+    
+    <div id="intro">
+        <h1>3D SPACE DEFENDER</h1>
+        <p>Brug MUSEN til at sigte og venstreklik for at SKYDE.<br>Ram de hvide kuber!</p>
+        <button id="startBtn">START SPIL</button>
+    </div>
 
-    <script type="importmap"> { "imports": { "three": "https://unpkg.com" } } </script>
-    <script type="module">
-        import * as THREE from 'three';
+    <!-- Vi bruger et stabilt link til Three.js biblioteket -->
+    <script src="https://cloudflare.com"></script>
 
-        // --- SETUP ---
+    <script>
+        let score = 0;
+        let gameActive = false;
+        const enemies = [];
+
+        // 1. Setup Scenen
         const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510);
+        scene.fog = new THREE.Fog(0x050510, 10, 50);
+
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
+        // Lys
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(1, 1, 2);
+        scene.add(light);
         scene.add(new THREE.AmbientLight(0x404040));
-        const light = new THREE.PointLight(0xffffff, 100);
-        camera.add(light); // Lyset følger spilleren
-       <!-- Vi bruger et direkte link i stedet for importmap -->
-<script src="https://cloudflare.com"></script>
 
-<script>
-    // Fjern linjen: import * as THREE from 'three';
-    // Her starter resten af din kode...
-</script>
+        // En bund (stjernestøv)
+        const grid = new THREE.GridHelper(100, 40, 0x4444ff, 0x111133);
+        grid.position.y = -2;
+        scene.add(grid);
 
-        // --- SPIL DATA ---
-        let score = 0;
-        let gameActive = false;
-        const enemies = [];
-        const particles = [];
-        const keys = {};
-
-        // --- LYD (Gør klar til dine egne filer) ---
-        const audioListener = new THREE.AudioListener();
-        camera.add(audioListener);
-        const shootSound = new THREE.Audio(audioListener);
-        // Tip: Brug f.eks. 'laser.mp3' her
-        // new THREE.AudioLoader().load('sti/til/lyd.mp3', (buffer) => shootSound.setBuffer(buffer));
-
-        // --- FUNKTIONER ---
-        function createEnemy() {
+        // 2. Funktion til at lave fjender
+        function spawnEnemy() {
             const geo = new THREE.BoxGeometry(1, 1, 1);
-            const mat = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-            const enemy = new THREE.Mesh(geo, mat);
-            enemy.position.set((Math.random()-0.5)*40, 0.5, (Math.random()-0.5)*40);
-            scene.add(enemy);
-            enemies.push(enemy);
+            const mat = new THREE.MeshPhongMaterial({ color: 0xffffff, emissive: 0x222222 });
+            const cube = new THREE.Mesh(geo, mat);
+            
+            // Tilfældig position foran spilleren
+            cube.position.x = (Math.random() - 0.5) * 20;
+            cube.position.y = Math.random() * 5;
+            cube.position.z = -20 - (Math.random() * 20);
+            
+            scene.add(cube);
+            enemies.push(cube);
         }
 
-        function explode(pos) {
-            for(let i=0; i<15; i++) {
-                const pGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-                const pMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-                const p = new THREE.Mesh(pGeo, pMat);
-                p.position.copy(pos);
-                p.userData.velocity = new THREE.Vector3((Math.random()-0.5)*0.2, Math.random()*0.2, (Math.random()-0.5)*0.2);
-                scene.add(p);
-                particles.push(p);
-                setTimeout(() => { scene.remove(p); particles.splice(particles.indexOf(p), 1); }, 1000);
+        // 3. Skyde-logik
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(0, 0); // Centrum af skærmen
+
+        function shoot() {
+            if (!gameActive) return;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(enemies);
+
+            if (intersects.length > 0) {
+                const target = intersects[0].object;
+                scene.remove(target);
+                enemies.splice(enemies.indexOf(target), 1);
+                score += 10;
+                document.getElementById('score').innerText = score;
+                spawnEnemy(); // Lav en ny når en dør
             }
         }
 
-        // --- CONTROLS ---
-        window.addEventListener('keydown', e => keys[e.code] = true);
-        window.addEventListener('keyup', e => keys[e.code] = false);
-        
-        document.getElementById('overlay').onclick = () => document.body.requestPointerLock();
+        // 4. Controls
+        document.getElementById('startBtn').addEventListener('click', () => {
+            document.body.requestPointerLock();
+        });
+
         document.addEventListener('pointerlockchange', () => {
-            gameActive = document.pointerLockElement === document.body;
-            document.getElementById('overlay').style.display = gameActive ? 'none' : 'flex';
+            if (document.pointerLockElement === document.body) {
+                gameActive = true;
+                document.getElementById('intro').style.display = 'none';
+            } else {
+                gameActive = false;
+                document.getElementById('intro').style.display = 'flex';
+            }
         });
 
         document.addEventListener('mousemove', (e) => {
             if (gameActive) {
                 camera.rotation.y -= e.movementX * 0.002;
                 camera.rotation.x -= e.movementY * 0.002;
-                camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+                camera.rotation.x = Math.max(-1, Math.min(1, camera.rotation.x));
             }
         });
 
-        document.addEventListener('mousedown', () => {
-            if (!gameActive) return;
-            if (shootSound.buffer) shootSound.play(); // Spil lyd hvis indlæst
+        document.addEventListener('mousedown', shoot);
 
-            const ray = new THREE.Raycaster();
-            ray.setFromCamera(new THREE.Vector2(0,0), camera);
-            const hits = ray.intersectObjects(enemies);
-            if (hits.length > 0) {
-                const target = hits[0].object;
-                explode(target.position);
-                scene.remove(target);
-                enemies.splice(enemies.indexOf(target), 1);
-                score += 10;
-                document.getElementById('score').innerText = score;
-                createEnemy();
-            }
-        });
+        // 5. Game Loop
+        function animate() {
+            requestAnimationFrame(animate);
 
-        // --- GAME LOOP ---
-        function update() {
-            requestAnimationFrame(update);
             if (gameActive) {
-                // Bevægelse
-                const speed = 0.1;
-                if(keys['KeyW']) camera.translateZ(-speed);
-                if(keys['KeyS']) camera.translateZ(speed);
-                if(keys['KeyA']) camera.translateX(-speed);
-                if(keys['KeyD']) camera.translateX(speed);
-                camera.position.y = 1.6; // Hold spilleren i øjenhøjde
+                enemies.forEach((enemy, index) => {
+                    enemy.position.z += 0.05; // Fjender kommer mod dig
+                    enemy.rotation.x += 0.01;
+                    enemy.rotation.y += 0.01;
 
-                // Partikel animation
-                particles.forEach(p => {
-                    p.position.add(p.userData.velocity);
-                    p.userData.velocity.y -= 0.005; // Tyngdekraft
+                    // Hvis de flyver bag dig, nulstil dem
+                    if (enemy.position.z > 5) {
+                        enemy.position.z = -40;
+                    }
                 });
             }
+
             renderer.render(scene, camera);
         }
 
-        for(let i=0; i<10; i++) createEnemy();
+        // Start med 10 fjender
+        for(let i=0; i<10; i++) spawnEnemy();
         camera.rotation.order = 'YXZ';
-        update();
+        animate();
+
+        // Tilpas vindue
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
