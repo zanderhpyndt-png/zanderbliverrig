@@ -3,162 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Espresso House | Holstebro</title>
+    <title>3D Alien Shooter</title>
     <style>
-        /* Grundlæggende styling */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f9f7f2;
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', monospace; }
+        #ui {
+            position: absolute; top: 20px; left: 20px; color: #0f0; font-size: 28px;
+            text-shadow: 2px 2px #000; pointer-events: none; z-index: 10;
         }
-
-        header {
-            background-color: #3d2b1f; /* Mørkebrun Espresso farve */
-            color: white;
-            padding: 2rem 1rem;
-            text-align: center;
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 20px;
+            border: 2px solid #0f0; border-radius: 50%;
+            transform: translate(-50%, -50%); pointer-events: none; z-index: 10;
         }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
+        #instructions {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: white; text-align: center; background: rgba(0,0,0,0.85);
+            padding: 30px; border: 2px solid #0f0; cursor: pointer; z-index: 20;
         }
-
-        .hero {
-            text-align: center;
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        h1, h2 {
-            margin-top: 0;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        @media (max-width: 600px) {
-            .info-grid { grid-template-columns: 1fr; }
-        }
-
-        .card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .menu-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .menu-list li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .rating {
-            color: #f39c12;
-            font-weight: bold;
-            font-size: 1.2rem;
-        }
-
-        .btn {
-            display: inline-block;
-            background-color: #3d2b1f;
-            color: white;
-            padding: 0.8rem 1.5rem;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 1rem;
-            transition: background 0.3s;
-        }
-
-        .btn:hover {
-            background-color: #5d4331;
-        }
-
-        .review {
-            font-style: italic;
-            border-left: 4px solid #3d2b1f;
-            padding-left: 1rem;
-            margin: 1rem 0;
-        }
-
-        footer {
-            text-align: center;
-            padding: 2rem;
-            font-size: 0.9rem;
-            color: #777;
-        }
+        button { background: #0f0; border: none; padding: 10px 20px; font-size: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Espresso House Holstebro</h1>
-    <p>Nørregade 12, 7500 Holstebro</p>
-</header>
-
-<div class="container">
+    <div id="ui">SCORE: <span id="score">0</span></div>
+    <div id="crosshair"></div>
     
-    <section class="hero">
-        <h2>Velkommen indenfor</h2>
-        <p>Oplev byens hyggeligste atmosfære. Perfekt til studiebrug, morgenmad eller en hurtig kaffepause midt i gågaden.</p>
-        <div class="rating">★ 4,2 (193 anmeldelser)</div>
-        <a href="https://wolt.com" class="btn">Bestil via Wolt</a>
-    </section>
-
-    <div class="info-grid">
-        <section class="card">
-            <h3>Åbningstider & Info</h3>
-            <p><strong>Status:</strong> Åben (Lukker kl. 18.00)</p>
-            <p><strong>Prisniveau:</strong> 100 - 200 kr.</p>
-            <p><strong>Telefon:</strong> 51 63 69 72</p>
-            <p><strong>Service:</strong> Spisning på stedet</p>
-        </section>
-
-        <section class="card">
-            <h3>Populært på menuen</h3>
-            <ul class="menu-list">
-                <li><span>Latte Karamel</span> ☕</li>
-                <li><span>Caffé Latte</span> ☕</li>
-                <li><span>Pumpkin Latte</span> 🎃</li>
-            </ul>
-        </section>
+    <div id="instructions">
+        <h1>ALIEN INVADERS 3D</h1>
+        <p>KLIK FOR AT STARTE</p>
+        <p><b>MUS</b>: Sigt & Skyd</p>
+        <p>Ram de røde bokse før de slipper væk!</p>
     </div>
 
-    <section class="card">
-        <h3>Det siger gæsterne</h3>
-        <div class="review">
-            "Servicen var perfekt; jeg modtog både min kaffe og min mad inden for fem minutter... varm og god stemning."
-            <br><strong>- amahcaaH XII</strong>
-        </div>
-        <div class="review">
-            "Altid god kaffe og mættende mad. Godt sted at studere efter morgenmad på hverdage."
-            <br><strong>- Melissa, Local Guide</strong>
-        </div>
-    </section>
+    <!-- Vi henter Three.js motor -->
+    <script type="importmap">
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+    </script>
 
-</div>
+    <script type="module">
+        import * as THREE from 'three';
 
-<footer>
-    <p>&copy; 2024 Espresso House Holstebro | <a href="https://espressohouse.com">Officiel hjemmeside</a></p>
-</footer>
+        // --- 1. GRUNDLÆGGENDE SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020205);
+        scene.fog = new THREE.Fog(0x020205, 15, 40);
 
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Lys
+        scene.add(new THREE.AmbientLight(0x404040));
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(5, 10, 7);
+        scene.add(sun);
+
+        // En neon-grøn grid-bund
+        const grid = new THREE.GridHelper(200, 40, 0x00ff00, 0x003300);
+        scene.add(grid);
+
+        // --- 2. SPIL-LOGIK ---
+        let score = 0;
+        const enemies = [];
+        let gameActive = false;
+        const raycaster = new THREE.Raycaster();
+        const mouseMid = new THREE.Vector2(0, 0);
+
+        function createEnemy() {
+            const size = 0.5 + Math.random() * 1;
+            const geo = new THREE.BoxGeometry(size, size, size);
+            const mat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x550000 });
+            const enemy = new THREE.Mesh(geo, mat);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 15 + Math.random() * 10;
+            enemy.position.set(Math.cos(angle) * dist, 1 + Math.random() * 4, Math.sin(angle) * dist);
+            
+            scene.add(enemy);
+            enemies.push(enemy);
+        }
+
+        function shoot() {
+            if (!gameActive) return;
+
+            // Flash effekt
+            const flash = new THREE.PointLight(0x00ff00, 5, 10);
+            flash.position.copy(camera.position);
+            scene.add(flash);
+            setTimeout(() => scene.remove(flash), 50);
+
+            // Tjek hits
+            raycaster.setFromCamera(mouseMid, camera);
+            const hits = raycaster.intersectObjects(enemies);
+
+            if (hits.length > 0) {
+                const target = hits[0].object;
+                scene.remove(target);
+                enemies.splice(enemies.indexOf(target), 1);
+                score += 10;
+                document.getElementById('score').innerText = score;
+                createEnemy(); // Lav en ny fjende hver gang en dør
+            }
+        }
+
+        // --- 3. CONTROLS ---
+        const instr = document.getElementById('instructions');
+        instr.onclick = () => document.body.requestPointerLock();
+
+        document.addEventListener('pointerlockchange', () => {
+            gameActive = document.pointerLockElement === document.body;
+            instr.style.display = gameActive ? 'none' : 'block';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (gameActive) {
+                camera.rotation.y -= e.movementX * 0.002;
+                camera.rotation.x -= e.movementY * 0.002;
+                camera.rotation.x = Math.max(-1.5, Math.min(1.5, camera.rotation.x));
+            }
+        });
+
+        document.addEventListener('mousedown', shoot);
+        camera.rotation.order = 'YXZ';
+
+        // --- 4. GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            if (gameActive) {
+                enemies.forEach(e => {
+                    e.rotation.x += 0.02;
+                    e.rotation.y += 0.02;
+                    // Langsom bevægelse mod midten
+                    e.position.lerp(new THREE.Vector3(0, e.position.y, 0), 0.002);
+                });
+            }
+            renderer.render(scene, camera);
+        }
+
+        // Start spillet med 8 fjender
+        for(let i=0; i<8; i++) createEnemy();
+        animate();
+
+        window.onresize = () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+    </script>
 </body>
 </html>
