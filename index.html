@@ -2,156 +2,174 @@
 <html lang="da">
 <head>
     <meta charset="utf-8">
-    <title>Nightwatch: 6 AM Challenge</title>
+    <title>Nightwatch: Realism Edition</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
-        
-        /* HUD */
-        #hud { position: absolute; top: 20px; left: 20px; z-index: 1000; background: rgba(0,0,0,0.8); padding: 15px; border: 2px solid #0f0; }
-        .usage-bar { color: #f00; letter-spacing: 2px; }
+        :root { --glow: #00ff41; --danger: #ff3131; }
+        body { margin: 0; background: #000; color: var(--glow); font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
 
-        /* Kontoret */
-        #game-view { position: relative; width: 100vw; height: 100vh; }
+        /* Realistisk mørke og vignette */
+        #game-view { position: relative; width: 100vw; height: 100vh; box-shadow: inset 0 0 150px #000; }
+        #vignette { position: absolute; inset: 0; background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.9) 100%); pointer-events: none; z-index: 15; }
+
+        /* Kontoret med dybde */
         #office { 
-            position: absolute; width: 150vw; height: 100vh; left: -25vw; 
-            background: #111; 
-            background-image: repeating-linear-gradient(90deg, #151515 0px, #151515 100px, #111 100px, #111 200px);
+            position: absolute; width: 180vw; height: 100vh; left: -40vw; 
+            background: #111 url('https://transparenttextures.com');
             display: flex; align-items: center; justify-content: center;
-            transition: transform 0.1s ease-out;
+            transition: transform 0.15s ease-out;
         }
 
-        /* Lys-filter */
-        #darkness { position: absolute; inset: 0; background: rgba(0,0,0,0.9); pointer-events: none; z-index: 10; transition: 0.1s; }
-
-        /* Døre */
-        .door-frame { position: absolute; bottom: 0; width: 15vw; height: 80vh; background: #000; border: 5px solid #333; }
+        /* Døre med tekstur */
+        .door-frame { position: absolute; bottom: 0; width: 20vw; height: 85vh; background: #050505; border: 8px solid #222; box-shadow: 0 0 50px #000; }
         #frame-l { left: 15vw; } #frame-r { right: 15vw; }
-        .door { position: absolute; top: -100%; left: 0; width: 100%; height: 100%; background: #444; transition: 0.3s; }
+        .door { 
+            position: absolute; top: -100%; left: 0; width: 100%; height: 100%; 
+            background: linear-gradient(90deg, #222 0%, #333 50%, #222 100%);
+            border-bottom: 20px solid #111; transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .door::after { content: ''; width: 80%; height: 2px; background: rgba(255,255,255,0.05); position: absolute; top: 20%; }
         .door.closed { top: 0; }
 
-        /* Knapper */
-        .btns { position: absolute; bottom: 30%; display: flex; flex-direction: column; gap: 10px; z-index: 20; }
-        #btns-l { left: 5vw; } #btns-r { right: 5vw; }
-        .btn { width: 60px; height: 40px; background: #222; border: 2px solid #444; color: #fff; cursor: pointer; font-size: 10px; }
-        .btn.active-door { background: #f00; }
-        .btn.active-light { background: #ff0; color: #000; }
+        /* Lys-kegle */
+        #flashlight { 
+            position: absolute; inset: 0; z-index: 12; pointer-events: none;
+            background: radial-gradient(circle at center, rgba(255,255,230,0.15) 0%, transparent 60%);
+            display: none; mix-blend-mode: overlay;
+        }
 
-        /* Monitor */
-        #mon-toggle { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 30%; height: 40px; background: #333; z-index: 100; cursor: pointer; text-align: center; line-height: 40px; border-radius: 10px 10px 0 0; }
-        #cam-screen { position: absolute; inset: 0; background: #021a02; z-index: 500; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        
-        /* Monster i døren (Visualisering) */
-        #monster-l { position: absolute; bottom: 10%; left: 17vw; font-size: 100px; display: none; z-index: 5; }
+        /* Knapper og paneler */
+        .panel { position: absolute; bottom: 35%; padding: 10px; background: #1a1a1a; border: 2px solid #333; display: flex; flex-direction: column; gap: 10px; z-index: 20; }
+        #panel-l { left: 4vw; } #panel-r { right: 4vw; }
+        .btn { width: 50px; height: 50px; border-radius: 5px; cursor: pointer; border: 3px solid #000; position: relative; }
+        .btn-door { background: #4a0000; } .btn-door.active { background: #ff0000; box-shadow: 0 0 15px #ff0000; }
+        .btn-light { background: #4a4a00; } .btn-light.active { background: #ffff00; box-shadow: 0 0 15px #ffff00; }
+
+        /* Monitor med Scanlines */
+        #monitor { 
+            position: absolute; inset: 0; background: #000; z-index: 500; display: none;
+            border: 40px solid #1a1a1a; overflow: hidden;
+        }
+        #monitor::before { 
+            content: " "; display: block; position: absolute; inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 501; background-size: 100% 4px, 3px 100%; pointer-events: none;
+        }
+        #monitor-ui { position: absolute; top: 40px; left: 40px; font-size: 20px; z-index: 502; text-shadow: 2px 2px #000; }
+
+        /* UI */
+        #hud { position: absolute; bottom: 30px; left: 30px; z-index: 1000; text-transform: uppercase; letter-spacing: 2px; }
     </style>
 </head>
 <body>
 
+<div id="vignette"></div>
+<div id="flashlight"></div>
+
 <div id="hud">
-    <div style="font-size: 24px;">KL: <span id="clock">12</span> AM</div>
-    <div>STRØM: <span id="pwr">100</span>%</div>
-    <div>FORBRUG: <span id="use" class="usage-bar">I</span></div>
+    <div style="font-size: 32px;"><span id="hr">12</span> AM</div>
+    <div style="color: #666;">Power: <span id="pwr" style="color: var(--glow);">100</span>%</div>
 </div>
 
 <div id="game-view">
-    <div id="darkness"></div>
-    <div id="monster-l">🤡</div>
-
     <div id="office">
-        <div id="btns-l" class="btns">
-            <button class="btn" onclick="toggleD('l', this)">DØR</button>
-            <button class="btn" onmousedown="light(true, this)" onmouseup="light(false, this)">LYS</button>
+        <div id="panel-l" class="panel">
+            <div class="btn btn-door" onclick="toggleDoor('l', this)"></div>
+            <div class="btn btn-light" onmousedown="setLight(true, 'l', this)" onmouseup="setLight(false, 'l', this)"></div>
         </div>
         <div id="frame-l" class="door-frame"><div id="door-l" class="door"></div></div>
 
         <div id="frame-r" class="door-frame"><div id="door-r" class="door"></div></div>
-        <div id="btns-r" class="btns">
-            <button class="btn" onclick="toggleD('r', this)">DØR</button>
-            <button class="btn" onmousedown="light(true, this)" onmouseup="light(false, this)">LYS</button>
+        <div id="panel-r" class="panel">
+            <div class="btn btn-door" onclick="toggleDoor('r', this)"></div>
+            <div class="btn btn-light" onmousedown="setLight(true, 'r', this)" onmouseup="setLight(false, 'r', this)"></div>
         </div>
     </div>
 
-    <div id="mon-toggle" onclick="toggleC()">OVERVÅGNING</div>
-
-    <div id="cam-screen">
-        <h2 id="cam-info">CAM 01: HOVEDGANG</h2>
-        <div id="ai-dist" style="font-size: 30px;">Alt er stille...</div>
-        <button onclick="toggleC()" style="margin-top: 30px; padding: 15px;">LUK MONITOR</button>
+    <div id="monitor" onclick="toggleMonitor()">
+        <div id="monitor-ui">REC ● CAM 01<br><span id="ai-hint">NO SIGNAL</span></div>
+        <img id="cam-img" src="https://unsplash.com" style="width:100%; height:100%; object-fit:cover; opacity: 0.3;">
     </div>
+
+    <div style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:300px; height:40px; background:#222; z-index:100; cursor:pointer; text-align:center; line-height:40px; border:2px solid #333;" onclick="toggleMonitor()">MONITOR SYSTEM</div>
 </div>
 
 <script>
-    let pwr = 100, hour = 12, timeTicks = 0, aiPos = 0;
-    let doors = {l: false, r: false}, lightOn = false, camOn = false;
+    let power = 100, hour = 12, ticks = 0, aiPos = 0;
+    let doors = {l: false, r: false}, cam = false;
 
-    // Panorering
+    // Realistisk Panorering (Smidig bevægelse)
     document.addEventListener('mousemove', (e) => {
-        let x = (e.clientX / window.innerWidth - 0.5) * 50;
+        let x = (e.clientX / window.innerWidth - 0.5) * 60;
         document.getElementById('office').style.transform = `translateX(${-x}vw)`;
     });
 
-    // Gameloop (Hvert sekund)
-    const loop = setInterval(() => {
-        // Strømforbrug
-        let consumption = 1 + (doors.l?1:0) + (doors.r?1:0) + (lightOn?1:0) + (camOn?2:0);
-        pwr -= (consumption * 0.12);
-        document.getElementById('pwr').innerText = Math.floor(pwr);
-        document.getElementById('use').innerText = "I".repeat(consumption);
-
-        if (pwr <= 0) endGame("STRØMMEN GIK... DU ER FORSVUNDET I MØRKET.");
-
-        // Tid
-        timeTicks++;
-        if (timeTicks >= 45) { // 45 sekunder pr. time
-            timeTicks = 0;
-            hour = (hour === 12) ? 1 : hour + 1;
-            document.getElementById('clock').innerText = hour;
-            if (hour === 6) endGame("KLOKKEN ER 06:00! DU OVERLEVEDE!", true);
-        }
-
-        // AI Bevægelse (Hvert 4. sekund)
-        if (timeTicks % 4 === 0) {
-            if (Math.random() > 0.4) {
-                aiPos++;
-                updateCam();
-                if (aiPos >= 5) {
-                    if (doors.l) { aiPos = 0; updateCam(); } 
-                    else { endGame("JUMPSCARE! MONSTRET FANGEDE DIG."); }
-                }
-            }
-        }
+    // Game Logic
+    const mainLoop = setInterval(() => {
+        // Power consumption logic
+        let drain = 0.1;
+        if (doors.l) drain += 0.2;
+        if (doors.r) drain += 0.2;
+        if (cam) drain += 0.3;
         
-        // Vis monster hvis lyset er tændt og han er ved døren
-        document.getElementById('monster-l').style.display = (lightOn && aiPos === 4) ? "block" : "none";
+        power -= drain;
+        document.getElementById('pwr').innerText = Math.max(0, Math.floor(power));
 
+        if (power <= 0) gameOver("POWER OUTAGE");
+
+        // Clock logic
+        ticks++;
+        if (ticks >= 60) {
+            ticks = 0;
+            hour = hour === 12 ? 1 : hour + 1;
+            document.getElementById('hr').innerText = hour;
+            if (hour === 6) gameOver("YOU SURVIVED", true);
+        }
+
+        // AI Movement
+        if (ticks % 5 === 0 && Math.random() > 0.5) {
+            aiPos++;
+            if (aiPos > 5) {
+                if (doors.l) { aiPos = 0; }
+                else { gameOver("THEY GOT IN"); }
+            }
+            updateMonitor();
+        }
     }, 1000);
 
-    function toggleD(s, b) {
+    function toggleDoor(s, b) {
         doors[s] = !doors[s];
         document.getElementById('door-'+s).classList.toggle('closed');
-        b.classList.toggle('active-door');
+        b.classList.toggle('active');
     }
 
-    function light(on, b) {
-        lightOn = on;
-        document.getElementById('darkness').style.background = on ? "transparent" : "rgba(0,0,0,0.9)";
-        b.classList.toggle('active-light', on);
+    function setLight(on, side, b) {
+        const fl = document.getElementById('flashlight');
+        fl.style.display = on ? 'block' : 'none';
+        fl.style.background = `radial-gradient(circle at ${side==='l'?'30%':'70%'}, rgba(255,255,230,0.2) 0%, transparent 50%)`;
+        b.classList.toggle('active', on);
     }
 
-    function toggleC() {
-        camOn = !camOn;
-        document.getElementById('cam-screen').style.display = camOn ? "flex" : "none";
+    function toggleMonitor() {
+        cam = !cam;
+        document.getElementById('monitor').style.display = cam ? 'block' : 'none';
     }
 
-    function updateCam() {
-        const d = document.getElementById('ai-dist');
-        if (aiPos < 2) d.innerText = "Intet at se...";
-        else if (aiPos < 4) d.innerText = "Noget bevæger sig i skyggerne!";
-        else d.innerText = "ADVARSEL: EKSTREM NÆRHED!";
+    function updateMonitor() {
+        const hint = document.getElementById('ai-hint');
+        const img = document.getElementById('cam-img');
+        if (aiPos > 3) {
+            hint.innerText = "MOVEMENT DETECTED";
+            img.style.opacity = "0.5";
+        } else {
+            hint.innerText = "SIGNAL STABLE";
+            img.style.opacity = "0.2";
+        }
     }
 
-    function endGame(m, win = false) {
-        clearInterval(loop);
-        document.body.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:${win?'#0f0':'red'};"><h1>${win?'SEJR':'GAME OVER'}</h1><p>${m}</p><button onclick="location.reload()">SPIL IGEN</button></div>`;
+    function gameOver(msg, win = false) {
+        clearInterval(mainLoop);
+        document.body.innerHTML = `<div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:${win?'#0f0':'#f00'};"><h1>${msg}</h1><button onclick="location.reload()" style="background:none; border:1px solid #fff; color:#fff; padding:10px; cursor:pointer;">RESTART</button></div>`;
     }
 </script>
 </body>
