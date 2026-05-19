@@ -2,179 +2,128 @@
 <html lang="da">
 <head>
     <meta charset="utf-8">
-    <title>Nightwatch Horror</title>
+    <title>Nightwatch Horror Pro</title>
     <style>
-        body { 
-            margin: 0; 
-            background: #000; 
-            color: #0f0; 
-            font-family: 'Courier New', monospace; 
-            overflow: hidden; 
-            user-select: none; 
-        }
-
-        /* Panorering af kontoret */
-        #game-view { 
-            position: relative; 
-            width: 100vw; 
-            height: 100vh; 
-            overflow: hidden; 
-        }
-
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
+        #game-view { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        
+        /* Kontoret */
         #office { 
-            position: absolute; 
-            width: 150vw; 
-            height: 100vh; 
-            left: -25vw; 
+            position: absolute; width: 150vw; height: 100vh; left: -25vw; 
             background: linear-gradient(90deg, #050505 0%, #1a1a1a 50%, #050505 100%); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: transform 0.1s ease-out; 
+            display: flex; align-items: center; justify-content: center; transition: background 0.1s;
         }
 
-        /* Døre */
-        .door { 
-            position: absolute; 
-            width: 15vw; 
-            height: 80vh; 
-            background: #222; 
-            bottom: 0; 
-            border: 4px solid #111; 
-            transition: 0.5s ease-in-out; 
-            z-index: 5; 
-        }
+        /* UI Elementer */
+        #ui-layer { position: absolute; top: 20px; left: 20px; z-index: 200; font-size: 24px; pointer-events: none; }
+        .danger { color: #f00; animation: blink 0.5s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
 
-        #door-left { left: 15vw; }
-        #door-right { right: 15vw; }
-
-        .door.closed { transform: translateY(0); background: #333; }
+        /* Døre og Knapper */
+        .door { position: absolute; width: 15vw; height: 80vh; background: #222; bottom: 0; border: 4px solid #111; transition: 0.5s; z-index: 5; }
+        #door-left { left: 15vw; } #door-right { right: 15vw; }
+        .door.closed { transform: translateY(0); }
         .door.open { transform: translateY(-100%); }
 
-        /* Lys og knapper */
-        .btn-panel {
-            position: absolute;
-            bottom: 30%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 10;
-        }
-
-        #panel-l { left: 5vw; }
-        #panel-r { right: 5vw; }
-
-        .btn {
-            width: 50px;
-            height: 50px;
-            background: #444;
-            border: 3px solid #666;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
+        .btn-panel { position: absolute; bottom: 30%; z-index: 10; display: flex; flex-direction: column; gap: 10px; }
+        #panel-l { left: 5vw; } #panel-r { right: 5vw; }
+        .btn { width: 50px; height: 50px; background: #444; border: 3px solid #666; cursor: pointer; }
         .btn-door.active { background: #f00; }
-        .btn-light.active { background: #ff0; box-shadow: 0 0 20px #ff0; }
+        .btn-light.active { background: #ff0; }
 
-        /* Monitor / Kamera */
-        #monitor-toggle { 
-            position: absolute; 
-            bottom: 0; 
-            left: 35%; 
-            width: 30%; 
-            height: 40px; 
-            background: rgba(50, 50, 50, 0.8); 
-            border: 2px solid #444; 
-            text-align: center; 
-            color: white;
-            line-height: 40px; 
-            cursor: pointer; 
-            z-index: 50; 
-            border-radius: 10px 10px 0 0; 
-        }
-
-        #camera-screen { 
-            position: absolute; 
-            inset: 0; 
-            background: #111; 
-            display: none; 
-            z-index: 100; 
-            border: 20px solid #333;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .static {
-            position: absolute;
-            inset: 0;
-            background: url('https://giphy.com');
-            opacity: 0.1;
-            pointer-events: none;
-        }
+        /* Monitor */
+        #monitor-toggle { position: absolute; bottom: 0; left: 30%; width: 40%; height: 40px; background: #333; z-index: 50; text-align: center; cursor: pointer; line-height: 40px; border-radius: 10px 10px 0 0; }
+        #camera-screen { position: absolute; inset: 0; background: #000; display: none; z-index: 100; border: 20px solid #222; justify-content: center; align-items: center; flex-direction: column; }
     </style>
 </head>
 <body>
 
 <div id="game-view">
+    <div id="ui-layer">
+        STRØM: <span id="power-val">100</span>%<br>
+        FORBRUG: <span id="usage-val">1</span> >
+    </div>
+
     <div id="office">
-        <!-- Venstre dør og knapper -->
         <div id="panel-l" class="btn-panel">
-            <div class="btn btn-door" onclick="toggleDoor('door-left', this)"></div>
-            <div class="btn btn-light" onmousedown="toggleLight(true)" onmouseup="toggleLight(false)"></div>
+            <div class="btn btn-door" onclick="toggleDoor('l')"></div>
+            <div class="btn btn-light" onmousedown="light(true)" onmouseup="light(false)"></div>
         </div>
         <div id="door-left" class="door open"></div>
 
-        <!-- Højre dør og knapper -->
         <div id="door-right" class="door open"></div>
         <div id="panel-r" class="btn-panel">
-            <div class="btn btn-door" onclick="toggleDoor('door-right', this)"></div>
-            <div class="btn btn-light" onmousedown="toggleLight(true)" onmouseup="toggleLight(false)"></div>
+            <div class="btn btn-door" onclick="toggleDoor('r')"></div>
+            <div class="btn btn-light" onmousedown="light(true)" onmouseup="light(false)"></div>
         </div>
     </div>
 
-    <div id="monitor-toggle" onclick="toggleCameras()">OVERVÅGNING</div>
-
+    <div id="monitor-toggle" onclick="toggleCam()">OVERVÅGNING</div>
+    
     <div id="camera-screen">
-        <div class="static"></div>
-        <h1>CAM 01 - INDGANG</h1>
-        <button onclick="toggleCameras()" style="z-index: 101;">LUK KAMERA</button>
+        <h1 id="cam-label">CAM 01: HALLWAY</h1>
+        <p id="ai-status">ALT ER ROLIGT</p>
+        <button onclick="toggleCam()">LUK</button>
     </div>
 </div>
 
 <script>
-    const office = document.getElementById('office');
-    const camScreen = document.getElementById('camera-screen');
+    let power = 100;
+    let usage = 1;
+    let doors = { l: false, r: false };
+    let lightOn = false;
+    let aiPos = 0; // 0 = start, 4 = ved din dør
 
-    // 1. Panorering med musen
-    document.addEventListener('mousemove', (e) => {
-        const x = e.clientX / window.innerWidth;
-        const move = (x - 0.5) * 50; // Flytter kontoret baseret på musens position
-        office.style.transform = `translateX(${-move}vw)`;
-    });
-
-    // 2. Dør-logik
-    function toggleDoor(id, btn) {
-        const door = document.getElementById(id);
-        door.classList.toggle('open');
-        door.classList.toggle('closed');
-        btn.classList.toggle('active');
-    }
-
-    // 3. Lys-logik
-    function toggleLight(on) {
-        office.style.background = on ? 
-            'linear-gradient(90deg, #1a1a1a 0%, #444 50%, #1a1a1a 100%)' : 
-            'linear-gradient(90deg, #050505 0%, #1a1a1a 50%, #050505 100%)';
-    }
-
-    // 4. Kamera-logik
-    function toggleCameras() {
-        if (camScreen.style.display === 'flex') {
-            camScreen.style.display = 'none';
+    // Power System
+    setInterval(() => {
+        if (power > 0) {
+            usage = 1 + (doors.l ? 1 : 0) + (doors.r ? 1 : 0) + (lightOn ? 1 : 0);
+            power -= (usage * 0.1);
+            document.getElementById('power-val').innerText = Math.floor(power);
+            document.getElementById('usage-val').innerText = usage;
         } else {
-            camScreen.style.display = 'flex';
+            document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>STRØMMEN GIK... DU ER DØD.</h1>";
         }
+    }, 1000);
+
+    // AI Logic (Freddy bevæger sig hvert 5. sekund)
+    setInterval(() => {
+        if (Math.random() > 0.5) {
+            aiPos++;
+            updateCam();
+            if (aiPos > 4) {
+                if (!doors.l) {
+                    alert("JUMPSCARE! DU TABTE.");
+                    location.reload();
+                } else {
+                    aiPos = 0; // Han blev blokeret af døren!
+                }
+            }
+        }
+    }, 5000);
+
+    function toggleDoor(side) {
+        doors[side] = !doors[side];
+        document.getElementById('door-' + (side=='l'?'left':'right')).className = doors[side] ? 'door closed' : 'door open';
+        event.target.classList.toggle('active');
+    }
+
+    function light(on) {
+        lightOn = on;
+        document.getElementById('office').style.background = on ? '#333' : 'linear-gradient(90deg, #050505 0%, #1a1a1a 50%, #050505 100%)';
+    }
+
+    function toggleCam() {
+        const cam = document.getElementById('camera-screen');
+        cam.style.display = (cam.style.display === 'flex') ? 'none' : 'flex';
+        updateCam();
+    }
+
+    function updateCam() {
+        const status = document.getElementById('ai-status');
+        if (aiPos === 0) status.innerText = "Noget rører på sig i mørket...";
+        if (aiPos === 2) status.innerText = "Der er en skygge i gangen!";
+        if (aiPos === 4) status.innerText = "HAN STÅR LIGE UDENFOR DØREN!";
     }
 </script>
 
