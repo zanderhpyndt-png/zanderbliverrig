@@ -2,128 +2,280 @@
 <html lang="da">
 <head>
     <meta charset="utf-8">
-    <title>Nightwatch Horror Pro</title>
+    <title>Nightwatch Horror - System v2</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; user-select: none; }
-        #game-view { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-        
-        /* Kontoret */
-        #office { 
-            position: absolute; width: 150vw; height: 100vh; left: -25vw; 
-            background: linear-gradient(90deg, #050505 0%, #1a1a1a 50%, #050505 100%); 
-            display: flex; align-items: center; justify-content: center; transition: background 0.1s;
+        body { 
+            margin: 0; 
+            background: #050505; 
+            color: #0f0; 
+            font-family: 'Courier New', monospace; 
+            overflow: hidden; 
+            user-select: none; 
         }
 
-        /* UI Elementer */
-        #ui-layer { position: absolute; top: 20px; left: 20px; z-index: 200; font-size: 24px; pointer-events: none; }
-        .danger { color: #f00; animation: blink 0.5s infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
+        /* HUD - Strøm og Tid */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border: 2px solid #0f0;
+            pointer-events: none;
+        }
 
-        /* Døre og Knapper */
-        .door { position: absolute; width: 15vw; height: 80vh; background: #222; bottom: 0; border: 4px solid #111; transition: 0.5s; z-index: 5; }
-        #door-left { left: 15vw; } #door-right { right: 15vw; }
-        .door.closed { transform: translateY(0); }
-        .door.open { transform: translateY(-100%); }
+        /* Selve kontoret */
+        #game-view {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
 
-        .btn-panel { position: absolute; bottom: 30%; z-index: 10; display: flex; flex-direction: column; gap: 10px; }
-        #panel-l { left: 5vw; } #panel-r { right: 5vw; }
-        .btn { width: 50px; height: 50px; background: #444; border: 3px solid #666; cursor: pointer; }
-        .btn-door.active { background: #f00; }
-        .btn-light.active { background: #ff0; }
+        #office {
+            position: absolute;
+            width: 160vw;
+            height: 100vh;
+            left: -30vw;
+            background: #1a1a1a;
+            /* Vi laver vægge med CSS gradient */
+            background-image: 
+                linear-gradient(to right, #000 0%, transparent 20%, transparent 80%, #000 100%),
+                repeating-linear-gradient(90deg, #222 0px, #222 50px, #252525 50px, #252525 100px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s ease-out;
+        }
 
-        /* Monitor */
-        #monitor-toggle { position: absolute; bottom: 0; left: 30%; width: 40%; height: 40px; background: #333; z-index: 50; text-align: center; cursor: pointer; line-height: 40px; border-radius: 10px 10px 0 0; }
-        #camera-screen { position: absolute; inset: 0; background: #000; display: none; z-index: 100; border: 20px solid #222; justify-content: center; align-items: center; flex-direction: column; }
+        /* Døråbninger (huller i væggen) */
+        .door-frame {
+            position: absolute;
+            bottom: 0;
+            width: 18vw;
+            height: 85vh;
+            background: #000; /* Sort hul */
+            border-top: 10px solid #333;
+            border-left: 10px solid #333;
+            border-right: 10px solid #333;
+        }
+        #frame-l { left: 15vw; }
+        #frame-r { right: 15vw; }
+
+        /* Selve døren der kører ned */
+        .door-metal {
+            position: absolute;
+            top: -100%; /* Start som åben */
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(#444, #222);
+            border-bottom: 15px solid #111;
+            transition: top 0.5s ease-in-out;
+        }
+        .door-metal.closed { top: 0; }
+
+        /* Knapperne på væggen */
+        .controls {
+            position: absolute;
+            bottom: 40%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        #controls-l { left: 5vw; }
+        #controls-r { right: 5vw; }
+
+        .btn {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .btn-door { background: #800; color: white; }
+        .btn-door.active { background: #f00; box-shadow: 0 0 15px #f00; }
+        .btn-light { background: #880; color: white; }
+        .btn-light.active { background: #ff0; box-shadow: 0 0 15px #ff0; }
+
+        /* Lys-effekt i rummet */
+        #light-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            z-index: 2;
+            transition: background 0.1s;
+        }
+
+        /* Monitor / Kamera-skærm */
+        #monitor-btn {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 50px;
+            background: #333;
+            border: 4px solid #555;
+            border-radius: 20px 20px 0 0;
+            z-index: 100;
+            cursor: pointer;
+            text-align: center;
+            line-height: 50px;
+            color: #fff;
+        }
+
+        #cam-view {
+            position: absolute;
+            inset: 0;
+            background: #021a02;
+            z-index: 500;
+            display: none;
+            border: 20px solid #222;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cam-static {
+            position: absolute;
+            inset: 0;
+            background: url('https://giphy.com');
+            opacity: 0.05;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
+<div id="hud">
+    TID: <span id="time">00:00</span> AM<br>
+    STRØM: <span id="power">100</span>%<br>
+    FORBRUG: <span id="usage">I</span>
+</div>
+
 <div id="game-view">
-    <div id="ui-layer">
-        STRØM: <span id="power-val">100</span>%<br>
-        FORBRUG: <span id="usage-val">1</span> >
-    </div>
+    <div id="light-overlay"></div>
 
     <div id="office">
-        <div id="panel-l" class="btn-panel">
-            <div class="btn btn-door" onclick="toggleDoor('l')"></div>
-            <div class="btn btn-light" onmousedown="light(true)" onmouseup="light(false)"></div>
+        <!-- Venstre side -->
+        <div id="controls-l" class="controls">
+            <div class="btn btn-door" onclick="toggleDoor('l')">DØR</div>
+            <div class="btn btn-light" onmousedown="setLight(true)" onmouseup="setLight(false)">LYS</div>
         </div>
-        <div id="door-left" class="door open"></div>
+        <div id="frame-l" class="door-frame">
+            <div id="door-l" class="door-metal"></div>
+        </div>
 
-        <div id="door-right" class="door open"></div>
-        <div id="panel-r" class="btn-panel">
-            <div class="btn btn-door" onclick="toggleDoor('r')"></div>
-            <div class="btn btn-light" onmousedown="light(true)" onmouseup="light(false)"></div>
+        <!-- Højre side -->
+        <div id="frame-r" class="door-frame">
+            <div id="door-r" class="door-metal"></div>
+        </div>
+        <div id="controls-r" class="controls">
+            <div class="btn btn-door" onclick="toggleDoor('r')">DØR</div>
+            <div class="btn btn-light" onmousedown="setLight(true)" onmouseup="setLight(false)">LYS</div>
         </div>
     </div>
 
-    <div id="monitor-toggle" onclick="toggleCam()">OVERVÅGNING</div>
-    
-    <div id="camera-screen">
-        <h1 id="cam-label">CAM 01: HALLWAY</h1>
-        <p id="ai-status">ALT ER ROLIGT</p>
-        <button onclick="toggleCam()">LUK</button>
+    <div id="monitor-btn" onclick="toggleCams()">OVERVÅGNING</div>
+
+    <div id="cam-view">
+        <div class="cam-static"></div>
+        <h1 style="color: #0f0; text-shadow: 0 0 10px #0f0;">CAM 01: INDGANG</h1>
+        <div id="ai-warning" style="font-size: 24px; color: red;">ALT ER STILLE...</div>
+        <button onclick="toggleCams()" style="margin-top: 50px; padding: 10px 20px; cursor: pointer;">LUK MONITOR</button>
     </div>
 </div>
 
 <script>
+    // Tilstand (State)
     let power = 100;
-    let usage = 1;
+    let time = 0;
     let doors = { l: false, r: false };
-    let lightOn = false;
-    let aiPos = 0; // 0 = start, 4 = ved din dør
+    let lightActive = false;
+    let camOpen = false;
+    let aiPos = 0; // 0 til 5 (5 er jumpscare)
 
-    // Power System
+    // Panorering af kontoret (Flyt musen til siderne)
+    document.addEventListener('mousemove', (e) => {
+        const x = e.clientX / window.innerWidth;
+        const move = (x - 0.5) * 60;
+        document.getElementById('office').style.transform = `translateX(${-move}vw)`;
+    });
+
+    // Strøm-system (Kører hvert sekund)
     setInterval(() => {
         if (power > 0) {
-            usage = 1 + (doors.l ? 1 : 0) + (doors.r ? 1 : 0) + (lightOn ? 1 : 0);
-            power -= (usage * 0.1);
-            document.getElementById('power-val').innerText = Math.floor(power);
-            document.getElementById('usage-val').innerText = usage;
+            let usage = 1;
+            if (doors.l) usage++;
+            if (doors.r) usage++;
+            if (lightActive) usage++;
+            if (camOpen) usage++;
+
+            power -= (usage * 0.15);
+            document.getElementById('power').innerText = Math.max(0, Math.floor(power));
+            document.getElementById('usage').innerText = "I".repeat(usage);
+            
+            // Tidssystem
+            time += 1;
+            if (time % 60 === 0) {
+                let hours = time / 60;
+                document.getElementById('time').innerText = `0${hours}:00`;
+                if (hours === 6) alert("DU OVERLEVEDE! KLOKKEN ER 06:00");
+            }
         } else {
-            document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>STRØMMEN GIK... DU ER DØD.</h1>";
+            gameOver("STRØMMEN GIK...");
         }
     }, 1000);
 
-    // AI Logic (Freddy bevæger sig hvert 5. sekund)
+    // AI System (Monstret bevæger sig)
     setInterval(() => {
-        if (Math.random() > 0.5) {
+        if (Math.random() > 0.6) {
             aiPos++;
-            updateCam();
-            if (aiPos > 4) {
-                if (!doors.l) {
-                    alert("JUMPSCARE! DU TABTE.");
-                    location.reload();
+            updateCamText();
+            if (aiPos >= 5) {
+                if (doors.l) {
+                    aiPos = 0; // Monstret blev stoppet af døren
+                    updateCamText();
                 } else {
-                    aiPos = 0; // Han blev blokeret af døren!
+                    gameOver("JUMPSCARE! MONSTRET FANGEDE DIG.");
                 }
             }
         }
-    }, 5000);
+    }, 4000);
 
     function toggleDoor(side) {
         doors[side] = !doors[side];
-        document.getElementById('door-' + (side=='l'?'left':'right')).className = doors[side] ? 'door closed' : 'door open';
+        document.getElementById(`door-${side}`).classList.toggle('closed');
         event.target.classList.toggle('active');
     }
 
-    function light(on) {
-        lightOn = on;
-        document.getElementById('office').style.background = on ? '#333' : 'linear-gradient(90deg, #050505 0%, #1a1a1a 50%, #050505 100%)';
+    function setLight(on) {
+        lightActive = on;
+        document.getElementById('light-overlay').style.background = on ? "rgba(255,255,200,0.1)" : "rgba(0,0,0,0.8)";
+        if (on) event.target.classList.add('active');
+        else document.querySelectorAll('.btn-light').forEach(b => b.classList.remove('active'));
     }
 
-    function toggleCam() {
-        const cam = document.getElementById('camera-screen');
-        cam.style.display = (cam.style.display === 'flex') ? 'none' : 'flex';
-        updateCam();
+    function toggleCams() {
+        camOpen = !camOpen;
+        document.getElementById('cam-view').style.display = camOpen ? "flex" : "none";
     }
 
-    function updateCam() {
-        const status = document.getElementById('ai-status');
-        if (aiPos === 0) status.innerText = "Noget rører på sig i mørket...";
-        if (aiPos === 2) status.innerText = "Der er en skygge i gangen!";
-        if (aiPos === 4) status.innerText = "HAN STÅR LIGE UDENFOR DØREN!";
+    function updateCamText() {
+        const txt = document.getElementById('ai-warning');
+        if (aiPos < 2) txt.innerText = "ALT ER STILLE...";
+        else if (aiPos < 4) txt.innerText = "NOGET BEVÆGER SIG I GANGEN!";
+        else txt.innerText = "HAN STÅR LIGE UDENFOR DIN DØR!!!";
+    }
+
+    function gameOver(msg) {
+        document.body.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#000; color:red;"><h1>GAME OVER</h1><p>${msg}</p><button onclick="location.reload()">PRØV IGEN</button></div>`;
     }
 </script>
 
