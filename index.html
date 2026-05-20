@@ -2,233 +2,100 @@
 <html lang="da">
 <head>
     <meta charset="utf-8">
-    <title>Nightwatch: Ultra Detail Edition</title>
+    <title>Nightwatch: Bright Edition</title>
     <style>
         :root { 
-            --terminal: #1aff1a; 
-            --warn: #ffcc00; 
-            --crit: #ff3300;
-            --panel-bg: #121212;
+            /* Lysere neon-farver */
+            --terminal: #33ff33; 
+            --warn: #ffdb4d; 
+            --crit: #ff6666;
+            /* Lysere baggrundspaneler */
+            --panel-bg: #2a2a2a;
+            --office-bg: #1a1a1a;
         }
 
         body { 
-            margin: 0; background: #020202; color: var(--terminal); 
-            font-family: 'Courier New', monospace; overflow: hidden; user-select: none;
+            margin: 0; 
+            background: #151515; /* Lysere grundbase */
+            color: var(--terminal); 
+            font-family: 'Courier New', monospace; 
+            overflow: hidden; 
+            user-select: none;
         }
 
-        /* 📺 CRT Scanline Effekt over hele skærmen */
+        /* 📺 Svagere scanlines for bedre læsbarhed */
         body::before {
             content: " "; display: block; position: absolute; inset: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255,0,0,0.02), rgba(0,255,0,0.01), rgba(0,0,255,0.02));
-            z-index: 2000; background-size: 100% 3px, 3px 100%; pointer-events: none;
+            background: linear-gradient(rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0.1) 50%);
+            z-index: 2000; background-size: 100% 4px; pointer-events: none;
         }
 
-        /* 🔦 Dynamisk Kontor med Parallax */
+        /* 🔦 Mere oplyst kontor */
         #viewport { position: relative; width: 100vw; height: 100vh; overflow: hidden; perspective: 1000px; }
         
         #office { 
             position: absolute; width: 200vw; height: 100vh; left: -50vw; 
-            background: #0a0a0a;
+            background: var(--office-bg);
             background-image: 
-                radial-gradient(circle at 50% 50%, #1a1a1a 0%, #050505 80%),
-                repeating-linear-gradient(90deg, #111 0, #111 2px, transparent 2px, transparent 15vw);
+                radial-gradient(circle at 50% 50%, #333 0%, #1a1a1a 70%),
+                repeating-linear-gradient(90deg, #222 0, #222 2px, transparent 2px, transparent 15vw);
             display: flex; align-items: center; justify-content: center;
-            transition: transform 0.2s cubic-bezier(0.1, 0.5, 0.1, 1);
+            transition: transform 0.2s ease-out;
         }
 
-        /* 🚪 Detaljerede Dørsystemer */
+        /* 🚪 Dørsystemer med tydeligere kanter */
         .door-bay { 
             position: absolute; bottom: 0; width: 22vw; height: 85vh; 
-            background: #000; border: 12px solid #1a1a1a;
-            box-shadow: inset 0 20px 50px #000, 0 0 30px rgba(0,0,0,0.8);
+            background: #111; 
+            border: 12px solid #333;
+            box-shadow: inset 0 0 100px rgba(51, 255, 51, 0.05), 0 0 40px rgba(0,0,0,0.5);
         }
-        #bay-l { left: 15vw; } #bay-r { right: 15vw; }
+        #bay-l { left: 15vw; border-right: 20px solid #444; } 
+        #bay-r { right: 15vw; border-left: 20px solid #444; }
 
         .door-slab { 
-            position: absolute; top: -100%; left: 0; width: 100%; height: 100%; 
-            background: linear-gradient(90deg, #222, #333 10%, #333 90%, #222);
-            border-bottom: 30px solid #0a0a0a; transition: top 0.6s cubic-bezier(0.7, 0, 0.3, 1);
-            z-index: 5;
-        }
-        .door-slab::after { content: 'WARNING: HIGH VOLTAGE'; color: #444; font-size: 10px; position: absolute; bottom: 50px; left: 20px; }
-        .door-slab.shut { top: 0; }
-
-        /* 🔘 Kontrolpaneler */
-        .control-post { 
-            position: absolute; bottom: 30%; width: 80px; padding: 15px;
-            background: var(--panel-bg); border: 3px solid #222; border-radius: 4px;
-            display: flex; flex-direction: column; gap: 15px; box-shadow: 5px 5px 15px #000; z-index: 10;
-        }
-        #post-l { left: 5vw; } #post-r { right: 5vw; }
-
-        .btn-unit { text-align: center; }
-        .btn-unit label { font-size: 9px; display: block; margin-bottom: 5px; color: #666; }
-        .lamp { 
-            width: 50px; height: 50px; background: #300; border: 4px solid #111; 
-            cursor: pointer; transition: 0.1s; position: relative;
-        }
-        .lamp.door-active { background: var(--crit); box-shadow: 0 0 20px var(--crit); }
-        .lamp.light-active { background: var(--warn); box-shadow: 0 0 20px var(--warn); }
-
-        /* 🔋 HUD & System Status */
-        #status-bar { 
-            position: absolute; top: 30px; left: 30px; z-index: 1500; 
-            background: rgba(0,0,0,0.8); padding: 20px; border-left: 5px solid var(--terminal);
-        }
-        .power-grid { display: flex; gap: 4px; margin-top: 10px; }
-        .power-bar { width: 8px; height: 20px; background: #1a331a; }
-        .power-on { background: var(--terminal); box-shadow: 0 0 10px var(--terminal); }
-
-        /* 🖥️ Overvågnings-skærm (Tablet-look) */
-        #monitor-overlay { 
-            position: absolute; inset: 0; background: #000; z-index: 1000; 
-            display: none; border: 50px solid #1a1a1a;
-        }
-        #camera-feed { 
-            width: 100%; height: 100%; object-fit: cover; opacity: 0.4; filter: grayscale(1) sepia(0.2) contrast(1.5); 
-        }
-        #static-noise { 
-            position: absolute; inset: 0; background: url('https://giphy.com'); 
-            opacity: 0.08; pointer-events: none; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: linear-gradient(to bottom, #444, #222);
+            border-bottom: 5px solid var(--terminal);
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 10;
         }
 
-        /* 🌫️ Lys-filter */
-        #shroud { position: absolute; inset: 0; background: rgba(0,0,0,0.96); z-index: 8; pointer-events: none; transition: 0.1s; }
-        #flashlight { 
-            position: absolute; inset: 0; z-index: 9; pointer-events: none;
-            background: radial-gradient(circle at center, rgba(255,255,230,0.08) 0%, transparent 70%);
-            display: none;
+        /* Status Paneler */
+        .ui-panel {
+            position: absolute;
+            bottom: 20px;
+            padding: 15px;
+            background: var(--panel-bg);
+            border: 2px solid var(--terminal);
+            box-shadow: 0 0 15px rgba(26, 255, 26, 0.3);
         }
     </style>
 </head>
 <body>
-
-<div id="status-bar">
-    <div style="font-size: 28px; font-weight: bold;">0<span id="clock-h">12</span>:00 AM</div>
-    <div style="margin-top: 10px;">POWER: <span id="pwr-num">100</span>%</div>
-    <div class="power-grid" id="usage-grid"></div>
-</div>
-
-<div id="viewport">
-    <div id="shroud"></div>
-    <div id="flashlight"></div>
-
-    <div id="office">
-        <!-- Venstre Sektion -->
-        <div id="post-l" class="control-post">
-            <div class="btn-unit"><label>LOCK</label><div class="lamp" onclick="sys.door('l', this)"></div></div>
-            <div class="btn-unit"><label>BEAM</label><div class="lamp" onmousedown="sys.light(true, 'l', this)" onmouseup="sys.light(false, 'l', this)"></div></div>
-        </div>
-        <div id="bay-l" class="door-bay"><div id="door-l" class="door-slab"></div></div>
-
-        <!-- Højre Sektion -->
-        <div id="bay-r" class="door-bay"><div id="door-r" class="door-slab"></div></div>
-        <div id="post-r" class="control-post">
-            <div class="btn-unit"><label>LOCK</label><div class="lamp" onclick="sys.door('r', this)"></div></div>
-            <div class="btn-unit"><label>BEAM</label><div class="lamp" onmousedown="sys.light(true, 'r', this)" onmouseup="sys.light(false, 'r', this)"></div></div>
+    <div id="viewport">
+        <div id="office">
+            <div id="bay-l" class="door-bay">
+                <div id="door-l" class="door-slab"></div>
+            </div>
+            
+            <div id="bay-r" class="door-bay">
+                <div id="door-r" class="door-slab"></div>
+            </div>
         </div>
     </div>
 
-    <div id="monitor-overlay">
-        <div id="static-noise"></div>
-        <div style="position:absolute; top:20px; left:20px; font-size:24px;">LIVE FEED - CAM 01</div>
-        <img id="camera-feed" src="https://unsplash.com">
-        <div id="ai-alert" style="position:absolute; bottom:40px; width:100%; text-align:center; color:red; font-size:30px; display:none;">MOTION DETECTED</div>
+    <div class="ui-panel" style="left: 20px;">
+        STATUS: SYSTEM ONLINE<br>
+        POWER: 100%
     </div>
 
-    <!-- Monitor Toggle Knap -->
-    <div style="position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:40vw; height:45px; background:#1a1a1a; z-index:1100; border:3px solid #333; cursor:pointer; text-align:center; line-height:40px; color:#fff;" onclick="sys.mon()">ACCESS SECURITY MONITOR</div>
-</div>
-
-<script>
-    const sys = {
-        power: 100, hour: 12, ticks: 0,
-        doors: {l: false, r: false}, light: false, cam: false,
-        ai: {l: 0, r: 0},
-
-        init() {
-            this.updateUsage();
-            document.addEventListener('mousemove', e => {
-                let x = (e.clientX / window.innerWidth - 0.5) * 65;
-                document.getElementById('office').style.transform = `translateX(${-x}vw)`;
-            });
-            this.loop();
-        },
-
-        door(side, el) {
-            this.doors[side] = !this.doors[side];
-            document.getElementById(`door-${side}`).classList.toggle('shut', this.doors[side]);
-            el.classList.toggle('door-active', this.doors[side]);
-        },
-
-        light(on, side, el) {
-            this.light = on;
-            const s = document.getElementById('shroud');
-            const f = document.getElementById('flashlight');
-            s.style.background = on ? "rgba(0,0,0,0.85)" : "rgba(0,0,0,0.96)";
-            f.style.display = on ? "block" : "none";
-            f.style.background = `radial-gradient(circle at ${side==='l'?'25%':'75%'}, rgba(255,255,200,0.15) 0%, transparent 60%)`;
-            el.classList.toggle('light-active', on);
-        },
-
-        mon() {
-            this.cam = !this.cam;
-            document.getElementById('monitor-overlay').style.display = this.cam ? 'block' : 'none';
-        },
-
-        updateUsage() {
-            const grid = document.getElementById('usage-grid');
-            let consumption = 1 + (this.doors.l?1:0) + (this.doors.r?1:0) + (this.light?1:0) + (this.cam?2:0);
-            grid.innerHTML = '';
-            for(let i=0; i<5; i++) {
-                let bar = document.createElement('div');
-                bar.className = `power-bar ${i < consumption ? 'power-on' : ''}`;
-                grid.appendChild(bar);
-            }
-            return consumption;
-        },
-
-        loop() {
-            setInterval(() => {
-                const use = this.updateUsage();
-                this.power -= (use * 0.12);
-                document.getElementById('pwr-num').innerText = Math.floor(this.power);
-
-                if (this.power <= 0) this.end("SYSTEM COLLAPSE - POWER LOST");
-
-                this.ticks++;
-                if (this.ticks % 50 === 0) {
-                    this.hour = this.hour === 12 ? 1 : this.hour + 1;
-                    document.getElementById('clock-h').innerText = this.hour;
-                    if (this.hour === 6) this.end("6 AM - SHIFT ENDED", true);
-                }
-
-                // AI Logic (Tjekker begge sider)
-                if (this.ticks % 4 === 0) {
-                    if (Math.random() > 0.5) this.ai.l++;
-                    if (Math.random() > 0.6) this.ai.r++;
-                    
-                    document.getElementById('ai-alert').style.display = (this.ai.l > 3 || this.ai.r > 3) ? 'block' : 'none';
-
-                    if (this.ai.l > 5) {
-                        if (this.doors.l) this.ai.l = 0;
-                        else this.end("ENTRY DETECTED - SECTOR L");
-                    }
-                    if (this.ai.r > 5) {
-                        if (this.doors.r) this.ai.r = 0;
-                        else this.end("ENTRY DETECTED - SECTOR R");
-                    }
-                }
-            }, 1000);
-        },
-
-        end(msg, win = false) {
-            document.body.innerHTML = `<div style="height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#000; color:${win? 'var(--terminal)' : 'var(--crit)'};"><h1>${msg}</h1><button onclick="location.reload()" style="background:none; border:1px solid #fff; color:#fff; padding:15px; cursor:pointer; font-family:monospace;">REBOOT SYSTEM</button></div>`;
-        }
-    };
-
-    sys.init();
-</script>
+    <script>
+        // Simpelt kig-omkring parallax
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 30;
+            document.getElementById('office').style.transform = `translateX(${-x}px)`;
+        });
+    </script>
 </body>
 </html>
