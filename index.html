@@ -2,100 +2,201 @@
 <html lang="da">
 <head>
     <meta charset="utf-8">
-    <title>Nightwatch: Bright Edition</title>
+    <title>Nightwatch Terminal v2.0</title>
     <style>
-        :root { 
-            /* Lysere neon-farver */
-            --terminal: #33ff33; 
-            --warn: #ffdb4d; 
-            --crit: #ff6666;
-            /* Lysere baggrundspaneler */
-            --panel-bg: #2a2a2a;
-            --office-bg: #1a1a1a;
+        :root {
+            --green: #33ff33;
+            --red: #ff3333;
+            --bg: #1a1a1a;
+            --panel: #2a2a2a;
         }
 
         body { 
-            margin: 0; 
-            background: #151515; /* Lysere grundbase */
-            color: var(--terminal); 
-            font-family: 'Courier New', monospace; 
-            overflow: hidden; 
-            user-select: none;
+            margin: 0; background: #111; color: var(--green); 
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
         }
 
-        /* 📺 Svagere scanlines for bedre læsbarhed */
-        body::before {
-            content: " "; display: block; position: absolute; inset: 0;
-            background: linear-gradient(rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0.1) 50%);
-            z-index: 2000; background-size: 100% 4px; pointer-events: none;
+        /* Top Bar Info */
+        #status-bar {
+            width: 80%; display: flex; justify-content: space-between;
+            padding: 10px; border: 2px solid var(--green); margin-bottom: 10px;
+            background: var(--panel);
         }
 
-        /* 🔦 Mere oplyst kontor */
-        #viewport { position: relative; width: 100vw; height: 100vh; overflow: hidden; perspective: 1000px; }
-        
-        #office { 
-            position: absolute; width: 200vw; height: 100vh; left: -50vw; 
-            background: var(--office-bg);
-            background-image: 
-                radial-gradient(circle at 50% 50%, #333 0%, #1a1a1a 70%),
-                repeating-linear-gradient(90deg, #222 0, #222 2px, transparent 2px, transparent 15vw);
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.2s ease-out;
+        /* Hovedskærm */
+        #main-monitor {
+            position: relative; width: 80%; height: 50vh;
+            background: #333; border: 5px solid #555;
+            display: flex; justify-content: space-around; align-items: flex-end;
+            overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
-        /* 🚪 Dørsystemer med tydeligere kanter */
-        .door-bay { 
-            position: absolute; bottom: 0; width: 22vw; height: 85vh; 
-            background: #111; 
-            border: 12px solid #333;
-            box-shadow: inset 0 0 100px rgba(51, 255, 51, 0.05), 0 0 40px rgba(0,0,0,0.5);
-        }
-        #bay-l { left: 15vw; border-right: 20px solid #444; } 
-        #bay-r { right: 15vw; border-left: 20px solid #444; }
-
-        .door-slab { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: linear-gradient(to bottom, #444, #222);
-            border-bottom: 5px solid var(--terminal);
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 10;
+        /* Døre */
+        .door-frame {
+            width: 120px; height: 90%; background: #000;
+            position: relative; border: 3px solid #444;
         }
 
-        /* Status Paneler */
-        .ui-panel {
-            position: absolute;
-            bottom: 20px;
-            padding: 15px;
-            background: var(--panel-bg);
-            border: 2px solid var(--terminal);
-            box-shadow: 0 0 15px rgba(26, 255, 26, 0.3);
+        .door-blade {
+            position: absolute; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, #555, #333);
+            border-bottom: 4px solid var(--green);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; align-items: center; justify-content: center; color: #111; font-weight: bold;
+        }
+
+        .door-blade.is-open { transform: translateY(-100%); }
+
+        /* Lys-effekt */
+        .light-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.1); opacity: 0; pointer-events: none;
+        }
+
+        /* Kontrolpanel */
+        #control-panel {
+            width: 80%; margin-top: 20px; display: grid;
+            grid-template-columns: 1fr 1fr 1fr; gap: 20px;
+        }
+
+        .btn-group { 
+            background: var(--panel); padding: 15px; border: 1px solid var(--green);
+            display: flex; flex-direction: column; gap: 10px; text-align: center;
+        }
+
+        button {
+            padding: 12px; cursor: pointer; font-family: 'Courier New'; font-weight: bold;
+            background: #000; color: var(--green); border: 1px solid var(--green);
+            transition: 0.2s;
+        }
+
+        button:hover { background: var(--green); color: #000; }
+        button:active { transform: scale(0.95); }
+
+        .btn-red { color: var(--red); border-color: var(--red); }
+        .btn-red:hover { background: var(--red); color: #000; }
+
+        /* Log vindue */
+        #activity-log {
+            position: absolute; right: 20px; top: 20px; width: 200px; height: 300px;
+            background: rgba(0,0,0,0.8); border: 1px solid var(--green);
+            padding: 10px; font-size: 12px; overflow-y: hidden;
         }
     </style>
 </head>
 <body>
-    <div id="viewport">
-        <div id="office">
-            <div id="bay-l" class="door-bay">
-                <div id="door-l" class="door-slab"></div>
-            </div>
-            
-            <div id="bay-r" class="door-bay">
-                <div id="door-r" class="door-slab"></div>
-            </div>
+
+    <div id="status-bar">
+        <span>LOCATION: SECURITY OFFICE B-4</span>
+        <span id="power-display">POWER: 100%</span>
+        <span id="clock-display">12:00 AM</span>
+    </div>
+
+    <div id="main-monitor">
+        <div id="light-effect" class="light-overlay"></div>
+        
+        <div class="door-frame">
+            <div id="door-left" class="door-blade">L-DOOR</div>
+        </div>
+
+        <div style="align-self: center; text-align: center;">
+            <h2 id="cam-label">CAM 01: FRONT HALL</h2>
+            <div id="warning-msg" style="color: var(--red); display: none;">WARNING: MOVEMENT DETECTED</div>
+        </div>
+
+        <div class="door-frame">
+            <div id="door-right" class="door-blade">R-DOOR</div>
         </div>
     </div>
 
-    <div class="ui-panel" style="left: 20px;">
-        STATUS: SYSTEM ONLINE<br>
-        POWER: 100%
+    <div id="control-panel">
+        <div class="btn-group">
+            <strong>LEFT WING</strong>
+            <button onclick="toggleDoor('door-left')">TOGGLE DOOR</button>
+            <button onmousedown="flashLight(true)" onmouseup="flashLight(false)">LIGHT</button>
+        </div>
+
+        <div class="btn-group">
+            <strong>SYSTEMS</strong>
+            <button onclick="changeCam()">SWITCH CAMERA</button>
+            <button class="btn-red" onclick="emergencyReset()">EMERGENCY RESET</button>
+        </div>
+
+        <div class="btn-group">
+            <strong>RIGHT WING</strong>
+            <button onclick="toggleDoor('door-right')">TOGGLE DOOR</button>
+            <button onmousedown="flashLight(true)" onmouseup="flashLight(false)">LIGHT</button>
+        </div>
+    </div>
+
+    <div id="activity-log">
+        [SYSTEM STARTUP]<br>
+        [DOORS SECURED]
     </div>
 
     <script>
-        // Simpelt kig-omkring parallax
-        document.addEventListener('mousemove', (e) => {
-            const x = (e.clientX / window.innerWidth - 0.5) * 30;
-            document.getElementById('office').style.transform = `translateX(${-x}px)`;
-        });
+        let power = 100;
+        let doorsOpen = { 'door-left': false, 'door-right': false };
+        let camIndex = 1;
+
+        // Opdater ur
+        let hour = 0;
+        setInterval(() => {
+            hour++;
+            if(hour > 6) hour = 0;
+            document.getElementById('clock-display').innerText = hour + ":00 AM";
+        }, 10000);
+
+        // Batteri logik
+        setInterval(() => {
+            let drain = 0.1;
+            if (!doorsOpen['door-left']) drain += 0.5;
+            if (!doorsOpen['door-right']) drain += 0.5;
+            
+            power = Math.max(0, power - drain);
+            document.getElementById('power-display').innerText = "POWER: " + Math.floor(power) + "%";
+            
+            if(power <= 0) {
+                document.body.style.background = "#000";
+                document.getElementById('main-monitor').style.display = "none";
+            }
+        }, 1000);
+
+        function toggleDoor(id) {
+            if(power <= 0) return;
+            const door = document.getElementById(id);
+            doorsOpen[id] = !doorsOpen[id];
+            
+            if(doorsOpen[id]) {
+                door.classList.add('is-open');
+                addLog("DOOR " + id + " OPENED");
+            } else {
+                door.classList.remove('is-open');
+                addLog("DOOR " + id + " CLOSED");
+            }
+        }
+
+        function flashLight(on) {
+            if(power <= 0) return;
+            document.getElementById('light-effect').style.opacity = on ? "1" : "0";
+        }
+
+        function changeCam() {
+            camIndex = camIndex >= 4 ? 1 : camIndex + 1;
+            document.getElementById('cam-label').innerText = "CAM 0" + camIndex + ": ZONE " + camIndex;
+            addLog("SWITCHED TO CAM 0" + camIndex);
+        }
+
+        function addLog(msg) {
+            const log = document.getElementById('activity-log');
+            log.innerHTML += "<br>> " + msg;
+        }
+
+        function emergencyReset() {
+            location.reload();
+        }
     </script>
 </body>
 </html>
