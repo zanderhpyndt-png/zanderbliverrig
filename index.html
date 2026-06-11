@@ -1,85 +1,122 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="da">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Access</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fake Hacker Terminal</title>
 
-    <style>
-        body {
-            margin: 0;
-            background-color: black;
-            color: #00ff00;
-            font-family: "Courier New", monospace;
-            overflow: hidden;
-        }
+<style>
+    body {
+        background: black;
+        color: #00ff00;
+        font-family: "Courier New", monospace;
+        margin: 0;
+        padding: 20px;
+    }
 
-        #terminal {
-            padding: 20px;
-            white-space: pre-wrap;
-            font-size: 18px;
-            line-height: 1.5;
-        }
+    #terminal {
+        height: 90vh;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
 
-        .cursor {
-            display: inline-block;
-            width: 10px;
-            background: #00ff00;
-            animation: blink 0.8s infinite;
-        }
+    .input-line {
+        display: flex;
+    }
 
-        @keyframes blink {
-            50% {
-                opacity: 0;
-            }
-        }
-    </style>
+    .prompt {
+        margin-right: 5px;
+    }
+
+    input {
+        background: transparent;
+        border: none;
+        color: #00ff00;
+        font-family: inherit;
+        font-size: 18px;
+        outline: none;
+        width: 100%;
+    }
+</style>
 </head>
 <body>
 
-<div id="terminal"></div>
+<div id="terminal">
+    <div>FAKE HACKER TERMINAL v1.0</div>
+    <div>Skriv en kommando og tryk Enter.</div>
+    <br>
+</div>
 
 <script>
-    const terminal = document.getElementById("terminal");
+const terminal = document.getElementById("terminal");
 
-    const lines = [
-        "Initializing connection...",
-        "Connecting to secure server...",
-        "Bypassing firewall...",
-        "Decrypting data packets...",
-        "Accessing mainframe...",
-        "Downloading files...",
-        "Injecting payload...",
-        "Access granted.",
-        "",
-        "Welcome, Operator."
-    ];
+function createInput() {
+    const line = document.createElement("div");
+    line.className = "input-line";
 
-    let lineIndex = 0;
-    let charIndex = 0;
+    line.innerHTML = `
+        <span class="prompt">root@system:~$</span>
+        <input type="text" autofocus>
+    `;
 
-    function typeLine() {
-        if (lineIndex < lines.length) {
-            const currentLine = lines[lineIndex];
+    terminal.appendChild(line);
 
-            if (charIndex < currentLine.length) {
-                terminal.innerHTML += currentLine.charAt(charIndex);
-                charIndex++;
+    const input = line.querySelector("input");
+    input.focus();
 
-                setTimeout(typeLine, 50);
-            } else {
-                terminal.innerHTML += "\n";
-                lineIndex++;
-                charIndex = 0;
+    input.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            const command = input.value;
+            input.disabled = true;
 
-                setTimeout(typeLine, 500);
-            }
-        } else {
-            terminal.innerHTML += '<span class="cursor"></span>';
+            processCommand(command);
+
+            createInput();
+
+            terminal.scrollTop = terminal.scrollHeight;
         }
+    });
+}
+
+function processCommand(command) {
+    const output = document.createElement("div");
+
+    switch(command.toLowerCase()) {
+        case "hack":
+            output.textContent =
+                "Forbinder til server...\n" +
+                "Omgår firewall...\n" +
+                "Adgang opnået!";
+            break;
+
+        case "scan":
+            output.textContent =
+                "Scanner netværk...\n" +
+                "3 enheder fundet.";
+            break;
+
+        case "help":
+            output.textContent =
+                "Kommandoer:\n" +
+                "hack\n" +
+                "scan\n" +
+                "clear\n" +
+                "help";
+            break;
+
+        case "clear":
+            terminal.innerHTML = "";
+            return;
+
+        default:
+            output.textContent =
+                `'${command}' er ikke genkendt. Skriv "help".`;
     }
 
-    typeLine();
+    terminal.appendChild(output);
+}
+
+createInput();
 </script>
 
 </body>
