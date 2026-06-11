@@ -1,118 +1,222 @@
-function processCommand(command) {
-    const output = document.createElement("div");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NEON TERMINAL</title>
 
-    const cmd = command.toLowerCase().trim();
+<style>
+body {
+    margin: 0;
+    background: #05060a;
+    color: #00ff9d;
+    font-family: monospace;
+    overflow: hidden;
+}
 
-    switch (cmd) {
+/* glow background */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(0,255,157,0.08), transparent 60%),
+                radial-gradient(circle at 20% 20%, rgba(255,0,200,0.06), transparent 40%);
+    pointer-events: none;
+}
+
+#terminal {
+    padding: 15px;
+    height: 100vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+    text-shadow: 0 0 8px rgba(0,255,157,0.6);
+}
+
+.line {
+    white-space: pre-wrap;
+}
+
+.input-line {
+    display: flex;
+}
+
+.prompt {
+    color: #ff00c8;
+    margin-right: 8px;
+}
+
+input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #00ff9d;
+    font-family: monospace;
+    font-size: 16px;
+}
+
+.cursor {
+    display:inline-block;
+    width:8px;
+    background:#00ff9d;
+    animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+</style>
+</head>
+
+<body>
+<div id="terminal"></div>
+
+<script>
+const terminal = document.getElementById("terminal");
+
+let xp = 0;
+let credits = 100;
+let history = [];
+let historyIndex = 0;
+
+let files = {
+    "/": ["system.log", "missions.txt", "ai.core"],
+};
+
+function print(text) {
+    const div = document.createElement("div");
+    div.className = "line";
+    div.textContent = text;
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+function boot() {
+    const bootLines = [
+        "NEON TERMINAL v3.7",
+        "Booting system...",
+        "Loading kernel ██████████ 100%",
+        "Initializing cybernet interface...",
+        "Connecting to grid...",
+        "ACCESS GRANTED",
+        ""
+    ];
+
+    let i = 0;
+    function next() {
+        if (i < bootLines.length) {
+            print(bootLines[i]);
+            i++;
+            setTimeout(next, 300);
+        } else {
+            createInput();
+        }
+    }
+    next();
+}
+
+function createInput() {
+    const wrap = document.createElement("div");
+    wrap.className = "input-line";
+
+    const prompt = document.createElement("span");
+    prompt.className = "prompt";
+    prompt.textContent = "user@neon:~$";
+
+    const input = document.createElement("input");
+
+    wrap.appendChild(prompt);
+    wrap.appendChild(input);
+    terminal.appendChild(wrap);
+
+    input.focus();
+
+    input.addEventListener("keydown", e => {
+        if (e.key === "Enter") {
+            const cmd = input.value.trim();
+            history.push(cmd);
+            historyIndex = history.length;
+
+            print("> " + cmd);
+            run(cmd);
+            input.remove();
+            createInput();
+        }
+
+        if (e.key === "ArrowUp") {
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = history[historyIndex];
+            }
+        }
+
+        if (e.key === "ArrowDown") {
+            historyIndex++;
+            input.value = history[historyIndex] || "";
+        }
+    });
+}
+
+function run(cmd) {
+    let args = cmd.split(" ");
+    let c = args[0].toLowerCase();
+
+    switch(c) {
 
         case "help":
-            output.textContent =
-`Tilgængelige kommandoer:
-
-help       - Vis denne liste
-whoami     - Vis bruger
-date       - Vis dato og tid
-ls         - Vis filer
-pwd        - Vis nuværende mappe
-scan       - Simuler netværksscanning
-hack       - Filmagtig hackingsekvens
-decrypt    - Simuler dekryptering
-download   - Simuler download
-status     - Systemstatus
-matrix     - Matrix-besked
-sudo       - Administratoradgang
-clear      - Ryd terminalen`;
-            break;
-
-        case "whoami":
-            output.textContent = "root";
-            break;
-
-        case "date":
-            output.textContent = new Date().toString();
-            break;
-
-        case "pwd":
-            output.textContent = "/home/root";
-            break;
-
-        case "ls":
-            output.textContent =
-`passwords.txt
-secret_data.db
-network_logs
-classified
-backup.zip`;
-            break;
-
-        case "scan":
-            output.textContent =
-`Scanner netværk...
-
-192.168.1.1   Router
-192.168.1.12  Laptop
-192.168.1.25  Smartphone
-
-3 enheder fundet.`;
-            break;
-
-        case "hack":
-            output.textContent =
-`Forbinder til mål...
-Bypasser firewall...
-Indsamler legitimationsoplysninger...
-Adgang opnået!`;
-            break;
-
-        case "decrypt":
-            output.textContent =
-`Dekrypterer filer...
-[██████████] 100%
-Dekryptering fuldført.`;
-            break;
-
-        case "download":
-            output.textContent =
-`Downloader data...
-12%
-48%
-79%
-100%
-
-Download færdig.`;
-            break;
-
-        case "status":
-            output.textContent =
-`CPU: 14%
-RAM: 62%
-Forbindelse: Sikker
-Systemstatus: ONLINE`;
-            break;
-
-        case "matrix":
-            output.textContent =
-`Wake up, Neo...
-The Matrix has you...
-Follow the white rabbit.`;
-            break;
-
-        case "sudo":
-            output.textContent =
-`[sudo] password for root:
-********
-Administratorrettigheder aktiveret.`;
+            print("COMMANDS: help, clear, stats, scan, ls, cat, mission, ai, work");
             break;
 
         case "clear":
             terminal.innerHTML = "";
-            return;
+            break;
+
+        case "stats":
+            print(`XP: ${xp} | CREDITS: ${credits}`);
+            break;
+
+        case "work":
+            credits += 50;
+            xp += 10;
+            print("Mission complete. +50 credits, +10 XP");
+            break;
+
+        case "ls":
+            print(Object.keys(files).join(" "));
+            break;
+
+        case "cat":
+            print("Reading file: " + (args[1] || "none"));
+            print("DATA CORRUPTED / ACCESS LIMITED");
+            break;
+
+        case "scan":
+            print("Scanning network...");
+            print("Host found: 192.168.0.12");
+            print("Threat level: LOW");
+            break;
+
+        case "mission":
+            print("MISSION: Retrieve encrypted data core");
+            print("Reward: 200 credits");
+            break;
+
+        case "ai":
+            const responses = [
+                "System stability is optimal.",
+                "You are being watched.",
+                "Credits determine freedom.",
+                "Neon never sleeps."
+            ];
+            print("AI: " + responses[Math.floor(Math.random()*responses.length)]);
+            break;
 
         default:
-            output.textContent =
-`Kommandoen "${command}" blev ikke fundet.
-Skriv "help" for at se alle kommandoer.`;
+            print("Unknown command: " + cmd);
     }
-
-    terminal.appendChild(output);
 }
+
+boot();
+</script>
+</body>
+</html>
