@@ -1,107 +1,107 @@
-<!DOCTYPE html>
-<html lang="da">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fake Hacker Terminal</title>
-
-<style>
-    body {
-        background: black;
-        color: #00ff00;
-        font-family: "Courier New", monospace;
-        margin: 0;
-        padding: 20px;
-    }
-
-    #terminal {
-        height: 90vh;
-        overflow-y: auto;
-        white-space: pre-wrap;
-    }
-
-    .input-line {
-        display: flex;
-    }
-
-    .prompt {
-        margin-right: 5px;
-    }
-
-    input {
-        background: transparent;
-        border: none;
-        color: #00ff00;
-        font-family: inherit;
-        font-size: 18px;
-        outline: none;
-        width: 100%;
-    }
-</style>
-</head>
-<body>
-
-<div id="terminal">
-    <div>FAKE HACKER TERMINAL v1.0</div>
-    <div>Skriv en kommando og tryk Enter.</div>
-    <br>
-</div>
-
-<script>
-const terminal = document.getElementById("terminal");
-
-function createInput() {
-    const line = document.createElement("div");
-    line.className = "input-line";
-
-    line.innerHTML = `
-        <span class="prompt">root@system:~$</span>
-        <input type="text" autofocus>
-    `;
-
-    terminal.appendChild(line);
-
-    const input = line.querySelector("input");
-    input.focus();
-
-    input.addEventListener("keydown", function(e) {
-        if (e.key === "Enter") {
-            const command = input.value;
-            input.disabled = true;
-
-            processCommand(command);
-
-            createInput();
-
-            terminal.scrollTop = terminal.scrollHeight;
-        }
-    });
-}
-
 function processCommand(command) {
     const output = document.createElement("div");
 
-    switch(command.toLowerCase()) {
-        case "hack":
+    const cmd = command.toLowerCase().trim();
+
+    switch (cmd) {
+
+        case "help":
             output.textContent =
-                "Forbinder til server...\n" +
-                "Omgår firewall...\n" +
-                "Adgang opnået!";
+`Tilgængelige kommandoer:
+
+help       - Vis denne liste
+whoami     - Vis bruger
+date       - Vis dato og tid
+ls         - Vis filer
+pwd        - Vis nuværende mappe
+scan       - Simuler netværksscanning
+hack       - Filmagtig hackingsekvens
+decrypt    - Simuler dekryptering
+download   - Simuler download
+status     - Systemstatus
+matrix     - Matrix-besked
+sudo       - Administratoradgang
+clear      - Ryd terminalen`;
+            break;
+
+        case "whoami":
+            output.textContent = "root";
+            break;
+
+        case "date":
+            output.textContent = new Date().toString();
+            break;
+
+        case "pwd":
+            output.textContent = "/home/root";
+            break;
+
+        case "ls":
+            output.textContent =
+`passwords.txt
+secret_data.db
+network_logs
+classified
+backup.zip`;
             break;
 
         case "scan":
             output.textContent =
-                "Scanner netværk...\n" +
-                "3 enheder fundet.";
+`Scanner netværk...
+
+192.168.1.1   Router
+192.168.1.12  Laptop
+192.168.1.25  Smartphone
+
+3 enheder fundet.`;
             break;
 
-        case "help":
+        case "hack":
             output.textContent =
-                "Kommandoer:\n" +
-                "hack\n" +
-                "scan\n" +
-                "clear\n" +
-                "help";
+`Forbinder til mål...
+Bypasser firewall...
+Indsamler legitimationsoplysninger...
+Adgang opnået!`;
+            break;
+
+        case "decrypt":
+            output.textContent =
+`Dekrypterer filer...
+[██████████] 100%
+Dekryptering fuldført.`;
+            break;
+
+        case "download":
+            output.textContent =
+`Downloader data...
+12%
+48%
+79%
+100%
+
+Download færdig.`;
+            break;
+
+        case "status":
+            output.textContent =
+`CPU: 14%
+RAM: 62%
+Forbindelse: Sikker
+Systemstatus: ONLINE`;
+            break;
+
+        case "matrix":
+            output.textContent =
+`Wake up, Neo...
+The Matrix has you...
+Follow the white rabbit.`;
+            break;
+
+        case "sudo":
+            output.textContent =
+`[sudo] password for root:
+********
+Administratorrettigheder aktiveret.`;
             break;
 
         case "clear":
@@ -110,14 +110,9 @@ function processCommand(command) {
 
         default:
             output.textContent =
-                `'${command}' er ikke genkendt. Skriv "help".`;
+`Kommandoen "${command}" blev ikke fundet.
+Skriv "help" for at se alle kommandoer.`;
     }
 
     terminal.appendChild(output);
 }
-
-createInput();
-</script>
-
-</body>
-</html>
