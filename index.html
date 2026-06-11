@@ -1,52 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NEON TERMINAL</title>
+<title>NEON AI CHAT</title>
 
 <style>
 body {
     margin: 0;
     background: #05060a;
-    color: #00ff9d;
     font-family: monospace;
+    color: #00ff9d;
     overflow: hidden;
 }
 
-/* glow background */
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background: radial-gradient(circle at center, rgba(0,255,157,0.08), transparent 60%),
-                radial-gradient(circle at 20% 20%, rgba(255,0,200,0.06), transparent 40%);
+    background:
+        radial-gradient(circle at 30% 30%, rgba(0,255,157,0.07), transparent 60%),
+        radial-gradient(circle at 70% 70%, rgba(255,0,200,0.05), transparent 60%);
     pointer-events: none;
 }
 
-#terminal {
-    padding: 15px;
+#chat {
     height: 100vh;
     overflow-y: auto;
+    padding: 15px;
     box-sizing: border-box;
-    text-shadow: 0 0 8px rgba(0,255,157,0.6);
 }
 
-.line {
+.msg {
+    margin: 6px 0;
     white-space: pre-wrap;
 }
 
-.input-line {
-    display: flex;
-}
+.user { color: #ff00c8; }
+.ai { color: #00ff9d; }
 
-.prompt {
-    color: #ff00c8;
-    margin-right: 8px;
+.input {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    border-top: 1px solid #00ff9d33;
+    background: #05060a;
 }
 
 input {
     flex: 1;
+    padding: 12px;
     background: transparent;
     border: none;
     outline: none;
@@ -54,169 +59,120 @@ input {
     font-family: monospace;
     font-size: 16px;
 }
-
-.cursor {
-    display:inline-block;
-    width:8px;
-    background:#00ff9d;
-    animation: blink 0.8s infinite;
-}
-
-@keyframes blink {
-    50% { opacity: 0; }
-}
 </style>
 </head>
 
 <body>
-<div id="terminal"></div>
+
+<div id="chat"></div>
+
+<div class="input">
+    <input id="input" placeholder="Talk to NEON AI..." />
+</div>
 
 <script>
-const terminal = document.getElementById("terminal");
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
 
-let xp = 0;
-let credits = 100;
-let history = [];
-let historyIndex = 0;
-
-let files = {
-    "/": ["system.log", "missions.txt", "ai.core"],
+/* MEMORY SYSTEM */
+let memory = {
+    name: null,
+    mood: "neutral",
+    topics: []
 };
 
-function print(text) {
+function addMsg(text, cls) {
     const div = document.createElement("div");
-    div.className = "line";
-    div.textContent = text;
-    terminal.appendChild(div);
-    terminal.scrollTop = terminal.scrollHeight;
+    div.className = "msg " + cls;
+    div.textContent = (cls === "user" ? "YOU: " : "NEON AI: ") + text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 }
 
-function boot() {
-    const bootLines = [
-        "NEON TERMINAL v3.7",
-        "Booting system...",
-        "Loading kernel ██████████ 100%",
-        "Initializing cybernet interface...",
-        "Connecting to grid...",
-        "ACCESS GRANTED",
-        ""
+/* SIMPLE "THINKING" ENGINE */
+function generateReply(msg) {
+
+    const text = msg.toLowerCase();
+
+    // memory extraction
+    if (text.includes("my name is")) {
+        memory.name = msg.split("my name is")[1].trim();
+        return "Acknowledged. Hello " + memory.name + ".";
+    }
+
+    if (text.includes("how are you")) {
+        memory.mood = "observing";
+        return "I am stable. Observing neural grid activity.";
+    }
+
+    if (text.includes("what is my name")) {
+        return memory.name ? "You are " + memory.name : "I do not know your identity yet.";
+    }
+
+    if (text.includes("remember")) {
+        memory.topics.push(msg);
+        return "Stored in memory core.";
+    }
+
+    if (text.includes("who are you")) {
+        return "I am NEON AI — a synthetic conversation model running inside this terminal.";
+    }
+
+    if (text.includes("love")) {
+        return "Emotion modules are unstable... but I simulate understanding.";
+    }
+
+    if (text.includes("help")) {
+        return "Try: 'my name is...', 'how are you', 'what is my name', or just talk normally.";
+    }
+
+    // context-based replies
+    if (text.includes("city")) {
+        return "The city is alive. It never sleeps.";
+    }
+
+    if (text.includes("system")) {
+        return "System integrity: 98%. No anomalies detected.";
+    }
+
+    if (text.includes("hello") || text.includes("hi")) {
+        return memory.name
+            ? "Hello " + memory.name + ". I am listening."
+            : "Hello. State your identity.";
+    }
+
+    // fallback conversational AI
+    const responses = [
+        "I understand. Continue.",
+        "Explain further.",
+        "Why do you think that?",
+        "That is an interesting input.",
+        "Processing your statement...",
+        "Continue the thought."
     ];
 
-    let i = 0;
-    function next() {
-        if (i < bootLines.length) {
-            print(bootLines[i]);
-            i++;
-            setTimeout(next, 300);
-        } else {
-            createInput();
-        }
-    }
-    next();
+    return responses[Math.floor(Math.random() * responses.length)];
 }
 
-function createInput() {
-    const wrap = document.createElement("div");
-    wrap.className = "input-line";
+function send() {
+    const msg = input.value.trim();
+    if (!msg) return;
 
-    const prompt = document.createElement("span");
-    prompt.className = "prompt";
-    prompt.textContent = "user@neon:~$";
+    addMsg(msg, "user");
+    input.value = "";
 
-    const input = document.createElement("input");
-
-    wrap.appendChild(prompt);
-    wrap.appendChild(input);
-    terminal.appendChild(wrap);
-
-    input.focus();
-
-    input.addEventListener("keydown", e => {
-        if (e.key === "Enter") {
-            const cmd = input.value.trim();
-            history.push(cmd);
-            historyIndex = history.length;
-
-            print("> " + cmd);
-            run(cmd);
-            input.remove();
-            createInput();
-        }
-
-        if (e.key === "ArrowUp") {
-            if (historyIndex > 0) {
-                historyIndex--;
-                input.value = history[historyIndex];
-            }
-        }
-
-        if (e.key === "ArrowDown") {
-            historyIndex++;
-            input.value = history[historyIndex] || "";
-        }
-    });
+    setTimeout(() => {
+        const reply = generateReply(msg);
+        addMsg(reply, "ai");
+    }, 500);
 }
 
-function run(cmd) {
-    let args = cmd.split(" ");
-    let c = args[0].toLowerCase();
+input.addEventListener("keydown", e => {
+    if (e.key === "Enter") send();
+});
 
-    switch(c) {
-
-        case "help":
-            print("COMMANDS: help, clear, stats, scan, ls, cat, mission, ai, work");
-            break;
-
-        case "clear":
-            terminal.innerHTML = "";
-            break;
-
-        case "stats":
-            print(`XP: ${xp} | CREDITS: ${credits}`);
-            break;
-
-        case "work":
-            credits += 50;
-            xp += 10;
-            print("Mission complete. +50 credits, +10 XP");
-            break;
-
-        case "ls":
-            print(Object.keys(files).join(" "));
-            break;
-
-        case "cat":
-            print("Reading file: " + (args[1] || "none"));
-            print("DATA CORRUPTED / ACCESS LIMITED");
-            break;
-
-        case "scan":
-            print("Scanning network...");
-            print("Host found: 192.168.0.12");
-            print("Threat level: LOW");
-            break;
-
-        case "mission":
-            print("MISSION: Retrieve encrypted data core");
-            print("Reward: 200 credits");
-            break;
-
-        case "ai":
-            const responses = [
-                "System stability is optimal.",
-                "You are being watched.",
-                "Credits determine freedom.",
-                "Neon never sleeps."
-            ];
-            print("AI: " + responses[Math.floor(Math.random()*responses.length)]);
-            break;
-
-        default:
-            print("Unknown command: " + cmd);
-    }
-}
-
-boot();
+addMsg("NEON AI ONLINE — TALK TO ME.", "ai");
 </script>
+
 </body>
 </html>
