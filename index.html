@@ -1,178 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="da">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NEON AI CHAT</title>
-
-<style>
-body {
-    margin: 0;
-    background: #05060a;
-    font-family: monospace;
-    color: #00ff9d;
-    overflow: hidden;
-}
-
-body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-        radial-gradient(circle at 30% 30%, rgba(0,255,157,0.07), transparent 60%),
-        radial-gradient(circle at 70% 70%, rgba(255,0,200,0.05), transparent 60%);
-    pointer-events: none;
-}
-
-#chat {
-    height: 100vh;
-    overflow-y: auto;
-    padding: 15px;
-    box-sizing: border-box;
-}
-
-.msg {
-    margin: 6px 0;
-    white-space: pre-wrap;
-}
-
-.user { color: #ff00c8; }
-.ai { color: #00ff9d; }
-
-.input {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: flex;
-    border-top: 1px solid #00ff9d33;
-    background: #05060a;
-}
-
-input {
-    flex: 1;
-    padding: 12px;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #00ff9d;
-    font-family: monospace;
-    font-size: 16px;
-}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bøsse Puk</title>
+<link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
-<div id="chat"></div>
-
-<div class="input">
-    <input id="input" placeholder="Talk to NEON AI..." />
+<div id="ui">
+  <h1>Bøsse Puk</h1>
+  <div id="score">Blå 0 - 0 Rød</div>
+  <div id="timer">03:00</div>
 </div>
-
-<script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-
-/* MEMORY SYSTEM */
-let memory = {
-    name: null,
-    mood: "neutral",
-    topics: []
-};
-
-function addMsg(text, cls) {
-    const div = document.createElement("div");
-    div.className = "msg " + cls;
-    div.textContent = (cls === "user" ? "YOU: " : "NEON AI: ") + text;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-}
-
-/* SIMPLE "THINKING" ENGINE */
-function generateReply(msg) {
-
-    const text = msg.toLowerCase();
-
-    // memory extraction
-    if (text.includes("my name is")) {
-        memory.name = msg.split("my name is")[1].trim();
-        return "Acknowledged. Hello " + memory.name + ".";
-    }
-
-    if (text.includes("how are you")) {
-        memory.mood = "observing";
-        return "I am stable. Observing neural grid activity.";
-    }
-
-    if (text.includes("what is my name")) {
-        return memory.name ? "You are " + memory.name : "I do not know your identity yet.";
-    }
-
-    if (text.includes("remember")) {
-        memory.topics.push(msg);
-        return "Stored in memory core.";
-    }
-
-    if (text.includes("who are you")) {
-        return "I am NEON AI — a synthetic conversation model running inside this terminal.";
-    }
-
-    if (text.includes("love")) {
-        return "Emotion modules are unstable... but I simulate understanding.";
-    }
-
-    if (text.includes("help")) {
-        return "Try: 'my name is...', 'how are you', 'what is my name', or just talk normally.";
-    }
-
-    // context-based replies
-    if (text.includes("city")) {
-        return "The city is alive. It never sleeps.";
-    }
-
-    if (text.includes("system")) {
-        return "System integrity: 98%. No anomalies detected.";
-    }
-
-    if (text.includes("hello") || text.includes("hi")) {
-        return memory.name
-            ? "Hello " + memory.name + ". I am listening."
-            : "Hello. State your identity.";
-    }
-
-    // fallback conversational AI
-    const responses = [
-        "I understand. Continue.",
-        "Explain further.",
-        "Why do you think that?",
-        "That is an interesting input.",
-        "Processing your statement...",
-        "Continue the thought."
-    ];
-
-    return responses[Math.floor(Math.random() * responses.length)];
-}
-
-function send() {
-    const msg = input.value.trim();
-    if (!msg) return;
-
-    addMsg(msg, "user");
-    input.value = "";
-
-    setTimeout(() => {
-        const reply = generateReply(msg);
-        addMsg(reply, "ai");
-    }, 500);
-}
-
-input.addEventListener("keydown", e => {
-    if (e.key === "Enter") send();
-});
-
-addMsg("NEON AI ONLINE — TALK TO ME.", "ai");
-</script>
-
+<canvas id="game"></canvas>
+<script src="script.js"></script>
 </body>
 </html>
