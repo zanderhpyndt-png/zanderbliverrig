@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MiniCraft Deluxe</title>
+<style>
+body{margin:0;overflow:hidden;background:#87ceeb}
+canvas{display:block}
+#ui{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.85);padding:8px;border-radius:8px;font-family:Arial}
+</style>
+</head>
+<body>
+<div id="ui">WASD • Venstreklik mine • Højreklik placer sten</div>
+<canvas id="game"></canvas>
+<script>
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+function resize(){c.width=innerWidth;c.height=innerHeight} resize(); addEventListener('resize',resize);
+
+const T=32,W=200,H=80;
+let world=[];
+let dim='Overworld';
+const inv={coal:0,iron:0,gold:0,diamond:0};
+
+function genWorld(){
+world=[];
+for(let y=0;y<H;y++){
+ world[y]=[];
+ for(let x=0;x<W;x++){
+   if(y<20) world[y][x]='air';
+   else if(y===20) world[y][x]='grass';
+   else{
+     let r=Math.random();
+     if(y>55&&r<0.01) world[y][x]='diamond';
+     else if(y>45&&r<0.025) world[y][x]='gold';
+     else if(y>35&&r<0.05) world[y][x]='iron';
+     else if(r<0.12) world[y][x]='coal';
+     else world[y][x]='stone';
+   }
+ }
+}
+for(let i=0;i<25;i++){
+ let tx=5+Math.floor(Math.random()*180);
+ for(let y=16;y<20;y++) world[y][tx]='wood';
+ for(let lx=-2;lx<=2;lx++) for(let ly=12;ly<=16;ly++) if(Math.abs(lx)+Math.abs(ly-14)<5) world[ly][tx+lx]='leaf';
+}
+world[19][20]='portal';
+world[19][60]='endportal';
+}
+genWorld();
+
+const p={x:200,y:100,w:24,h:40,vx:0,vy:0,on:false};
+const dragon={active:false,x:1500,y:150,hp:300,w:180,h:80};
+const cam={x:0,y:0};
+const keys={};
+
+onkeydown=e=>keys[e.code]=true;
+onkeyup=e=>keys[e.code]=false;
+
+function solid(px,py){
+ let tx=Math.floor(px/T),ty=Math.floor(py/T);
+ if(tx<0||ty<0||tx>=W||ty>=H) return false;
+ return world[ty][tx]!=='air';
+}
+
+function spawnDragon(){dragon.active=true;dragon.hp=300;}
+
+function genEnd(){
+ dim='End';
+ for(let y=0;y<H;y++){world[y]=[];for(let x=0;x<W;x++)world[y][x]=y>25?'endstone':'air';}
+ spawnDragon();
+}
+
+function genNether(){
+ dim='Nether';
+ for(let y=0;y<H;y++){world[y]=[];for(let x=0;x<W;x++)world[y][x]=y>18?'netherrack':'air';}
+ world[17][10]='portal';
+}
+
+c.oncontextmenu=e=>e.preventDefault();
+c.onmousedown=e=>{
+ const wx=Math.floor((e.clientX+cam.x)/T), wy=Math.floor((e.clientY+cam.y)/T);
+ if(wx<0||wy<0||wx>=W||wy>=H) return;
+
+ if(e.button===0){
+   const b=world[wy][wx];
+   if(inv[b]!==undefined) inv[b]++;
+   if(!['portal','endportal'].includes(b)) world[wy][wx]='air';
+
+   let mx=e.clientX+cam.x,my=e.clientY+cam.y;
+   if(dragon.active && mx>dragon.x&&mx<dragon.x+dragon.w&&my>dragon.y&&my<dragon.y+dragon.h){
+      dragon.hp-=10;
+      if(dragon.hp<=0){dragon.active=false;alert('Enderdragen besejret!');}
+   }
+ }
+ if(e.button===2 && world[wy][wx]==='air') world[wy][wx]='stone';
+};
+
+function steve(x,y){
+ ctx.fillStyle='#3b5cff';ctx.fillRect(x+4,y+24,8,16);ctx.fillRect(x+12,y+24,8,16);
+ ctx.fillStyle='#00aaaa';ctx.fillRect(x+2,y+10,20,16);
+ ctx.fillStyle='#d8a06d';ctx.fillRect(x,y,24,16);
+ ctx.fillStyle='#4b2c20';ctx.fillRect(x,y,24,4);
+}
+
+function update(){
+ p.vx=0;
+ if(keys.KeyA)p.vx=-4;
+ if(keys.KeyD)p.vx=4;
+ if(keys.KeyW&&p.on){p.vy=-12;p.on=false;}
+ p.vy+=0.6;
+ p.x+=p.vx; p.y+=p.vy;
+
+ p.on=false;
+ if(p.vy>0&&(solid(p.x,p.y+p.h)||solid(p.x+p.w,p.y+p.h))){
+   p.y=Math.floor((p.y+p.h)/T)*T-p.h;
+   p.vy=0;p.on=true;
+ }
+
+ let tx=Math.floor((p.x+p.w/2)/T), ty=Math.floor((p.y+p.h/2)/T);
+ let b=world[ty]?.[tx];
+ if(b==='portal'){ if(dim==='Overworld') genNether(); else {genWorld(); dim='Overworld';} }
+ if(b==='endportal') genEnd();
+
+ if(dragon.active) dragon.x += (p.x<dragon.x?-1:1);
+
+ cam.x=p.x-c.width/2; cam.y=p.y-c.height/2;
+}
+
+function drawBlock(b,x,y){
+ const col={grass:'#39b54a',stone:'#777',coal:'#222',iron:'#c7a77d',gold:'#ffd700',diamond:'#00ffff',wood:'#7a4f22',leaf:'#228b22',portal:'purple',endportal:'black',netherrack:'#700',endstone:'#d8d39f'}[b];
+ if(!col) return;
+ ctx.fillStyle=col; ctx.fillRect(x,y,T,T);
+}
+
+function draw(){
+ ctx.fillStyle=dim==='Nether'?'#300':dim==='End'?'#111':'#87ceeb';
+ ctx.fillRect(0,0,c.width,c.height);
+
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++) if(world[y][x]!=='air') drawBlock(world[y][x],x*T-cam.x,y*T-cam.y);
+
+ steve(p.x-cam.x,p.y-cam.y);
+
+ if(dragon.active){
+   ctx.fillStyle='black';
+   ctx.fillRect(dragon.x-cam.x,dragon.y-cam.y,dragon.w,dragon.h);
+   ctx.fillStyle='white';
+   ctx.fillText('Dragon HP: '+dragon.hp,20,80);
+ }
+
+ ctx.fillStyle='white';
+ ctx.fillText('Dimension: '+dim,20,20);
+ ctx.fillText(`Coal:${inv.coal} Iron:${inv.iron} Gold:${inv.gold} Diamond:${inv.diamond}`,20,40);
+}
+
+(function loop(){update();draw();requestAnimationFrame(loop)})();
+</script>
+</body>
+</html>
