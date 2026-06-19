@@ -2,40 +2,19 @@
 <html lang="da">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mini Minecraft 2D</title>
-
+<title>Minecraft 2D</title>
 <style>
 body{
     margin:0;
     overflow:hidden;
     background:#87ceeb;
 }
-
 canvas{
     display:block;
-}
-
-#ui{
-    position:absolute;
-    left:10px;
-    top:10px;
-    background:rgba(255,255,255,.85);
-    padding:10px;
-    border-radius:8px;
-    font-family:Arial,sans-serif;
 }
 </style>
 </head>
 <body>
-
-<div id="ui">
-WASD = Bevægelse<br>
-Venstre klik = Bryd blok<br>
-Højre klik = Placer blok<br>
-Lilla portal = Nether<br>
-Sort portal = End
-</div>
 
 <canvas id="game"></canvas>
 
@@ -44,43 +23,70 @@ Sort portal = End
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 const TILE = 32;
-const WORLD_W = 120;
-const WORLD_H = 40;
+const WORLD_W = 150;
+const WORLD_H = 60;
 
-let dimension = "overworld";
+let dimension = "Overworld";
+
+const inventory = {
+    coal:0,
+    iron:0,
+    gold:0,
+    diamond:0
+};
 
 const world = [];
 
-function generateOverworld(){
+function generateWorld(){
 
     for(let y=0;y<WORLD_H;y++){
 
-        world[y] = [];
+        world[y]=[];
 
         for(let x=0;x<WORLD_W;x++){
 
-            if(y > 15)
-                world[y][x] = "dirt";
+            if(y < 18){
+                world[y][x]="air";
+            }
 
-            else if(y === 15)
-                world[y][x] = "grass";
+            else if(y===18){
+                world[y][x]="grass";
+            }
 
-            else
-                world[y][x] = "air";
+            else{
+
+                let r=Math.random();
+
+                if(y>45 && r<0.01){
+                    world[y][x]="diamond";
+                }
+                else if(y>35 && r<0.03){
+                    world[y][x]="gold";
+                }
+                else if(y>28 && r<0.06){
+                    world[y][x]="iron";
+                }
+                else if(r<0.12){
+                    world[y][x]="coal";
+                }
+                else{
+                    world[y][x]="stone";
+                }
+            }
         }
     }
 
-    world[14][20] = "portal";
-    world[14][50] = "endportal";
+    world[17][20]="portal";
+    world[17][60]="endportal";
 }
 
-generateOverworld();
+generateWorld();
 
-const player = {
+const player={
     x:200,
     y:100,
     w:24,
@@ -92,302 +98,275 @@ const player = {
     onGround:false
 };
 
-const dragon = {
+const dragon={
     active:false,
-    x:800,
-    y:200,
-    w:140,
+    x:1000,
+    y:150,
+    w:150,
     h:70,
     hp:200
 };
 
-const camera = {
+const camera={
     x:0,
     y:0
 };
 
-const keys = {};
+const keys={};
 
-document.addEventListener("keydown",e=>{
-    keys[e.key.toLowerCase()] = true;
+window.addEventListener("keydown",e=>{
+    keys[e.code]=true;
 });
 
-document.addEventListener("keyup",e=>{
-    keys[e.key.toLowerCase()] = false;
+window.addEventListener("keyup",e=>{
+    keys[e.code]=false;
 });
 
 canvas.addEventListener("contextmenu",e=>{
     e.preventDefault();
 });
 
-canvas.addEventListener("mousedown",e=>{
-
-    const wx = Math.floor((e.clientX + camera.x)/TILE);
-    const wy = Math.floor((e.clientY + camera.y)/TILE);
-
-    if(
-        wx >= 0 &&
-        wy >= 0 &&
-        wx < WORLD_W &&
-        wy < WORLD_H
-    ){
-
-        if(e.button === 0){
-
-            if(dragon.active){
-
-                const mx = e.clientX + camera.x;
-                const my = e.clientY + camera.y;
-
-                if(
-                    mx > dragon.x &&
-                    mx < dragon.x + dragon.w &&
-                    my > dragon.y &&
-                    my < dragon.y + dragon.h
-                ){
-                    dragon.hp -= 10;
-
-                    if(dragon.hp <= 0){
-
-                        dragon.active = false;
-
-                        setTimeout(()=>{
-                            alert("Du besejrede Enderdragen!");
-                        },50);
-                    }
-
-                    return;
-                }
-            }
-
-            if(
-                world[wy][wx] !== "portal" &&
-                world[wy][wx] !== "endportal"
-            ){
-                world[wy][wx] = "air";
-            }
-        }
-
-        if(e.button === 2){
-
-            if(world[wy][wx] === "air"){
-                world[wy][wx] = "dirt";
-            }
-        }
-    }
-});
-
-function solid(px,py){
-
-    const tx = Math.floor(px/TILE);
-    const ty = Math.floor(py/TILE);
-
-    if(
-        tx < 0 ||
-        ty < 0 ||
-        tx >= WORLD_W ||
-        ty >= WORLD_H
-    ) return false;
-
-    return world[ty][tx] !== "air";
+function spawnDragon(){
+    dragon.active=true;
+    dragon.hp=200;
 }
 
 function generateNether(){
 
-    dimension = "nether";
+    dimension="Nether";
 
     for(let y=0;y<WORLD_H;y++){
 
-        world[y] = [];
+        world[y]=[];
 
         for(let x=0;x<WORLD_W;x++){
 
-            if(y > 12)
-                world[y][x] = "netherrack";
-            else
-                world[y][x] = "air";
+            if(y>15){
+                world[y][x]="netherrack";
+            }else{
+                world[y][x]="air";
+            }
         }
     }
 
-    world[11][10] = "portal";
+    world[14][10]="portal";
 
-    player.x = 150;
-    player.y = 100;
-}
-
-function spawnDragon(){
-
-    dragon.active = true;
-    dragon.hp = 200;
-    dragon.x = 800;
-    dragon.y = 150;
+    player.x=150;
+    player.y=100;
 }
 
 function generateEnd(){
 
-    dimension = "end";
+    dimension="End";
 
     for(let y=0;y<WORLD_H;y++){
 
-        world[y] = [];
+        world[y]=[];
 
         for(let x=0;x<WORLD_W;x++){
 
-            if(y > 18)
-                world[y][x] = "endstone";
-            else
-                world[y][x] = "air";
+            if(y>20){
+                world[y][x]="endstone";
+            }else{
+                world[y][x]="air";
+            }
         }
     }
 
     spawnDragon();
 
-    player.x = 100;
-    player.y = 100;
+    player.x=150;
+    player.y=100;
 }
 
-function checkPortals(){
+function solid(px,py){
 
-    const tx = Math.floor(
-        (player.x + player.w/2)/TILE
-    );
+    const tx=Math.floor(px/TILE);
+    const ty=Math.floor(py/TILE);
 
-    const ty = Math.floor(
-        (player.y + player.h/2)/TILE
-    );
+    if(
+        tx<0 ||
+        ty<0 ||
+        tx>=WORLD_W ||
+        ty>=WORLD_H
+    ) return false;
 
-    const block = world[ty]?.[tx];
+    return world[ty][tx]!="air";
+}
 
-    if(block === "portal"){
+canvas.addEventListener("mousedown",e=>{
 
-        if(dimension === "overworld"){
-            generateNether();
-        }else{
-            generateOverworld();
-            dimension = "overworld";
+    const wx=Math.floor((e.clientX+camera.x)/TILE);
+    const wy=Math.floor((e.clientY+camera.y)/TILE);
+
+    if(
+        wx<0 ||
+        wy<0 ||
+        wx>=WORLD_W ||
+        wy>=WORLD_H
+    ) return;
+
+    const block=world[wy][wx];
+
+    if(e.button===0){
+
+        const mx=e.clientX+camera.x;
+        const my=e.clientY+camera.y;
+
+        if(
+            dragon.active &&
+            mx>dragon.x &&
+            mx<dragon.x+dragon.w &&
+            my>dragon.y &&
+            my<dragon.y+dragon.h
+        ){
+
+            dragon.hp-=10;
+
+            if(dragon.hp<=0){
+
+                dragon.active=false;
+
+                alert("Du besejrede Enderdragen!");
+            }
+
+            return;
+        }
+
+        if(block==="coal") inventory.coal++;
+        if(block==="iron") inventory.iron++;
+        if(block==="gold") inventory.gold++;
+        if(block==="diamond") inventory.diamond++;
+
+        if(
+            block!=="portal" &&
+            block!=="endportal"
+        ){
+            world[wy][wx]="air";
         }
     }
 
-    if(block === "endportal"){
-        generateEnd();
+    if(e.button===2){
+
+        if(world[wy][wx]==="air"){
+            world[wy][wx]="stone";
+        }
     }
-}
-
-function updateDragon(){
-
-    if(!dragon.active) return;
-
-    dragon.x += Math.sin(Date.now()/500)*3;
-
-    if(player.x < dragon.x){
-        dragon.x -= 1.2;
-    }else{
-        dragon.x += 1.2;
-    }
-}
+});
 
 function update(){
 
-    player.vx = 0;
+    player.vx=0;
 
-    if(keys["a"])
-        player.vx = -player.speed;
+    if(keys["KeyA"])
+        player.vx=-player.speed;
 
-    if(keys["d"])
-        player.vx = player.speed;
+    if(keys["KeyD"])
+        player.vx=player.speed;
 
-    if(keys["w"] && player.onGround){
-
-        player.vy = player.jump;
-        player.onGround = false;
+    if(
+        keys["KeyW"] &&
+        player.onGround
+    ){
+        player.vy=player.jump;
     }
 
-    player.vy += 0.6;
+    player.vy+=0.6;
 
-    player.x += player.vx;
-    player.y += player.vy;
+    player.x+=player.vx;
+    player.y+=player.vy;
 
-    player.onGround = false;
+    player.onGround=false;
 
-    const leftFoot = solid(
-        player.x,
-        player.y + player.h
-    );
+    if(
+        player.vy>0 &&
+        (
+            solid(player.x,player.y+player.h) ||
+            solid(player.x+player.w,player.y+player.h)
+        )
+    ){
 
-    const rightFoot = solid(
-        player.x + player.w,
-        player.y + player.h
-    );
+        player.y=
+        Math.floor((player.y+player.h)/TILE)
+        *TILE-player.h;
 
-    if(player.vy > 0 && (leftFoot || rightFoot)){
-
-        player.y =
-            Math.floor(
-                (player.y + player.h)/TILE
-            ) * TILE - player.h;
-
-        player.vy = 0;
-        player.onGround = true;
+        player.vy=0;
+        player.onGround=true;
     }
 
-    checkPortals();
-    updateDragon();
+    const tx=Math.floor(
+        (player.x+player.w/2)/TILE
+    );
 
-    camera.x =
-        player.x - canvas.width/2;
+    const ty=Math.floor(
+        (player.y+player.h/2)/TILE
+    );
 
-    camera.y =
-        player.y - canvas.height/2;
+    const block=world[ty]?.[tx];
+
+    if(block==="portal"){
+
+        if(dimension==="Overworld"){
+            generateNether();
+        }
+        else{
+            generateWorld();
+            dimension="Overworld";
+        }
+    }
+
+    if(block==="endportal"){
+        generateEnd();
+    }
+
+    if(dragon.active){
+
+        if(player.x<dragon.x){
+            dragon.x-=1.5;
+        }else{
+            dragon.x+=1.5;
+        }
+    }
+
+    camera.x=
+        player.x-canvas.width/2;
+
+    camera.y=
+        player.y-canvas.height/2;
 }
 
 function drawBlock(block,x,y){
 
-    switch(block){
+    const colors={
+        grass:"#2faa2f",
+        stone:"#777",
+        coal:"#222",
+        iron:"#b8875f",
+        gold:"#ffd700",
+        diamond:"#00ffff",
+        portal:"purple",
+        endportal:"black",
+        netherrack:"#7a0000",
+        endstone:"#d8d39f"
+    };
 
-        case "grass":
-            ctx.fillStyle = "#3cb043";
-            break;
-
-        case "dirt":
-            ctx.fillStyle = "#8b5a2b";
-            break;
-
-        case "netherrack":
-            ctx.fillStyle = "#8b0000";
-            break;
-
-        case "endstone":
-            ctx.fillStyle = "#d9d39f";
-            break;
-
-        case "portal":
-            ctx.fillStyle = "purple";
-            break;
-
-        case "endportal":
-            ctx.fillStyle = "black";
-            break;
-
-        default:
-            return;
-    }
-
+    ctx.fillStyle=colors[block];
     ctx.fillRect(x,y,TILE,TILE);
 
-    ctx.strokeStyle = "#00000022";
+    ctx.strokeStyle="#00000022";
     ctx.strokeRect(x,y,TILE,TILE);
 }
 
 function draw(){
 
-    if(dimension === "nether"){
-        ctx.fillStyle = "#3b0000";
+    if(dimension==="Nether"){
+        ctx.fillStyle="#300";
     }
-    else if(dimension === "end"){
-        ctx.fillStyle = "#111";
+    else if(dimension==="End"){
+        ctx.fillStyle="#111";
     }
     else{
-        ctx.fillStyle = "#87ceeb";
+        ctx.fillStyle="#87ceeb";
     }
 
     ctx.fillRect(
@@ -401,9 +380,9 @@ function draw(){
 
         for(let x=0;x<WORLD_W;x++){
 
-            const block = world[y][x];
+            const block=world[y][x];
 
-            if(block === "air")
+            if(block==="air")
                 continue;
 
             drawBlock(
@@ -414,7 +393,7 @@ function draw(){
         }
     }
 
-    ctx.fillStyle = "red";
+    ctx.fillStyle="red";
 
     ctx.fillRect(
         player.x-camera.x,
@@ -425,7 +404,7 @@ function draw(){
 
     if(dragon.active){
 
-        ctx.fillStyle = "black";
+        ctx.fillStyle="black";
 
         ctx.fillRect(
             dragon.x-camera.x,
@@ -434,31 +413,31 @@ function draw(){
             dragon.h
         );
 
-        ctx.fillStyle = "purple";
+        ctx.fillStyle="white";
 
-        ctx.fillRect(
-            dragon.x-camera.x+25,
-            dragon.y-camera.y+20,
-            15,
-            15
-        );
-
-        ctx.fillStyle = "white";
-        ctx.font = "20px Arial";
         ctx.fillText(
-            "Dragon HP: " + dragon.hp,
+            "Dragon HP: "+dragon.hp,
             20,
             90
         );
     }
 
-    ctx.fillStyle = "white";
-    ctx.font = "18px Arial";
+    ctx.fillStyle="white";
+    ctx.font="20px Arial";
 
     ctx.fillText(
-        "Dimension: " + dimension,
+        "Dimension: "+dimension,
         20,
-        40
+        30
+    );
+
+    ctx.fillText(
+        "Coal:"+inventory.coal+
+        " Iron:"+inventory.iron+
+        " Gold:"+inventory.gold+
+        " Diamond:"+inventory.diamond,
+        20,
+        60
     );
 }
 
@@ -473,14 +452,6 @@ function gameLoop(){
 }
 
 gameLoop();
-
-window.addEventListener(
-    "resize",
-    ()=>{
-        canvas.width = innerWidth;
-        canvas.height = innerHeight;
-    }
-);
 
 </script>
 
