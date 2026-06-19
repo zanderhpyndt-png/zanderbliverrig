@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FIFA Mini 3D</title>
+<title>Mini Football Pro</title>
 
 <style>
 body { margin:0; overflow:hidden; font-family:Arial; }
@@ -30,41 +30,41 @@ ENTER = Skud
 <script type="module">
 import * as THREE from "https://unpkg.com/three@0.165.0/build/three.module.js";
 
-// Scene
+// SCENE
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
-// Kamera
+// CAMERA
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
 
-// Renderer
+// RENDERER
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Lys
+// LIGHT
 scene.add(new THREE.AmbientLight(0xffffff,0.7));
 const light = new THREE.DirectionalLight(0xffffff,1.5);
 light.position.set(10,20,10);
 scene.add(light);
 
-// Bane
+// FIELD
 const field = new THREE.Mesh(
-  new THREE.PlaneGeometry(60,40),
+  new THREE.PlaneGeometry(70,45),
   new THREE.MeshLambertMaterial({color:0x2ecc71})
 );
 field.rotation.x = -Math.PI/2;
 scene.add(field);
 
-// Spiller
+// PLAYER
 const player = new THREE.Mesh(
   new THREE.BoxGeometry(1,2,1),
   new THREE.MeshLambertMaterial({color:0x0066ff})
 );
-player.position.set(-20,1,0);
+player.position.set(-25,1,0);
 scene.add(player);
 
-// Modstander
+// ENEMY
 const enemy = new THREE.Mesh(
   new THREE.BoxGeometry(1,2,1),
   new THREE.MeshLambertMaterial({color:0xffcc00})
@@ -72,141 +72,141 @@ const enemy = new THREE.Mesh(
 enemy.position.set(0,1,0);
 scene.add(enemy);
 
-// Bold
+// BALL
 const ball = new THREE.Mesh(
   new THREE.SphereGeometry(0.5,32,32),
   new THREE.MeshLambertMaterial({color:0xffffff})
 );
-ball.position.set(-18,0.5,0);
+ball.position.set(-23,0.5,0);
 scene.add(ball);
 
-// Mål
+// GOAL
 const goal = new THREE.Mesh(
-  new THREE.BoxGeometry(1,4,10),
+  new THREE.BoxGeometry(1,5,12),
   new THREE.MeshBasicMaterial({color:0xffffff})
 );
-goal.position.set(29,2,0);
+goal.position.set(33,2.5,0);
 scene.add(goal);
 
-// Målmand
-const keeper = new THREE.Mesh(
-  new THREE.BoxGeometry(1,2,1),
-  new THREE.MeshLambertMaterial({color:0xff0000})
-);
-keeper.position.set(26,1,0);
-scene.add(keeper);
-
-// State
-let score = 0;
+// STATE
 let keys = {};
+let score = 0;
+
 let ballOwner = "none"; // player | enemy | none
 let ballVelocity = new THREE.Vector3();
+let shootDir = new THREE.Vector3(1,0,0);
 
-// Controls
-document.addEventListener("keydown", e=>{
+// INPUT
+document.addEventListener("keydown",(e)=>{
   keys[e.key.toLowerCase()] = true;
+
+  if(e.key === "w") shootDir.set(0,0,-1);
+  if(e.key === "s") shootDir.set(0,0,1);
+  if(e.key === "a") shootDir.set(-1,0,0);
+  if(e.key === "d") shootDir.set(1,0,0);
 
   // SKUD
   if(e.key === "Enter" && ballOwner === "player"){
     ballOwner = "none";
-    ballVelocity.set(1,0,0).multiplyScalar(1.2);
+    ballVelocity.copy(shootDir).multiplyScalar(1.7);
   }
 
   // TAKLING
   if(e.code === "Space"){
-    if(player.position.distanceTo(enemy.position) < 2){
+    if(player.position.distanceTo(enemy.position) < 2.2){
       ballOwner = "player";
     }
   }
 });
 
-document.addEventListener("keyup", e=>{
+document.addEventListener("keyup",(e)=>{
   keys[e.key.toLowerCase()] = false;
 });
 
-// Loop
+// LOOP
 function animate(){
   requestAnimationFrame(animate);
 
-  // Player movement
-  if(keys["w"]) player.position.z -= 0.2;
-  if(keys["s"]) player.position.z += 0.2;
-  if(keys["a"]) player.position.x -= 0.2;
-  if(keys["d"]) player.position.x += 0.2;
+// PLAYER MOVE
+if(keys["w"]) player.position.z -= 0.25;
+if(keys["s"]) player.position.z += 0.25;
+if(keys["a"]) player.position.x -= 0.25;
+if(keys["d"]) player.position.x += 0.25;
 
-  // Enemy AI (jager bold)
-  enemy.position.x += (ball.position.x - enemy.position.x)*0.02;
-  enemy.position.z += (ball.position.z - enemy.position.z)*0.02;
+// ENEMY AI (jager bold)
+enemy.position.x += (ball.position.x - enemy.position.x)*0.03;
+enemy.position.z += (ball.position.z - enemy.position.z)*0.03;
 
-  // Bold-ejerskab
-  if(ballOwner === "player"){
-    ball.position.set(
-      player.position.x + 1,
-      0.5,
-      player.position.z
-    );
+// BALL OWNERSHIP
+if(ballOwner === "player"){
+  ball.position.set(
+    player.position.x + 1,
+    0.5,
+    player.position.z
+  );
+}
+
+if(ballOwner === "enemy"){
+  ball.position.set(
+    enemy.position.x + 1,
+    0.5,
+    enemy.position.z
+  );
+}
+
+// PICKUP SYSTEM
+if(ballOwner === "none"){
+  if(player.position.distanceTo(ball.position) < 1.5){
+    ballOwner = "player";
   }
-
-  if(ballOwner === "enemy"){
-    ball.position.set(
-      enemy.position.x + 1,
-      0.5,
-      enemy.position.z
-    );
+  if(enemy.position.distanceTo(ball.position) < 1.5){
+    ballOwner = "enemy";
   }
+}
 
-  // Tager bolden hvis tæt på
-  if(ballOwner === "none"){
-    if(player.position.distanceTo(ball.position) < 1.5){
-      ballOwner = "player";
-    }
-    if(enemy.position.distanceTo(ball.position) < 1.5){
-      ballOwner = "enemy";
-    }
-  }
+// FREE BALL PHYSICS
+if(ballOwner === "none"){
+  ball.position.add(ballVelocity);
+  ballVelocity.multiplyScalar(0.96);
 
-  // Bold fysik hvis fri
-  if(ballOwner === "none"){
-    ball.position.add(ballVelocity);
-    ballVelocity.multiplyScalar(0.97);
-  }
-
-  // Keeper bevægelse
-  keeper.position.z = Math.sin(Date.now()*0.003)*4;
-
-  // Keeper redder
-  if(ball.position.distanceTo(keeper.position) < 1.2){
-    ballOwner = "none";
-    ballVelocity.multiplyScalar(-0.6);
-  }
-
-  // Mål
-  if(ball.position.x > 28 && Math.abs(ball.position.z) < 5){
-    score++;
-    document.getElementById("score").innerText = score;
-
-    ball.position.set(-18,0.5,0);
-    player.position.set(-20,1,0);
-    enemy.position.set(0,1,0);
-    ballOwner = "none";
+  if(ballVelocity.length() < 0.01){
     ballVelocity.set(0,0,0);
   }
-
-  // Kamera
-  camera.position.x = player.position.x - 8;
-  camera.position.y = 8;
-  camera.position.z = player.position.z + 10;
-  camera.lookAt(player.position);
-
-  renderer.render(scene,camera);
 }
+
+// GOALKEEPER (simple)
+if(Math.abs(ball.position.z) < 5 && ball.position.x > 30){
+  ballVelocity.x *= -0.6;
+}
+
+// GOAL
+if(ball.position.x > 32 && Math.abs(ball.position.z) < 5){
+  score++;
+  document.getElementById("score").innerText = score;
+
+  ball.position.set(-23,0.5,0);
+  player.position.set(-25,1,0);
+  enemy.position.set(0,1,0);
+  ballOwner = "none";
+  ballVelocity.set(0,0,0);
+}
+
+// CAMERA FOLLOW
+camera.position.x += (player.position.x - 10 - camera.position.x)*0.08;
+camera.position.z += (player.position.z + 10 - camera.position.z)*0.08;
+camera.position.y = 10;
+camera.lookAt(player.position);
+
+renderer.render(scene,camera);
+}
+
 animate();
 
-// Resize
-addEventListener("resize", ()=>{
-  camera.aspect = innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+// RESIZE
+addEventListener("resize",()=>{
+camera.aspect = innerWidth/innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(innerWidth,innerHeight);
 });
 </script>
 
