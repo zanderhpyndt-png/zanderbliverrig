@@ -3,23 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Fodboldspil</title>
+<title>FIFA Mini 3D</title>
 
 <style>
-body{
-    margin:0;
-    overflow:hidden;
-    font-family:Arial,sans-serif;
-}
+body { margin:0; overflow:hidden; font-family:Arial; }
 #ui{
-    position:absolute;
-    top:10px;
-    left:10px;
-    color:white;
-    background:rgba(0,0,0,0.5);
-    padding:10px;
-    border-radius:10px;
-    z-index:100;
+  position:absolute;
+  top:10px;
+  left:10px;
+  background:rgba(0,0,0,0.6);
+  color:white;
+  padding:10px;
+  border-radius:10px;
 }
 </style>
 </head>
@@ -27,8 +22,9 @@ body{
 
 <div id="ui">
 ⚽ Mål: <span id="score">0</span><br>
-WASD = Bevæg dig<br>
-ENTER = Skyd
+WASD = Bevæg<br>
+SPACE = Takling<br>
+ENTER = Skud
 </div>
 
 <script type="module">
@@ -39,216 +35,178 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 
 // Kamera
-const camera = new THREE.PerspectiveCamera(
-75,
-window.innerWidth/window.innerHeight,
-0.1,
-1000
-);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
 
 // Renderer
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth,window.innerHeight);
-renderer.shadowMap.enabled = true;
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Lys
-const sun = new THREE.DirectionalLight(0xffffff,2);
-sun.position.set(10,20,10);
-scene.add(sun);
-
-scene.add(new THREE.AmbientLight(0xffffff,0.6));
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
+const light = new THREE.DirectionalLight(0xffffff,1.5);
+light.position.set(10,20,10);
+scene.add(light);
 
 // Bane
 const field = new THREE.Mesh(
-new THREE.PlaneGeometry(60,40),
-new THREE.MeshLambertMaterial({color:0x228B22})
+  new THREE.PlaneGeometry(60,40),
+  new THREE.MeshLambertMaterial({color:0x2ecc71})
 );
-
 field.rotation.x = -Math.PI/2;
 scene.add(field);
 
-// Midterlinje
-const line = new THREE.Mesh(
-new THREE.BoxGeometry(0.2,0.01,40),
-new THREE.MeshBasicMaterial({color:0xffffff})
-);
-scene.add(line);
-
 // Spiller
 const player = new THREE.Mesh(
-new THREE.BoxGeometry(1,2,1),
-new THREE.MeshLambertMaterial({color:0x0066ff})
+  new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshLambertMaterial({color:0x0066ff})
 );
-
 player.position.set(-20,1,0);
 scene.add(player);
 
+// Modstander
+const enemy = new THREE.Mesh(
+  new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshLambertMaterial({color:0xffcc00})
+);
+enemy.position.set(0,1,0);
+scene.add(enemy);
+
 // Bold
 const ball = new THREE.Mesh(
-new THREE.SphereGeometry(0.5,32,32),
-new THREE.MeshLambertMaterial({color:0xffffff})
+  new THREE.SphereGeometry(0.5,32,32),
+  new THREE.MeshLambertMaterial({color:0xffffff})
 );
-
 ball.position.set(-18,0.5,0);
 scene.add(ball);
 
 // Mål
 const goal = new THREE.Mesh(
-new THREE.BoxGeometry(1,4,10),
-new THREE.MeshLambertMaterial({color:0xffffff})
+  new THREE.BoxGeometry(1,4,10),
+  new THREE.MeshBasicMaterial({color:0xffffff})
 );
-
 goal.position.set(29,2,0);
 scene.add(goal);
 
 // Målmand
-const goalkeeper = new THREE.Mesh(
-new THREE.BoxGeometry(1,2,1),
-new THREE.MeshLambertMaterial({color:0xff0000})
+const keeper = new THREE.Mesh(
+  new THREE.BoxGeometry(1,2,1),
+  new THREE.MeshLambertMaterial({color:0xff0000})
 );
+keeper.position.set(26,1,0);
+scene.add(keeper);
 
-goalkeeper.position.set(26,1,0);
-scene.add(goalkeeper);
-
-// Modstander
-const enemy = new THREE.Mesh(
-new THREE.BoxGeometry(1,2,1),
-new THREE.MeshLambertMaterial({color:0xffff00})
-);
-
-enemy.position.set(0,1,0);
-scene.add(enemy);
-
+// State
 let score = 0;
 let keys = {};
+let ballOwner = "none"; // player | enemy | none
 let ballVelocity = new THREE.Vector3();
-let shootDirection = new THREE.Vector3(1,0,0);
 
-// Tastatur
-document.addEventListener("keydown",(e)=>{
+// Controls
+document.addEventListener("keydown", e=>{
+  keys[e.key.toLowerCase()] = true;
 
-keys[e.key.toLowerCase()] = true;
+  // SKUD
+  if(e.key === "Enter" && ballOwner === "player"){
+    ballOwner = "none";
+    ballVelocity.set(1,0,0).multiplyScalar(1.2);
+  }
 
-if(e.key === "Enter"){
-ballVelocity.copy(
-shootDirection.clone().multiplyScalar(0.9)
-);
-}
-
+  // TAKLING
+  if(e.code === "Space"){
+    if(player.position.distanceTo(enemy.position) < 2){
+      ballOwner = "player";
+    }
+  }
 });
 
-document.addEventListener("keyup",(e)=>{
-keys[e.key.toLowerCase()] = false;
+document.addEventListener("keyup", e=>{
+  keys[e.key.toLowerCase()] = false;
 });
 
-// Spil-loop
+// Loop
 function animate(){
+  requestAnimationFrame(animate);
 
-requestAnimationFrame(animate);
+  // Player movement
+  if(keys["w"]) player.position.z -= 0.2;
+  if(keys["s"]) player.position.z += 0.2;
+  if(keys["a"]) player.position.x -= 0.2;
+  if(keys["d"]) player.position.x += 0.2;
 
-// Bevæg spiller
-if(keys["w"]){
-player.position.z -= 0.2;
-shootDirection.set(0,0,-1);
+  // Enemy AI (jager bold)
+  enemy.position.x += (ball.position.x - enemy.position.x)*0.02;
+  enemy.position.z += (ball.position.z - enemy.position.z)*0.02;
+
+  // Bold-ejerskab
+  if(ballOwner === "player"){
+    ball.position.set(
+      player.position.x + 1,
+      0.5,
+      player.position.z
+    );
+  }
+
+  if(ballOwner === "enemy"){
+    ball.position.set(
+      enemy.position.x + 1,
+      0.5,
+      enemy.position.z
+    );
+  }
+
+  // Tager bolden hvis tæt på
+  if(ballOwner === "none"){
+    if(player.position.distanceTo(ball.position) < 1.5){
+      ballOwner = "player";
+    }
+    if(enemy.position.distanceTo(ball.position) < 1.5){
+      ballOwner = "enemy";
+    }
+  }
+
+  // Bold fysik hvis fri
+  if(ballOwner === "none"){
+    ball.position.add(ballVelocity);
+    ballVelocity.multiplyScalar(0.97);
+  }
+
+  // Keeper bevægelse
+  keeper.position.z = Math.sin(Date.now()*0.003)*4;
+
+  // Keeper redder
+  if(ball.position.distanceTo(keeper.position) < 1.2){
+    ballOwner = "none";
+    ballVelocity.multiplyScalar(-0.6);
+  }
+
+  // Mål
+  if(ball.position.x > 28 && Math.abs(ball.position.z) < 5){
+    score++;
+    document.getElementById("score").innerText = score;
+
+    ball.position.set(-18,0.5,0);
+    player.position.set(-20,1,0);
+    enemy.position.set(0,1,0);
+    ballOwner = "none";
+    ballVelocity.set(0,0,0);
+  }
+
+  // Kamera
+  camera.position.x = player.position.x - 8;
+  camera.position.y = 8;
+  camera.position.z = player.position.z + 10;
+  camera.lookAt(player.position);
+
+  renderer.render(scene,camera);
 }
-
-if(keys["s"]){
-player.position.z += 0.2;
-shootDirection.set(0,0,1);
-}
-
-if(keys["a"]){
-player.position.x -= 0.2;
-shootDirection.set(-1,0,0);
-}
-
-if(keys["d"]){
-player.position.x += 0.2;
-shootDirection.set(1,0,0);
-}
-
-// Bold følger spiller
-if(player.position.distanceTo(ball.position) < 2){
-
-ball.position.x +=
-(player.position.x + 1 - ball.position.x)*0.1;
-
-ball.position.z +=
-(player.position.z - ball.position.z)*0.1;
-}
-
-// Boldfysik
-ball.position.add(ballVelocity);
-ballVelocity.multiplyScalar(0.98);
-
-// Målmand bevæger sig
-goalkeeper.position.z =
-Math.sin(Date.now()*0.003)*4;
-
-// Målmand redder
-if(ball.position.distanceTo(goalkeeper.position) < 1.2){
-
-ballVelocity.x *= -0.7;
-ballVelocity.z *= 0.7;
-}
-
-// Modstander jagter bold
-enemy.position.x +=
-(ball.position.x - enemy.position.x)*0.01;
-
-enemy.position.z +=
-(ball.position.z - enemy.position.z)*0.01;
-
-// Modstander tackler
-if(enemy.position.distanceTo(ball.position) < 1.3){
-
-ballVelocity.x = -0.4;
-}
-
-// Mål
-if(
-ball.position.x > 28 &&
-Math.abs(ball.position.z) < 5
-){
-
-score++;
-document.getElementById("score").textContent = score;
-
-ball.position.set(-18,0.5,0);
-player.position.set(-20,1,0);
-ballVelocity.set(0,0,0);
-}
-
-// Kamera følger spilleren
-camera.position.x = player.position.x - 8;
-camera.position.y = 8;
-camera.position.z = player.position.z + 10;
-
-camera.lookAt(
-player.position.x,
-0,
-player.position.z
-);
-
-renderer.render(scene,camera);
-}
-
 animate();
 
 // Resize
-window.addEventListener("resize",()=>{
-
-camera.aspect =
-window.innerWidth/window.innerHeight;
-
-camera.updateProjectionMatrix();
-
-renderer.setSize(
-window.innerWidth,
-window.innerHeight
-);
-
+addEventListener("resize", ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
 });
 </script>
 
